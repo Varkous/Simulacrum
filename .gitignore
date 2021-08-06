@@ -1,4 +1,3 @@
-
 node_modules/.bin/ejs.cmd
 node_modules/.bin/ejs.ps1
 node_modules/.bin/jake
@@ -1660,46 +1659,7 @@ node_modules/yallist/LICENSE
 node_modules/yallist/package.json
 node_modules/yallist/README.md
 node_modules/yallist/yallist.js
-package-lock.json
-package.json
-routes/routes.js
-scripts/Aesthetics.js
-scripts/ContentCreation.js
-scripts/Core.js
-scripts/Deletion.js
-scripts/Interactive.js
-scripts/KeyMouseTriggers.js
-scripts/Mischellaneous.js
-scripts/StageAndUpload.js
-styles/animations.css
-styles/body-logo.css
-styles/colors.css
-styles/error.css
-styles/fa-icons.css
-styles/file-list.css
-styles/footer.css
-styles/general.css
-styles/head.css
-styles/login.css
-styles/main.css
-styles/media-queries.css
-styles/webfonts/fa-brands-400.eot
-styles/webfonts/fa-brands-400.svg
-styles/webfonts/fa-brands-400.ttf
-styles/webfonts/fa-brands-400.woff
-styles/webfonts/fa-brands-400.woff2
-styles/webfonts/fa-regular-400.eot
-styles/webfonts/fa-regular-400.svg
-styles/webfonts/fa-regular-400.ttf
-styles/webfonts/fa-regular-400.woff
-styles/webfonts/fa-regular-400.woff2
-styles/webfonts/fa-solid-900.eot
-styles/webfonts/fa-solid-900.svg
-styles/webfonts/fa-solid-900.ttf
-styles/webfonts/fa-solid-900.woff
-styles/webfonts/fa-solid-900.woff2
 uploads/desktop.ini
-uploads/favicon.ico
 users/Lancer/Drum Samples/Cymbals/8 Splash.wav
 users/Lancer/Drum Samples/Cymbals/8CrashFl.wav
 users/Lancer/Drum Samples/Cymbals/8oh8Crsh.wav

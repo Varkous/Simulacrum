@@ -14,4 +14,9 @@
     "local-devices": "^3.1.0",
     "multer": "^1.4.2"
   }
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Varkous/Simulacrum.git",
+    "email" : "varkous@protonmail.com"
+  }
 }
