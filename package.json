@@ -9,7 +9,7 @@
   "dependencies": {
     "adm-zip": "^0.5.5",
     "agentkeepalive": "^4.1.4",
-    "argon2": "^0.27.1",
+    "argon2": "^0.27.2",
     "axios": "^0.21.1",
     "body-parser": "^1.19.0",
     "dotenv": "^10.0.0",
@@ -24,6 +24,6 @@
   "repository": {
     "type": "git",
     "url": "git://github.com/Varkous/Simulacrum.git",
-    "email" : "varkous@protonmail.com"
+    "email": "varkous@protonmail.com"
   }
 }
