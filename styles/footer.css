@@ -1,0 +1,161 @@
+/* Footer/Panel stuff, everything after the file list */
+#panelHeader {
+  border: 1px solid grey;
+  box-shadow: inset 9px 12px 8px black, inset 12px 14px 16px black;
+  background: rgba(0,0,0,0.6);
+
+  position: fixed;
+  transform: translateY(100%);
+  width: 100%;
+  bottom: 0;
+  z-index: 10;
+}
+svg {
+  z-index: 0;
+  position: absolute;
+  left: 0;
+  top: 0;
+  fill: none;
+  transition: 1.5s ease-in-out;
+  stroke: #fff;
+  stroke-dasharray: 1450 4900;
+  stroke-dashoffset: -4900;
+/* Stroke settings change the width of travel line, the distance, and speed it goes around its desginated width/height parameters defiend in the <svg> element itself */
+}
+#panelHeader:hover svg {
+  stroke-dashoffset: 3600;
+  stroke: #22a0f4;
+
+  stroke-width: 6px;
+}
+#panelButtons {
+
+  z-index: 8;
+  display:flex;
+  justify-content: space-around;
+} #panelButtons button {
+  background: rgba(60,60,60,0.9);
+  font-family: 'Allerta Stencil';
+
+  z-index: 4;
+  min-width: 120px;
+} #panelButtons button:hover::before {
+  border-radius: 15px;
+  font-family: 'Courier';
+  background: rgba(0,0,0,0.9);
+  box-shadow: inset 1px 1px 1px 3px #22a0f4;
+
+  bottom: 100%;
+  left: 0;
+  transition: all 0.5s ease-in-out;
+  font-size: 1.0rem;
+  padding: 17px;
+  width: auto;
+  max-width: 450px;
+  position: fixed;
+}
+#overheadPanel:hover::before {
+  content: 'Presents a basic list-view of all files/folders in the current directory, including staged/selected files. Provides quicker navigation, ideal for mobile, or in a very large directory.';
+}
+#downloadBtn:hover::before {
+  content: 'Download any selected files/folders, or everything in the current folder if nothing is selected';
+}
+#transferBtn:hover::before {
+  content: 'Moves any selected items to the targeted folder destination. Hold CTRL button to copy instead';
+}
+#deleteBtn:hover::before {
+  content: 'Removes the selected items from the current folder, or removes all items if nothing is selected. This cannot be undone';
+}
+#moreFiles:hover::before {
+  content: 'Loads more files further down the list. Hold the SHIFT key to load all files/folders in the entire directory';
+}
+
+/* ----------------------------- */
+footer {
+  font-family: 'Allerta Stencil';
+  transition: all 1s ease;
+
+  display:flex;
+  flex-wrap: wrap;
+  min-height: 200px;
+  width: 100%;
+}
+ol {
+  font-family: 'Courier New';
+  background: rgba(0,0,0, 0.9);
+  transition: all 1.5s ease;
+  list-style-position: inside;
+  /* Places list numbers inside text */
+
+  width: auto;
+  margin: auto;
+  min-width: 220px;
+  max-height: 230px;
+  font-size: 1.2rem;
+  overflow: scroll !important;
+}
+.list-holder {
+  max-width: 60% !important;
+  margin-top: 20px;
+}
+.hide-lists {
+  background: black;
+  font-weight: bold;
+  z-index: 7;
+
+  position: absolute;
+  right: 0;
+  top: -20px;
+  margin: -2px;
+}
+.fa-eye {
+  color: aliceblue;
+  left: 15;
+  top: 0;
+} .fa-eye:hover {
+  text-shadow: 2px 2px 3px #22a0f4;
+
+}
+ol li {
+  cursor: crosshair;
+
+  position: relative;
+  padding: 4px;
+  margin: 0px 3px 0px 3px;
+} ol li:hover .fa-edit{
+  background: black;
+
+  display: block;
+  position: absolute;
+  bottom: 5px;
+  left: 0;
+  z-index: 8;
+}
+.panel-dirtarget { color: #22a0f4; }
+.all-files li { border: 1px solid #22a0f4; }
+.staged-files li { border: 1px solid peru; }
+.staged-files .selected { color: rgb(110, 220, 110); }
+.selected-files li { border: 1px solid green;}
+.selected-files li span { color: rgb(110, 220, 110);}
+
+/* -------------------- */
+li.selected a, li.selected i:first-child {
+  border: 2px double green;
+  box-shadow: 0px 0px 0px;
+  color: #3fff00;
+}
+/* -------------------- */
+.changed a, .changed {
+  color: #b59f73 !important;
+}
+.view-listing {
+  color: inherit;
+  background: black;
+
+  width: 90% !important;
+} .view-listing li {
+  text-align: left;
+
+  border: 0px solid black;
+}
+/* -------------------- *//* -------------------- */

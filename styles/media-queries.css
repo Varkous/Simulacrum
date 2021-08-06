@@ -1,0 +1,83 @@
+/* Media queries. Form, Panel (footer), Directory List and of course File List need to be adjusted*/
+/* ==================== Laptop size ====================== */
+@media only screen and (max-width: 1300px) {
+
+  form {
+    display: flex;
+    flex-direction: column;
+  }
+  #directoryList {
+    width: 100%;
+  }
+  #panelButtons, footer input {
+    position: sticky;
+    top: 0;
+  }
+  footer ol {
+    display: flex;
+    flex-flow: wrap;
+  }
+  li *{
+    font-family: 'Arial';
+    font-size: 0.8rem !important;
+  }
+}
+/* ==================== Mobile size ====================== */
+@media only screen and (max-width: 750px) {
+  body * {      font-size: 1.1rem;      }
+  /* ------------------------------------ */
+  #MessageLog {     left: 0;    }
+  /* ------------------------------------ */
+  .logo:not(.high-index)  {
+    transition: all 0.5s ease-in-out;
+    width: 80px;
+    left: -60px;
+  } .logo:hover {
+    left: 0;
+  }
+  /* ------------------------------------ */
+  nav:hover {    max-width: 300px;    }
+  /* ------------------------------------ */
+  #logDisplay {
+    width: 90%;
+    font-size: 1.0rem;
+  }
+  .header h1{
+    margin: 0;
+    padding: 1%;
+  }
+  .directory-stats {
+    max-width: 100%;
+    z-index: 7;
+    margin: 0px 5px 0px 5px;
+  }
+  .file-search, .resize {
+    position: relative;
+  }
+  .input-container {
+    align-items: center;
+    flex-direction: column;
+  } .target-folder-div {
+    flex-wrap: wrap;
+  }
+  .column {
+    min-width: 270px;
+    width: 100%;
+    flex-basis: 100%;
+  }
+  #panelButtons button {
+    font-size: 0px;
+    min-width: 50px;
+    margin: auto;
+  }
+  #panelButtons button span {    font-size: 12px;     }
+  /* ------------------------------------ */
+  .list-holder {    max-width: 90% !important;    }
+  /* ------------------------------------ */
+  footer i {    font-size: 22px !important;     }
+  /* ------------------------------------ */
+  #questionMessage, .info-list,   #moreFiles span {
+    display: none;
+  }
+  /* ------------------------------------ */
+}

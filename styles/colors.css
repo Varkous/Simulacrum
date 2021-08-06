@@ -1,0 +1,16 @@
+/* ----------------------------- */
+.red{ background: rgb(220, 60, 60); }
+.blue{ background: #22a0f4; }
+.green{ color: rgb(110, 220, 110); }
+.yellow{ background: rgb(120, 120, 25); }
+.dimred{ background: rgb(100, 30, 30); }
+.dimgreen{ background: rgb(30, 100, 30); }
+.dimblue{ color: #22a0f4; }
+.darkcyan{ color: darkcyan; }
+.purple{ background: rgb(40, 40, 110); }
+.dimyellow{ background: rgb(120, 120, 30); }
+.white { color: rgb(230, 230, 230); }
+.gray { color: rgb(130, 130, 130); }
+.orange { color: rgb(160, 100, 40); }
+.dark {background: black; color: gray;}
+.transparent { background: transparent; }

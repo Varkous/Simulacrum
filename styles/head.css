@@ -1,0 +1,152 @@
+.logo {
+  background: rgb(20, 20, 100);
+  border-radius: 50%;
+  box-shadow: 1px 12.8px 12.2px #22a0f9,
+  1px 6.7px 25.3px #22a0f9,
+  1px 12.5px 10px #22a0f9,
+  1px 41.8px 33.4px rgba(0,0,0,0.7),
+  1px 10px 80px #22a0f4,
+  inset 1px 5px 7px 9px #22a0f9;
+
+  position: fixed;
+  display: flex;
+  justify-content: center;
+  top: 2px;
+  left: 7px;
+  z-index: 8;
+} .logo:hover {
+  background: rgb(220, 240, 255);
+  box-shadow: 1px 12.8px 12.2px #22a0f9,
+  1px 6.7px 5.3px #22a0f9,
+  1px 12.5px 10px #22a0f9,
+  1px 41.8px 33.4px rgba(0,0,0,0.7),
+  1px 10px 80px #22a0f4,
+  inset 1px 5px 7px 9px #22a0f9,
+  1px 10px 80px rgb(240, 240, 255);
+
+  transition: transform 1s ease;
+}
+nav::-webkit-scrollbar { display: none; }
+nav {
+  background: rgba(10,10,10,0.8);
+  border-radius: 50px;
+  border: 1px double gray;
+
+  transition: all 1s ease-in-out;
+  overflow: scroll;
+  font-size: 0rem;
+  flex-direction: column;
+  top: 110px;
+  left: -3px;
+  align-self: baseline;
+  position: fixed;
+  z-index: 11;
+  height: 73%;
+  max-width: 400px;
+  width: 0px;
+} nav:hover {
+  transition: all 1s ease;
+  font-size: 1.2rem;
+  padding: 15px;
+  max-width: 400px;
+  width: 400px;
+}
+.navlink {
+  background-color: rgba(60,60,60,0.5);
+  font-family: 'Courier New';
+
+  transition: transform 1s ease;
+  font-size: 1.3rem;
+  width: 90%;
+  padding: 2%;
+  margin: 1%;
+} .navlink:hover {
+  color: white;
+  text-shadow: 21px 41.8px 33.4px white;
+  box-shadow: 2px 3px 12px 2px white;
+} .navlink a {
+  color: #22a0f4 !important;
+  -webkit-text-stroke: 0.3px white !important;
+  display: flex;
+  flex-direction: column;
+  font-size: 1.2rem;
+  color: inherit;
+}
+.navlink i { float: left; }
+#myDir i { text-shadow: 2px 2px 2px green; }
+#viewDir i { text-shadow: 2px 2px 2px blue; }
+#myItems i { text-shadow: 2px 2px 2px darkcyan; }
+#openLog i { text-shadow: 2px 2px 2px peru; }
+
+.glow-right {
+  background: rgba(0,0,0,0.5);
+  background-image: linear-gradient(to bottom right, rgba(100,160,240,0.3), rgba(40,70,120,0.3)), url('/Gray-Smooth Surface.png');
+}
+
+/* --------------------- */
+.header {
+  color: darkgray;
+  text-shadow: 9px 9px 9px black;
+	font-family: 'ui-monospace';
+
+  font-size: 0.6rem;
+  align-self: center;
+  flex-direction: column;
+}
+.header span { color: #22a0f4; }
+.header h1 { margin: 50px 150px 0px 150px; }
+.info-list {
+  font-family: 'Arial';
+  font-weight: lighter;
+  border-radius: 3px;
+  list-style-position: inside;
+
+  font-size: 0px;
+  transition: font-size 1s ease;
+  padding: 10px;
+} .info-list:hover {
+  transition: font-size 1s ease;
+  font-size: inherit !important;
+}
+
+#MessageLog::-webkit-scrollbar {
+  display: none;
+}
+#MessageLog {
+  font-family: 'Courier';
+  color: white;
+  background-color: rgba(0,0,0,0.7);
+  border-radius: 25px;
+  overflow-y: scroll;
+  transition: all 1s ease-in-out;
+
+  position: fixed;
+  z-index: 7;
+  padding: 16px;
+  font-size: 0.6rem;
+  max-width: 350px;
+  min-width: 280px;
+  max-height: 100%;
+  width: auto;
+  text-align: center;
+  word-wrap: break-word;
+  text-overflow: wrap;
+  left: 43%;
+} #MessageLog span {
+  color: darkcyan;
+}
+.success-box { border: 0.5px solid #407a52; }
+.warning-box { border: 0.5px solid gold; }
+.error-box { border: 0.5px solid #7f1515; }
+#logDisplay {
+  color: rgb(100,100,100);
+  font-family: 'Courier New';
+  font-weight: bold;
+
+  float: right;
+  width: 60%;
+  font-size: auto;
+  text-indent: 2px;
+  padding: 4px;
+}
+/* -------------------- *//* -------------------- */

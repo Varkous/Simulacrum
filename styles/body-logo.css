@@ -1,0 +1,23 @@
+/* Used by all three EJS view pages as the constant, fixed background image on the HTML element*/
+/* ==================== Laptop size ====================== */
+.shadow-image {
+  visibility: visible !important;
+  z-index: -1;
+
+  position: fixed !important;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: auto;
+}
+.shadow-image::before {
+  content: "";
+  visibility: visible !important;
+  box-shadow: inset 10px 10px 200px 200px black;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+}

@@ -1,0 +1,251 @@
+/* --------------------- */
+form, .input-container, .file-box, .file-label, .column, .source-icons {
+  display: flex;
+  justify-content: center;
+}
+main {
+  background-image: url('/Gray-Smooth Surface.png');
+  background-size: repeat;
+
+  position: relative;
+  width: auto;
+	padding: 1%;
+}
+#primeDirectoryInput {
+  color: #22a0f4;
+
+  padding: 3px;
+  font-size: 1.3rem;
+  min-width: 200px;
+  max-height: 60px;
+  min-height: 25px;
+} #editPrime {
+  border: 2px solid #22a0f4;
+  border-radius: 10px;
+
+  text-align: center;
+  min-width: 160px;
+}
+#directoryList {
+  font-family: 'Alegreya Sans SC', 'Courier';
+  background: rgba(0,0,0,0.8);
+  border: 2px double gray;
+  overflow-y: scroll;
+
+  width: 50%;
+  max-height: 900px;
+  padding: 3px;
+}
+#tableOfDirectories {
+
+  margin-top: 10px;
+  width: 100%;
+}
+td {
+  background: rgba(0,0,0,0.7);
+  border: 1px double #22a0f4;
+
+  font-size: 1.1rem;
+  word-wrap: break-word;
+  display: inline-flex;
+  padding: 4px;
+} .folder-link {
+  font-family: 'Courier';
+  font-weight: normal;
+
+  font-size: 1.1rem;
+}
+.directory-stats {
+  font-family: 'Courier New';
+  background: rgba(0,0,0,0.8);
+  border-radius: 15px;
+  color: grey;
+
+  position: fixed;
+  align-self: baseline;
+  z-index: 5;
+  right: 5px;
+  top: 5px;
+  padding: 8px;
+  max-width: 50%;
+  text-wrap: break-word;
+  font-size: 1.2rem;
+}
+.directory-stats span {
+  text-align: center;
+  color: #29a0f8;
+  font-size: 1.3rem;
+}
+#fileFolderInput {
+  font-family: 'Alegreya Sans SC';
+
+  width: 100%;
+  margin: auto;
+}
+/* -------------------- */
+#questionMessage {
+  font-family: 'Trebuchet MS';
+  color: grey;
+
+  transition: all 1.5s ease;
+} .show {
+  transform: scale(1.0) !important;
+  font-size: 1.0rem !important;
+}
+.current-directory {
+  background: rgba(30, 30, 30, 0.7);
+  color: white;
+  box-shadow: 1px 8px 12px 8px black;
+  text-shadow: 9px 12px 14px black;
+  border-radius: 3px;
+  font-family: 'Trebuchet MS';
+
+  font-size: 1.2rem;
+  text-align: center;
+  max-width: 500px;
+  min-width: 270px;
+  padding: 5px;
+  margin-top: 10px;
+}
+.input-container {
+
+  align-items: center;
+  flex-direction: column;
+}
+/* -------------------- */
+label {
+	border-radius: 3%;
+
+  font-size: 1.4rem;
+  margin: 5px;
+  padding: 2px;
+}
+.file-box {
+
+  margin: auto;
+  font-size: 1.4rem;
+  width: 50%;
+}
+.folder-label {
+  cursor: pointer;
+  transition: all 0.5s ease-in-out;
+} .folder-label:hover {
+  transform: scale(0.9);
+  border: 2px solid blue;
+}
+.file-label {
+  cursor: pointer;
+  background-image: linear-gradient( #22a0f4, black);
+  border-top: 2px double gray;
+  border-left: 2px double gray;
+  box-shadow: 1px 4px 3px 4px black;
+
+  flex-direction: column;
+  align-items: center;
+  margin: auto;
+  min-width: 250px;
+  height: 200px;
+} .file-label:active {
+  border-top: 1px double gray;
+  border-left: 1px double gray;
+  border-bottom: 2px double gray;
+  border-right: 2px double gray;
+  box-shadow: 7px 3px 3px 4px black;
+} .file-name {
+  background: #282e38;
+  border-radius: 10px;
+  border: 1px solid gray;
+
+  padding: 3px;
+  width: 90%;
+}
+i, .fa{
+  transition: all 0.2s ease-in-out;
+  margin: 0 6px 0 6px;
+}
+.fa:hover {
+  text-shadow: 2px 2px 2px white;
+  transform: scale(0.9);
+}
+.fa-folder:hover {
+  cursor: cell;
+  transition: all 0.2s ease-in-out;
+  text-shadow: 3px 3px 3px #22a0f4;
+}
+.fa-info-circle:hover {
+  text-shadow: 3px 3px 3px #22a0f4;
+  transform: scale(1.1);
+}
+.input {
+  font-family: 'Miriam Libre';
+  color: #22a0f4;
+  background-color: rgba(0,0,0,0.3);
+
+  font-size: 1.1rem;
+}
+#FolderInput {
+  background: rgba(0,0,0,0.8);
+
+  position: relative;
+  padding: 3px;
+  min-width: 230px;
+  width: 100%;
+  text-overflow: break-word;
+} #FolderInput:disabled {
+  color: gray;
+} #eraseInput:active {
+  transform: scale(0.9);
+  box-shadow: 3px 3px 3px #22a0f4;
+}
+#folderInfo {
+  font-family: 'Trebuchet MS';
+  background: rgba(0,0,0,0.7);
+  border: 3px double gray;
+  padding: 5px;
+}
+
+#folderSuggestions {
+  background: rgba(0,0,0,0.3);
+
+  font-size: 1.3rem;
+  transition: all 1s ease-in-out;
+  overflow-y: scroll;
+  display: flex;
+  flex-direction: column;
+  width: 90%;
+  max-height: 300px;
+  min-width: 320px;
+} #folderSuggestions a:focus {
+  color: white;
+  border: 1px solid white;
+  background-color: transparent;
+
+  align-self: baseline;
+} #folderSuggestions span {
+  color: white;
+}
+.file-search, .resize {
+  position: sticky;
+  z-index: 3;
+  top: 0px;
+}
+.file-search {
+  color: darkcyan;
+  background: black;
+  font-family: 'Courier New';
+
+  min-width: 300px;
+  max-height: 40px;
+  font-size: 1.2rem;
+  left: 0;
+} .resize {
+  color: transparent;
+  border-radius: 10%;
+  text-shadow: 1px 1px 3px black;
+  -webkit-text-stroke: 1px #22a0f4;
+
+  float: right;
+  margin: 5px;
+} .resize i {font-size: 28px !important;}
+  .resize:hover {text-shadow: 1px 1px 1px white;}
+/* -------------------- *//* -------------------- */

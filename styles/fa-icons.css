@@ -1,0 +1,110 @@
+/*!
+ *  Font Awesome 4.7.0 by @davegandy - http://fontawesome.io - @fontawesome
+ *  License - http://fontawesome.io/license (Font: SIL OFL 1.1, CSS: MIT License)
+ */
+
+/* Basic styling, positioning and sizing for the variations of font placement */
+
+/* Icons themselves, we declared only the ones we used on the website */
+.fa-arrows:before{content:"\f047"}
+.fa-arrows-alt:before{content:"\f0b2"}
+.fa-arrow-left:before{content:"\f060"}
+.fa-arrow-right:before{content:"\f061"}
+.fa-arrow-up:before{content:"\f062"}
+.fa-arrow-down:before{content:"\f063"}
+.fa-arrow-circle-o-down:before{content:"\f01a"}
+.fa-arrow-circle-o-up:before{content:"\f01b"}
+.fa-arrow-circle-left:before{content:"\f0a8"}
+.fa-arrow-circle-right:before{content:"\f0a9"}
+.fa-arrow-circle-up:before{content:"\f0aa"}
+.fa-arrow-circle-down:before{content:"\f0ab"}
+.fa-arrow-circle-o-right:before{content:"\f18e"}
+.fa-arrow-circle-o-left:before{content:"\f190"}
+.fa-archive:before {content: "\f187"}
+.fa-angle-double-right:before {content: "\f101"}
+
+.fa-clipboard:before{content:"\f0ea"}
+.fa-cart-arrow-down:before{content:"\f218"}
+
+.fa-download:before{content:"\f019"}
+
+.fa-edit:before {content: "\f044"; }
+.fa-eye:before {content: "\f06e"; }
+.fa-eye-slash:before {content: "\f070"; }
+
+.fa-folder:before{content:"\f07b"}
+.fa-folder-open:before{content:"\f07c"}
+.fa-folder-o:before{content:"\f114"}
+.fa-folder-open-o:before{content:"\f115"}
+.fa-file-text-o:before{content:"\f0f6"}
+.fa-file-text:before{content:"\f15c"}
+
+.fa-house-user:before {content: "\e065"; }
+
+.fa-info:before {content: "\f129"}
+
+.fa-info-circle:before {content: "\f05a"}
+
+.fa-long-arrow-down:before{content:"\f175"}
+.fa-long-arrow-up:before{content:"\f176"}
+.fa-long-arrow-left:before{content:"\f177"}
+.fa-long-arrow-right:before{content:"\f178"}
+.fa-list-ul:before{content:"\f0ca"}
+.fa-list-ol:before{content:"\f0cb"}
+.fa-list-alt:before{content:"\f022"}
+.fa-list:before{content:"\f03a"}
+.fa-layer-group:before {content: "\f5fd"; }
+
+.fa-question-circle:before{content:"\f059"}
+.fa-question:before{content:"\f128"}
+.fa-question-circle-o:before{content:"\f29c"}
+
+.fa-sign-out:before { content: "\f2f5"; }
+
+.fa-search:before{content:"\f002"}
+.fa-search-plus:before{content:"\f00e"}
+.fa-search-minus:before{content:"\f010"}
+
+.fa-trash:before {
+  content: "\f1f8"; }
+
+.fa-trash-alt:before {
+  content: "\f2ed"; }
+
+.fa-trash-restore:before {
+  content: "\f829"; }
+
+.fa-trash-restore-alt:before {
+  content: "\f82a"; }
+
+.fa-times:before{content:"\f00d"}
+.fa-times-circle:before {content: "\f057" }
+.fa-th-large:before{content:"\f009"}
+.fa-th:before{content:"\f00a"}
+.fa-th-list:before{content:"\f00b"}
+
+.fa-upload:before{content:"\f093"}
+
+.fa-meetup:before{content:"\f2e0"}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0, 0, 0, 0);border:0}.sr-only-focusable:active,.sr-only-focusable:focus{position:static;width:auto;height:auto;margin:0;overflow:visible;clip:auto}
+
+@font-face {
+  font-family: 'Font Awesome';
+  font-style: normal;
+  font-weight: 900;
+  font-display: block;
+
+  src: url("../webfonts/fa-solid-900.eot");
+  src: url("../webfonts/fa-solid-900.eot?#iefix") format("embedded-opentype"), url("../webfonts/fa-solid-900.woff2") format("woff2"), url("../webfonts/fa-solid-900.woff") format("woff"), url("../webfonts/fa-solid-900.ttf") format("truetype"), url("../webfonts/fa-solid-900.svg#fontawesome") format("svg"); }
+
+.fa {
+  font-family: 'Font Awesome';
+  font-weight: 900;
+  font-size: 1.3rem !important;
+
+  display: inline-block;
+  font: normal normal normal 4px/1 'Font Awesome';
+  font-size: inherit;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

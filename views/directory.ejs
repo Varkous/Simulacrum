@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <!-- ====================== Essential scripts ======================== -->
+  <meta http-equiv="Content-Security-Policy" content="default-src
+    'self'
+    'unsafe-inline'
+    https://code.jquery.com
+    https://unpkg.com
+  ">
+
+  <!-- JQuery --><script
+  src="https://code.jquery.com/jquery-3.5.1.min.js"
+  integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0="
+  crossorigin="anonymous"></script>
+  <!-- JQuery for drag/drop --><script
+  src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
+  integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="
+  crossorigin="anonymous"></script>
+  <!-- Axios --><script type="text/javascript" src="https://unpkg.com/axios@0.21.1/dist/axios.min.js"></script>
+
+<!-- ====================== Essential back-end data ======================== -->
+  <script type="text/javascript">
+    const UsersDirectory = <%-JSON.stringify(UsersDirectory)%>;
+    const UserSession = <%-JSON.stringify(UserSession)%>;
+    let Partition = <%-JSON.stringify(partition)%>.replace(`/${UserSession.user.name}`, '');
+    let firstVisit = <%-JSON.stringify(firstVisit)%>;
+    //When user has set private directory to be home directory, we remove user name from the partition (which is supposed to be there on the back-end, but creates bugs on the front end).
+  </script>
+
+<!-- ================================ CSS ================================== -->
+<link type="text/html" href="/fonts">
+<link rel="stylesheet" type="text/css" href="/fa-icons.css">
+<link rel="stylesheet" type="text/css" href="/general.css">
+<link rel="stylesheet" type="text/css" href="/colors.css">
+<link rel="stylesheet" type="text/css" href="/head.css">
+<link rel="stylesheet" type="text/css" href="/main.css">
+<link rel="stylesheet" type="text/css" href="/file-list.css">
+<link rel="stylesheet" type="text/css" href="/footer.css">
+<link rel="stylesheet" type="text/css" href="/animations.css">
+<link rel="stylesheet" type="text/css" href="/media-queries.css">
+<link rel="stylesheet" href="/body-logo.css">
+<!-- ======================================================================= -->
+
+<title>Simulacrum</title>
+</head>
+
+  <div class="dialog-cover hide">
+    <div class="dialog-box">
+  <!-- Message and response buttons go here -->
+    </div>
+  </div>
+
+  <div class="shadow-image">
+    <img src="/voidglobe.gif" class="background-logo">
+  </div>
+
+  <body ondrop="fileDragger(event)" ondragover="fileDragger(event)">
+
+    <div id="MessageLog" class="message fadeout hide">
+      <i class="fa fa-times"></i>
+      <!-- Javascript will put message here based on error triggered -->
+    </div>
+
+  <aside>
+    <a id="logoLink" href="/" draggable="true"><img class="logo" src="/TNT Logo.png" alt="" width="90"></a>
+
+    <nav>
+
+      <% if (partition.includes(UserSession.user.name)) {%>
+      <button class="navlink">
+        <a href="/users/<%=UserSession.user.name%>">
+          <span>Public Directory</span>
+          <img src="/public-folder.png" height="120px" width="140px" style="align-self: center">
+        </a>
+      </button>
+
+      <%} else {%>
+      <button id="myDir" class="navlink">
+        <i class="fa fa-house-user"></i>
+        <a href="/users/<%=UserSession.user.name%>">
+          Private Directory
+        </a>
+      </button>
+      <%}%>
+
+      <button id="viewDir" class="navlink">
+        <i class="fa fa-arrow-right"></i>
+        <a class="view-dir"href="/">View Target Folder</a>
+      </button>
+
+      <% if (!directory) {%>
+      <button id="myItems" class="navlink">
+        <i class="fa fa-archive"></i>
+          <a href="#">Next File Set <span id="dirIndex">(1)</span></a>
+      </button>
+      <%}%>
+
+      <button id="openLog" class="navlink show-modal">
+        <i class="fa fa-clipboard" style="font-size: 0.8rem;"></i>
+        <a href="#">Open Log</a>
+      </button>
+
+      <div id="LOG_Modal" class="modal">
+
+        <div style="display:flex; padding: 15px;">
+          <h1 style="margin: auto;">Viewing log information</h1>
+          <button type="button" class="my-button dark closemodal" style="float: right; color: peru;">Close Log</button>
+        </div>
+
+        <hr>
+        <textarea id="logDisplay" class="view-text" style="filter: invert(100%);" disabled>
+        </textarea>
+      </div>
+
+      <button class="navlink">
+        <i class="fa fa-sign-out"></i>
+        <a href="/login">Signout</a>
+      </button>
+
+    </nav>
+
+
+    <div class="message directory-stats fadeout">
+      <!-- Hovering over a directory reveals the stats/sub-folders here -->
+    </div>
+  </aside>
+
+  	<main>
+<!-- ================ -->
+<script type="text/javascript" src="/Aesthetics.js"></script>
+<!-- ================ -->
+    	<header class="header d-flex">
+
+        <h1>
+        <% if (directory) {%>
+      		Browsing directory: <span><%= directory.name %></span>. <br> Created by: <span>User <%=directory.stats.uid %></span> on <%=directory.stats.birthtime %>. <br>There are currently <span><%=directory.files.length%></span> entries listed.
+          <ul class="info-list">
+            <li>Click folder icons <i class="fa fa-folder"></i> to add their name/path to the folder designation input</li>
+            <hr>
+            <li>Hold down left-click and drag the mouse (left to right) over items to select them</li>
+            <hr>
+            <li>Similarly, you can hold down left-click on an item in the File Table to start dragging it</li>
+            <hr>
+            <li>When transferring, Hold CTRL to copy any selected items, rather than moving them</li>
+            <hr>
+            <li>On clicking a panel button, hold down SHIFT if you wish to Download, Transfer, Delete, or Show all items in the current directory</li>
+            <hr>
+            <li>Double-clicking while holding down SHIFT will select/unselect all items in the given file View</li>
+          </ul>
+          <!-- <p style="font-size: 0px; transition: font-size 1s ease;">Click the Overhead Panel for condensed view on contents. Visit Control Info within Navbar <span><img src="/TNT Logo.png" alt="" width="50"></span> for shorthand controls.</p> -->
+        <% } else {%>
+          You can interact with the Skeleton Hill database here, though optimization is limited. <br>Videos, audio, images, zips and text files that are less than 1 gigabyte are the data types that will be transmitted most reliably. If you have several files, especially any large ones, compress them into a ZIP before uploading.
+          <hr>
+          After selecting items to upload, input a folder to create and/or upload to, hit SUBMIT, and the contents should be displayed down below shortly afterwards.<br>
+        <% } %>
+        <br><br>
+        </h1>
+    	</header>
+
+    <hr>
+    <br>
+
+  	 <form id="fileForm" class="form" Method="POST" action="/<%=partition%>" enctype="multipart/form-data">
+
+     <section id="directoryList">
+
+      <table id="tableOfDirectories">
+        <h1 title="Primary folders for all other sub-directories. Gotta start somewhere right? Generally, any new folders you create should ideally be a sub-directory from one of these, unless the content is unrelated to the names." style="cursor: help;">Base Folders/Primary Directories</h1>
+
+        <li id="primeDirectoryInput" class="d-flex" style="justify-content: center">
+          <i class="fa fa-trash-alt" style="color: gray" onclick="sendDeleteRequest({name: this.parentNode.title, path: CurrentFolder}, true)"></i>
+          <a id="editPrime" href="#" disabled="true" title="Drag a primary directory into the box, or click its folder icon to stage it for edit or deletion."></a>
+          <i class="fa fa-edit" onclick="makeEdit($(this), $(this).prev('a'))"></i>
+        </li>
+        <% let dirname;%>
+        <% if (directory && UserSession.home === UsersDirectory) {%>
+          <% dirname = directory.name.slice(UserSession.user.name.length + 1)%>
+          <% directory.layers.splice(0, 1) %>
+        <%} else if (directory) {%>
+          <% dirname = directory.name%>
+        <%}%>
+
+        <% for (let i = 0; i < PrimaryDirectories.length; i++) {%>
+          <% if (directory && dirname === PrimaryDirectories[i].name ||
+          directory && directory.layers[0] === PrimaryDirectories[i].name) {%>
+              <!-- The first element of 'layers' is always the top-level directory or current directory. Highlight it -->
+
+              <td>
+                <i class="fa fa-folder-open"></i>
+                <% for (let i = 1; i < directory.layers.length; i++) {%>
+                  .
+                <!-- A dot (period) for each "floor" down we are in the current directory -->
+                <%}%>
+                <a id="directory<%=i%>" class="white" href="#"><%=PrimaryDirectories[i].name%></a>
+              </td>
+
+
+          <%} else {%>
+          <!-- Otherwise list normally -->
+            <td title="<%=PrimaryDirectories[i].name%>">
+              <i class="fa fa-folder"></i>
+              <a id="directory<%=i%>" class="folder-link" href="/<%=partition + PrimaryDirectories[i].name%>"><%=PrimaryDirectories[i].name%></a>
+            </td>
+          <%}%>
+
+        <%}%>
+
+      </table>
+     </section>
+
+      <div id="fileFolderInput">
+
+      <div class="file-box">
+        <label type="button" class="folder-label">
+          <img src="/file-folder.png" width="180" draggable="false">
+          <input type="file" name="files" hidden webkitdirectory directory multiple onchange="checkAndStageFiles(event.target.files)">
+        </label>
+      </div>
+
+        <div class="file-box">
+          <label class="file-label" type="button">
+            <i class="fa fa-upload"></i>
+            <input class="file-input" type="file" name="files" multiple hidden onchange="checkAndStageFiles(event.target.files)">
+            <span>
+              Choose a file…
+            </span>
+            <span class="file-name" style="">
+              None
+            </span>
+          </label>
+        </div>
+
+          <section class="input-container">
+            <% if (directory) {%>
+            <%thisDirectory = directory.layers[directory.layers.length - 1]%>
+              <div class="current-directory">
+                  Current Directory:
+
+                  <%let prevDirectory = UserSession.home + "/"%>
+                  <% for (let layer of directory.layers) {%>
+
+                    /
+
+                    <% if (layer == thisDirectory) {%>
+                    <!-- Last index will always be the current directory, if so, self-link and highlight white -->
+                      <i class="fa fa-folder"></i>
+                      <a href="/<%=prevDirectory + layer%>" style="color: white;" disabled><%=layer%></a>
+
+                    <% } else {%>
+                      <i class="fa fa-folder"></i><a href="/<%=prevDirectory + layer%>"><%=layer%></a>
+                      <!-- Absolute path necessary. All layers minus the current directory will always be the previous folder. UserSession home necessary since "partition" is not accurate when viewing User home-->
+
+                    <% } %>
+                      <%prevDirectory += `${layer}/`%>
+                  <%}%>
+              </div>
+            <% } %>
+
+            <span id="inputQuestion" title="Information on folder submission" type="button">
+            <i class="fa fa-info-circle"></i>
+            </span>
+
+            <div id="folderInfo" class="container">
+
+              <div id="questionMessage" class="container hide" style="align-self: center;">
+                <p><span style="color: #22a0f4">Creating new directory:</span>
+                  If you wish to create a new folder, type in a name below. If you wish to make a sub-directory (create within an already existing folder), you must specifiy the parent directory as well in your designation (divided by a "/"). For example: If you wanted to create a "Halloween" folder within the "Movies" directory, you would need to input "Movies/Halloween".
+                  Any directory without a parent ("/") is considered a Primary Directory/Base Folder, and can be found in the navbar, or within the list on your left.
+                  <br><br>
+                  Hit the checkbox if you wish to create empty directories without uploading files.
+                </p>
+                <p><span style="color: #22a0f4">Uploading to existing directory:</span>
+                  If you know what folder you wish to upload your files to (and it exists of course), type in the folder like usual, or click any folder icon to add the relative folder name as the target. And simularily, if your target is a sub-directory nested within another directory, you must specify each directory layer -- divided by a "/" -- your target folder is nested within.
+                  <br><br>
+                  Names are case sensitive (even with Spaces), so be accurate lest you create bogus directories.
+                  All public directories/folders outside the current directory may also be located by typing their initial names, which will prompt them as suggestions in the list below.
+                </p>
+
+              </div>
+
+              <label class="d-flex" for="folder">
+
+                <div class="input-container">
+                  <input id="emptydirCheck" title="Allow empty directory creation?" class="checkbox" type="checkbox" style="transform: scale(1.5); margin-bottom: 6px">
+                  <i class="fa fa-folder empty-dir" onclick="$(this).prev().click()"></i>
+                </div>
+
+                <% if (UserSession.home !== UsersDirectory) {%>
+                  <div class="input-container">
+                    <input id="mydirCheck" type="checkbox" name="mydirectory" class="checkbox" style="transform: scale(1.5); margin-bottom: 6px" title="Targets your private directory">
+                    <i class="fa fa-folder fa-house-user my-dir" title="Targets your private directory" onclick="$(this).prev().click()"></i>
+
+                    <a href="<%=UsersDirectory%>/<%=UserSession.user.name%>"></a>
+                  </div>
+                <%}%>
+              <h4 style="margin: 0px;">Select folder destination:</h4>
+
+              </label>
+
+
+            </div>
+  <!-- ================================================================== -->
+            <div class="d-flex target-folder-div" title="Each folder must be divided by a '/'" style="width: 90%;">
+              <button class="dark" type="button" class="dark">
+                <a class="view-dir" href="/" ><i class="fa fa-arrow-right" style="width: 100%"></i></a>
+              </button>
+
+              <input id="FolderInput" name="folder" class="folder-input input" type="text" placeholder="Case sensitive, get it right." maxlength="150" pattern='[A-Za-z0-9/)_( \\.-]+'  title='Only numbers, letters, and the symbols: "/-_\" can be used for folder designation. Each folder must be divided by a "/"' required autocomplete="off">
+
+              <button type="button" id="eraseInput" class="dark" onclick="clearInput($(this).prev()[0])"><i class="fa fa-times"></i>
+              </button>
+            </div>
+
+            <button id="submit" class="my-button blue">SUBMIT <span class="staged-count"></span></button>
+
+            <div id="folderSuggestions">
+            </div>
+
+          </section>
+        <!-- ============================ -->
+
+        </div>
+      <!-- ============================ -->
+  	</form>
+
+    <label for="search">Search</label>
+
+    <div style="display: inline; top: 0; left: 0;">
+      <input class="file-search" type="search" name="search" placeholder="File">
+    </div>
+
+    <span class="staged-count queued" style="font-size: 1.4rem" title="Number of files staged for upload"></span>
+
+    <div class="resize">
+      <i class="fa fa-search-minus resize" title="Show only basic file info" onclick="resizeCards(true)"></i>
+      <i class="fa fa-search-plus resize" title="View media content of files" onclick="resizeCards(false)"></i>
+    </div>
+
+
+    <section id="FileTable" ondblclick="selectAll(AllFiles.count)">
+      <div class="drag-select-box hide">
+      </div>
+      <!-- All staged files/file cards are placed in here on submission/uploads, along with any folders existing within the current directory -->
+      <p></p>
+    </section>
+  </main>
+
+    <section id="panelHeader">
+
+      <svg height="60px" viewBox="0 0 2400 60">
+        <polyline points="2400,1 2400,60 1,60 1,1 2400,1"/>
+      </svg>
+
+      <div id="panelButtons">
+        <button id="exitPanel" type="button" class="my-button hide" onclick="bringUpPanel()">
+          <i class="fa fa-times" style="color: #4f6fb5; opacity: 0.7;"></i>
+           | CLOSE PANEL
+        </button>
+
+        <button id="overheadPanel" class="my-button">
+          <i class="fa fa-list-alt" style="color: #4f6fb5; opacity: 0.7;"></i>
+          | OVERHEAD PANEL
+        </button>
+
+        <button id="downloadBtn" class="my-button" onclick="downloadFiles()">
+          <i class="fa fa-download" style="color: #3caf00; opacity: 0.7;"></i>
+           | DOWNLOAD <span class="selected-count"></span>
+        </button>
+
+        <button id="transferBtn" class="my-button transfer" onclick="transferMultiple(event)">
+          <i class="fa fa-angle-double-right" style="color: gold; opacity: 0.7;"></i>
+           | TRANSFER <span></span><span class="selected-count"></span>
+        </button>
+
+        <button id="deleteBtn" class="my-button">
+          <i class="fa fa-trash-alt" style="color: red; opacity: 0.7;"></i>
+           | DELETE <span class="selected-count"></span>
+        </button>
+
+        <button id="moreFiles" class="my-button">
+          <i class="fa fa-th" style="color: purple; opacity: 0.7;"></i>
+           | <span>MORE FILES...</span>
+        </button>
+
+      </div>
+
+
+      <footer style="display: none; justify-content: space-around;">
+
+        <div class="input-container">
+          <label class="file-label panel-upload" type="button" style="height: 80px !important;">
+            <i class="fa fa-upload"></i>
+            <input class="file-input" type="file" name="files" multiple hidden onchange="checkAndStageFiles(event.target.files)">
+            <span>
+              Choose a file…
+            </span>
+            <span class="file-name" style="">
+            </span>
+          </label>
+          <button class="dark" type="button" class="dark">
+            <a class="view-dir" href="/" ><i class="fa fa-arrow-right" style="width: 100%"></i></a>
+          </button>
+          <input id="FolderInput" name="folder" class="input folder-input" type="text" placeholder="Case sensitive, get it right." maxlength="150" pattern='[A-Za-z0-9/)_( \\.-]+' title='Some invalid characters used. Only numbers, letters, and the symbols: "/-_\" can be used for folder designation.' required autocomplete="off">
+          <button id="submit" class="my-button blue" onclick="submitFiles(event)">SUBMIT <span class="staged-count"></span></button>
+        </div>
+
+        <div class="list-holder" style="position: relative">
+          <i class="hide-lists fa fa-arrow-circle-up" style="color: #22a0f4;"></i>
+          <ol class="all-files" style="box-shadow: 1px 1px 1px 2px #22a0f4;" ondblclick="selectAll(AllFiles.count)">
+            <input class="file-search" type="search" name="search" placeholder="File">
+              <h3>
+                <i class="fa fa-eye" title="Expand file viewer" onclick="viewTextInModal(this.parentNode.parentNode)"></i>
+                <i class="fa fa-layer-group dimblue">
+                </i>All Files/Folders: <span class="all-count"> 0 </span>
+              </h3>
+              <hr style="border: 1px solid #22a0f4;">
+          </ol>
+        </div>
+
+        <div class="list-holder" style="position: relative">
+          <i class="hide-lists fa fa-arrow-circle-up" style="color: gold;"></i>
+          <ol class="staged-files" style="box-shadow: 1px 1px 1px 2px gold;" ondblclick="selectAll(StagedFiles.count)">
+            <h3>
+              <i class="fa fa-eye" title="Expand file viewer" onclick="viewTextInModal(this.parentNode.parentNode)"></i>
+              <i class="fa fa-layer-group orange"></i>
+              Staged Files: <span class="staged-count"></span>
+            </h3>
+            <hr style="border: 1px solid orange;">
+          </ol>
+        </div>
+
+        <div class="list-holder" style="position: relative">
+          <i class="hide-lists fa fa-arrow-circle-up" style="color: green;"></i>
+          <ol class="selected-files" style="box-shadow: 1px 1px 1px 2px green;" ondblclick="selectAll(SelectedFiles.count)">
+            <h3>
+              <i class="fa fa-eye" title="Expand file viewer" onclick="viewTextInModal(this.parentNode.parentNode)"></i>
+              <i class="fa fa-layer-group green"></i>
+              Selected Files: <span class="selected-count"></span>
+            </h3>
+            <hr style="border: 1px solid green;">
+          </ol>
+        </div>
+
+      </footer>
+    </section>
+
+  <button class="hide show-modal" type="button" name="button"></button>
+  <div id="FS_Modal" class="modal">
+    <div class="modal-content">
+      <span class="closemodal"><i class="fa fa-times-circle closemodal"></i></span>
+      <img id="uploadWait" src="/upload.gif" width=300 height=300>
+      <div class="fs-modal-message">Uploading files...</div>
+    </div>
+  </div>
+
+  </body>
+</html>
+
+
+<script type="text/javascript" src="/Core.js"></script>
+<!-- ======================================================= -->
+<script text="text/javascript">
+
+const PrimaryDirectories = <%-JSON.stringify(PrimaryDirectories)%>; //Used only by 'displayDirectoryStats', contains info of all the PRIMARY directories listed at top of page.
+const AllDirectories = <%-JSON.stringify(AllDirectories)%>;
+let Directory = <%-JSON.stringify(directory)%> || {};
+let CurrentFolder = ''; //Same as Directory.name
+let rivals = <%-JSON.stringify(rivals)%> || [];
+/* ----------------------------------------- */
+//The base partition that houses all directories. Needs to end with a "/" (example: "uploads/")
+const AllFiles = new Uploaded_Status_Adjuster('uploaded', $('.all-files')[0], []);
+//Keeps track of all files/folders on page in panel view, and allows renaming/deletion of those items
+const SelectedFiles = new File_Status_Adjuster('selected', $('.selected-files')[0], []);
+//Keeps track of all currently selected items on page within panel view
+const StagedFiles = new File_Status_Adjuster('queued', $('.staged-files')[0], []);
+//Keeps track of all files currently staged for upload
+
+const CSSVariables = document.documentElement.style; //All variables used by CSS selectors
+const MessageLog = document.querySelector('#MessageLog'); //Element that displays any info sent by Flash
+const FileTable = document.querySelector('#FileTable');
+//Element that houses ALL staged/uploaded file/folder cards (divs) on the page
+const FolderInput = document.getElementsByClassName('folder-input');  //The folder input within the form, stores folder designation
+
+const FS_Modal = document.getElementById('FS_Modal');
+const LOG_Modal = document.getElementById('LOG_Modal');
+const form = document.querySelector('#fileForm'); //The form that sends file upload data
+const fileInput = document.getElementsByClassName('file-input'); //The input within the form that stages the files themselves
+const folderSuggestions = document.querySelector('#folderSuggestions');
+const directoryStats = document.getElementsByClassName('directory-stats');
+//Element that houses all directory info of the given Primary directory being hovered
+</script>
+
+<!-- ======================================================= -->
+<script type="text/javascript" src="/ContentCreation.js"></script>
+<script type="text/javascript" src="/StageAndUpload.js"></script>
+<script type="text/javascript" src="/Deletion.js"></script>
+<script type="text/javascript" src="/Interactive.js"></script>
+<script type="text/javascript" src="/Mischellaneous.js"></script>
+<script type="text/javascript" src="/KeyMouseTriggers.js"></script>
+
+<script type="text/javascript">
+async function createFolderContent(newfolders) {
+
+    for (let path of newfolders) {
+
+      if (namefinder(AllFiles.count, 'find', path)) {
+        continue;
+      }
+    // -----------------------------------------------------------------------------
+        let newFolder = {
+          name: path,
+          path: CurrentFolder,
+          mode: 16822,
+          stats: {mode: 16822}, // Both this and mode are bogus, did it so functions below would treat it as a legit "folder"
+        };
+
+        fileCard = $(makeFileCard(newFolder));
+        $(FileTable).prepend(fileCard);
+        fileSource = await displayMedia(newFolder, FolderInput[0].value, fileCard[0]);
+        $(fileSource).insertAfter($(fileCard).children('header'));
+        AllFiles.add(newFolder, CurrentFolder);
+    }; //Loop over folders, see how nested they are
+};
+</script>

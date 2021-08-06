@@ -1,0 +1,199 @@
+#FileTable {
+  border: 1px solid gray;
+  box-shadow: inset 11px 14px 18px 0px black, inset 11px 16px 120px 0px black;
+  background: transparent;
+
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  margin: auto;
+  width: 94%;
+  padding: 2%;
+  transition: all 1s ease-in-out;
+}
+/* -------------------- */
+.folder {
+  cursor: move;
+  color:#22a0f4;
+  transition: all 0.5s;
+
+  position: relative;
+  font-size: 1.3rem;
+  padding: 6px;
+  margin-top: 6px;
+  width: auto;
+  align-self: center;
+} .folder header {
+  background: black;
+  border: 2px double #22a0f4;
+  border-radius: 15px;
+
+  padding: 5px;
+} .folder img {
+  transition: all 1s ease;
+  filter: drop-shadow(20px 10px 14px black);
+
+  display: block;
+  margin: auto;
+  max-width: 300px;
+  width: 100%;
+}
+.folder-children {
+  background: rgba(0,0,0,0.8);
+  font-family: 'Courier New';
+  overflow-x: hidden;
+
+  transition: all 0.5s ease;
+  position: absolute;
+  transform: scale(0);
+  transition: all 0.5s ease-in-out;
+  z-index: 6;
+  max-width: 300px;
+  max-height: 300px;
+  border: 1px solid #22a0f4;
+  padding-left: 2px;
+  word-wrap: break-word;
+  flex-wrap: wrap;
+} .folder-children li {
+  font-size: 1.0rem;
+}
+.folder .fa-list-alt:hover + .folder-children, .folder-children:hover {
+  transform: scale(1.0);
+}
+/* --------------------- */
+.column {
+  cursor: move;
+  background: url('/black vinyl.jpg') no-repeat rgba(0,0,0,0.6);
+  background-blend-mode: overlay;
+  background-position: center;
+  background-size: cover;
+  font-family: 'Arial';
+  border-radius: 20px;
+
+  position: relative;
+  transition: all 0.5s ease-in-out;
+  flex-direction: column;
+  align-self: center;
+  max-width: 400px;
+  margin: auto;
+  margin-top: 15px;
+  font-size: 1.0rem;
+  padding: 6px;
+}
+.column.selected .source-icons, .folder.selected .source-icons {
+  display: block !important;
+}
+.source-icons {
+  background: rgba(0,0,0,0.7);
+  border-radius: 10px;
+
+  position: absolute;
+  display: none;
+  top: -20px;
+  right: 0px;
+  padding: 3px;
+}
+.source-icons i {
+  font-size: 1.3rem !important;
+}
+.filehead {
+  border-radius: 10px;
+  font-family: 'Allerta Stencil', "Courier", "Lucida Grande";
+
+  width: auto;
+  font-size: 0.9rem;
+  padding: 5px;
+} .filehead h1:first-child {
+  color: white;
+
+  font-size: 1.1rem;
+  margin: 4px;
+}
+.remove, .fa-edit {
+  cursor: pointer;
+  color: gray;
+  -webkit-text-stroke: 1px black;
+  text-shadow: 1px 1px 1px black;
+
+  align-self: flex-start;
+  float: right;
+}
+.remove:hover {
+  text-shadow: 1px 1px 1px white;
+  cursor: pointer;
+}
+/* --------------------- */
+/* Selectors within the column items */
+.media-content {
+  transition: all 0.5s ease-in-out;
+  max-width: auto;
+  max-height: 300px;
+}
+.column audio,
+.column video,
+.column img,
+.column button,
+.column textarea,
+.column iframe {
+  /* max-height: 500px; */
+  border: 2px solid black;
+  border-radius: 20px;
+
+  width: 100%;
+  align-self: center;
+} .column textarea {
+  background: rgba(0,0,0,0.4);
+  color: white;
+
+  font-size: inherit;
+  width: 98%;
+  padding: 8px;
+} .column .audio-pic {
+  max-width: 250px;
+}
+/* -------------------- */
+.dragging {
+  opacity: 0.4;
+  z-index: 2;
+  transition-property: width, max-width, height, max-height, scale, transform;
+  transition-timing-function: ease-in-out;
+
+  font-size: 20%;
+  max-width: 250px;
+  max-height: 250px;
+  left: 300;
+  transform: scale(0.4);
+}
+.drop-ready {
+  border: solid 2px #22a0f4;
+  background-color: rgba(0,0,0,0.5);
+  box-shadow: inset 4px 11px 14px 11px black;
+
+  transition: all 0.6s forwards;
+  margin: -15px;
+  transform: scale(0.9);
+}
+.column.queued h1{
+  color: gray;
+}
+.column.selected {
+  border: 2px double green;
+  color: green;
+
+  /* margin: 0px !important; */
+  padding: 0px;
+  transform: scale(0.7);
+}
+.folder.selected {
+  border: 2px double green;
+  box-shadow: inset 41px 42px 43px 42px black,
+  inset 44px 46px 47px 48px rgb(10,10,10);
+
+  transform: scale(0.7);
+}
+.faulty {
+  box-shadow: 1px 3px 5px 1px black,
+  7px 12px 11px 15px rgb(10,10,10),
+  inset 2px 4px 4px 1px red !important;
+  border: 1px dashed red;
+}

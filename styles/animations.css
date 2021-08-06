@@ -1,0 +1,63 @@
+/* ----------------------------- */
+/* Static classes */
+.offscreen { transform: translateX(150%); }
+.hide { display: none; }
+.d-flex { display: flex; }
+
+
+
+
+/* -------------------- */
+/* Class animation-triggers */
+.steady-glow { animation: steady-glow 2.5s forwards infinite; }
+.fadeout {
+  transition: all 1s ease;
+  opacity: 0;
+  transform: scale(0) !important;
+}
+.fadein {
+  transition: all 1s ease;
+  opacity: 1.0;
+  transform: scale(1.0);
+}
+.shift-over {
+  font-size: 1.6rem !important;
+  transition: all 1s ease;
+  padding: 15px;
+  max-width: 400px;
+  width: 400px;
+}
+.absolute {
+  position: absolute;
+}
+.move { animation: moveAside 1s forwards; }
+.moveUp { animation: moveUpOrDown 1s normal; }
+.moveDown { animation: moveUpOrDown 1s reverse; }
+/* -------------------- */
+@keyframes steady-glow {
+  0% {
+    box-shadow: inset 1px 1px 1px 3px white;
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow: inset 1px 1px 1px 3px transparent;
+    background-color: black;
+  }
+  100% {
+    box-shadow: inset 1px 1px 1px 3px white;
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+}
+@keyframes moveAside {
+  from { transform: translateX(0%); }
+  50% { transform: translateX(800px); }
+  100% { transform: translateX(0%); }
+}
+@keyframes moveUpOrDown {
+  0% { transform: translateY(90%); }
+  100% { transform: translateY(0%); }
+}
+@keyframes deleted {
+  50% { transform: translateX(var(--cardPosition)); }
+  100% { transform: translate(var(--cardPosition), 1000px); }
+}
