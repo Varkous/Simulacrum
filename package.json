@@ -1,4 +1,11 @@
 {
+  "name": "Simulacrum",
+  "version": "1.0.0",
+  "description": "An interactive GUI for file management stationed on the Skeleton Hill cloud drive",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
     "adm-zip": "^0.5.5",
     "agentkeepalive": "^4.1.4",
@@ -13,7 +20,7 @@
     "fs-extra": "^10.0.0",
     "local-devices": "^3.1.0",
     "multer": "^1.4.2"
-  }
+  },
   "repository": {
     "type": "git",
     "url": "git://github.com/Varkous/Simulacrum.git",
