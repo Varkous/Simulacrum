@@ -27,7 +27,7 @@ function makeFileCard(item, status) {
 
 //Important. Created upon staging/pre-loading a file, used as the bedrock for displaying media. The ID, "status" and title are used by the application to indentify the file's existence when deleting, transferring or downloading it.
 
-    if (item.mode === 33206 || item.stats.mode === 33206)  {
+    if (item.mode === Itemtype.file || item.stats.mode === Itemtype.file)  {
       //33206 is code for 'file'
       if (!item.size && item.stats) //Size data is gathered from different properties depending on page load, or item upload
         item.size = item.stats.size;
@@ -123,7 +123,7 @@ async function displayMedia(file, folder, fileCard) {
   </div>`
 // --------------------------------------------------------------
   $(fileCard).draggable(draggableOptions); //Make the file-card draggable using the options defined within draggableOptions object-function near the top of this .js file
-  if (file.stats && file.stats.mode === 16822) {
+  if (file.stats && file.stats.mode === Itemtype.folder) {
     //Then it's a folder, and we're obviously in a directory so absolute path needed
     $(fileCard).droppable(makeFoldersDroppable);
     let downloadFolder = `
@@ -224,7 +224,7 @@ async function listDirectoryContents (evt, all) {
         break; /*Then we stop listing, to avoid overloading page*/
       else if ($(`div[id="${file.name}"][path="${file.path}"]`)[0] || file.path === 'uploads')
         continue; //Simple, if that file (file card) already exists, don't display it again obviously
-      else if (file.stats.mode === 16822) /*Then it's a folder, should always display*/
+      else if (file.stats.mode === Itemtype.folder) /*Then it's a folder, should always display*/
         filesListed = filesListed;
       else filesListed += 1;
 

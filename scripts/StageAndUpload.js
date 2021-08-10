@@ -102,8 +102,8 @@ function checkAndStageFiles (inputFiles) {
     if (!file.name.includes('.'))
       return badFiles.push(file.name);
 // ------------------------------------------------------------------
-    file.mode = 33206;
-    file.stats = {mode: 33206};
+    file.mode = Itemtype.file;
+    file.stats = {mode: Itemtype.file};
     if (StagedFiles.count.length < 50) {
 
       //Meaning, don't bother with this if the user uploaded dozens of files, overkill

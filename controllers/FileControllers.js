@@ -1,14 +1,12 @@
 const fs = require('fs-extra');
 const path = require('path');
-const {AllDirectories} = require('../index.js')
 const {ReportData} = require('./UserHandling.js');
 const {CapArraySize, CheckIfUpload, CheckIfTransfer} = require('./Helpers.js');
 const FileType = require('file-type');
 const UsersDirectory = process.env.UsersDirectory || 'users';
 
 module.exports = {
-
-/*===============================================================*/
+  /*===============================================================*/
   AccessDirectory: async function (req, res, next) {
 
     let maindir = req.params.folder + req.params[0];
@@ -32,7 +30,7 @@ module.exports = {
 
           if (error) {
             let newDirectory = fs.mkdirSync(`${partition}/${directory}`, {recursive: true});
-            AllDirectories.push(newDirectory);
+            fs.chownSync(path.resolve(newDirectory), req.session.user.uid, 100);
 
             let nextDir = directory.split('/')[1];
             //Simple code, but deceptive concept. The first element is the current directory (don't want that), second element is the newly created directory, and all other elements are sub-directories of the new directory, so don't want those either.
@@ -120,8 +118,9 @@ module.exports = {
 
         if (!filetype) {
           req.files.files[i] = file.name; //If there was a problem, file data will not be used, but we keep the name so we can report the name of the file in the browser log
-        } else fs.writeFile(path.resolve(req.session.home, file.path, file.name), file.data, "UTF8", function (error) {
-          if (error) req.files.files[i] = file.name;
+        } else fs.writeFile(path.resolve(req.session.home, file.path, file.name), file.data, "UTF8", (error) => {
+            if (error) req.files.files[i] = file.name;
+            else fs.chownSync(path.resolve(req.session.home, file.path, file.name), req.session.user.uid, 100);
 
           i++;
         });

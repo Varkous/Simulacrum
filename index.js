@@ -25,7 +25,7 @@ const {GetDirectory, GetFolderSize, GetAllItems} = require('./controllers/Folder
 /*====== For uploading files (particularily images and videos) to a CDN or database =======*/
 let partition = process.env.partition || 'public';
 const UsersDirectory = process.env.UsersDirectory || 'users';
-const AllDirectories = GetAllItems(partition, [], true);
+const AllDirectories = GetAllItems(process.env.partition, [], true);
 process.sessionTimers = {};
 
 
@@ -172,6 +172,7 @@ app.get('*', wrapAsync(async (req, res, next) => {
 
     res.locals.PrimaryDirectories = PrimaryDirectories;
     res.locals.AllDirectories = AllDirectories;
+    res.locals.Itemtype = {file: process.env.file, folder: process.env.folder};
     res.locals.rivals = [];
     res.locals.firstVisit = firstVisit;
     //The parameter true is for "search", means we are just searching for directory names, not files

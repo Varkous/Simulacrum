@@ -69,7 +69,7 @@ class File_Status_Adjuster {
         //This alone does not mean the "file" is a folder, it means it has a folder path.
     /*--------------------------------*/
 
-        if (file.stats.mode !== 33206) {
+        if (file.stats.mode !== Itemtype.file) {
           //Then it's a folder
           $(fileCard).removeClass(this.status);
           $(this.listings).children(`[title="${file.name}"][path="${file.path}"]`).html(`
