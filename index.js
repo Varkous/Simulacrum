@@ -1,7 +1,7 @@
 if (process.env.NODE_ENV !== "production") {
   require('dotenv').config();
 }
-const NEW = require('../NodeExpressAppFrame/N.E.W.js');
+const NEW = require('../@NodeExpressAppFrame/N.E.W.js');
 const Website = new NEW();
 //NEW stands for "Node Express Website". Contains all the fundamental libraries that express generally uses
 module.exports = {app, express, sessions, path, wrapAsync} = Website;
@@ -61,17 +61,17 @@ app.use(FileUpload());
 /*======================================================*/
 app.use('*', wrapAsync( async (req, res, next) => {
 
-    req.session.user = {name: 'Stroggon', uid: 0, admin: true};
-    req.session.log = req.session.log || [];
-      req.session.preferences = {
-        outsideDir: false,
-        emptyDir: false,
-        smoothTransition: true,
-        deleteCheck: true,
-        uploadWarning: true,
-      };
-    req.session.home = partition;
-    req.session.loginAttempts = 0;
+    // req.session.user = {name: 'Stroggon', uid: 0, admin: true};
+    // req.session.log = req.session.log || [];
+    //   req.session.preferences = {
+    //     outsideDir: false,
+    //     emptyDir: false,
+    //     smoothTransition: true,
+    //     deleteCheck: true,
+    //     uploadWarning: true,
+    //   };
+    // req.session.home = partition;
+    // req.session.loginAttempts = 0;
 
   const url = req.originalUrl;
 
