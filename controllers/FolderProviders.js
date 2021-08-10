@@ -48,30 +48,32 @@ module.exports = {
   /*===============================================================*/
 
   /*===============================================================*/
-  GetUsersItems: function (directory, stats, search, req) { //Very similar to GetFolderSize, except it stores all the stats rather than just "size", and disregards any folder/file that does have the given UID.
+  GetAllItems: function (directory, stats, search, req) { //Very similar to GetFolderSize, except it stores all the stats rather than just "size", and disregards any folder/file that does have the given UID.
   //Also like the pre-mentioned function, it builds on itself, doing internal calls until all files/folders are filtered out and stored properly.
-    let partition = req.session.home || process.env.partition;
+    let partition = req ? req.session.home : process.env.partition;
     let dirStats = stats || [];
     let dirFiles = fs.readdirSync(directory);
 
     for (let dirfile of dirFiles) {
+      let path = `${directory}/${dirfile}`;
       // -------------------------------------------------------
-      if (fs.statSync(`${directory}/${dirfile}`).isDirectory()) {
-        if (search) {
-          dirStats.push(`${directory}/${dirfile}`);
-          dirStats = module.exports.GetUsersItems(`${directory}/${dirfile}`, dirStats, true, req);
+      if (fs.statSync(path).isDirectory()) {
+        if (path[0] === '@' || path[0] === '$') continue; //Then it's a hidden/reserved/special folder
+        else if (search) {
+          //If search is true, we're searching for folders, and don't want files
+          dirStats.push(path);
+          dirStats = module.exports.GetAllItems(path, dirStats, true, req);
         }
-        else dirStats = module.exports.GetUsersItems(`${directory}/${dirfile}`, dirStats, false, req);
+        else dirStats = module.exports.GetAllItems(path, dirStats, false, req);
       // -------------------------------------------------------
       }
       else if (search) continue; //If not a directory and we're searching, continue, we don't want files
       // -------------------------------------------------------
       else {
-        if (fs.statSync(`${directory}/${dirfile}`).uid !== req.session.user.uid) continue;
-        else dirStats.push({
+        dirStats.push({
           path: directory.replace(partition + '/', ''), //When its stored, partition path no longer needed
           name: dirfile,
-          stats: fs.statSync(`${directory}/${dirfile}`)
+          stats: fs.statSync(path)
         });
       } //If it was actually a file, and not directory
 

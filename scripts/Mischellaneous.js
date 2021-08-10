@@ -74,20 +74,20 @@ function viewTextInModal (textElement) {
   event.preventDefault();
   event.stopPropagation();
 
-  $('#uploadWait').attr('src', '/upload.gif');
+  $('.modal-image').attr('src', '/upload.gif');
   $('.fs-modal-message').text('').removeClass('view-text view-listing');
   let textcontent;
 
   if (textElement.tagName === 'OL') {
     //Then the element is actually an entire panel listing
-    $('#uploadWait').attr('src', '/listing.png');
+    $('.modal-image').attr('src', '/listing.png');
     $('ol li').show();
     textcontent = textElement;
   } else {
     //Then it has to be a textarea element, likely from a textfile
-    textcontent = $(textElement).find('textarea')[0];
+    textcontent = $(textElement).find('textarea')[0] || $(textElement).find('object')[0];
     $('.fs-modal-message').text(textElement.id);
-    $('#uploadWait').attr('src', '/textdoc.png');
+    $('.modal-image').attr('src', '/textdoc.png');
   }
     $(textcontent).clone().appendTo('.fs-modal-message').addClass('view-text view-listing').removeClass('hide').css('min-height', '600px');
     //We simply copy the textcontent onto the modal (and remove it later if the modal closes)
@@ -345,7 +345,7 @@ function closeModal() {
   if ($(target).hasClass('closemodal') || $(target).hasClass('modal') || event.keyCode === 27) {
       $('.fs-modal-message').text('').removeClass('view-text');
       //Clear any previous text content, else it stacks up
-      $('#uploadWait').attr('src', '/upload.gif');
+      $('.modal-image').attr('src', '/upload.gif');
       return $('.modal').hide();
   }
 };
@@ -364,7 +364,7 @@ function hideOrShow(element) {
 /*===============================================================
   Called only once for a first-time user visit to homepage. Takes an index, finds the appropriate message with that index, and prompts the message before positioning it alongside a given element on the page, highlighting it (see messageTips array for details).
 ===============================================================*/
-function introductionTips(index) {
+async function introductionTips(index) {
   if (event) {
     event.preventDefault();
     event.stopPropagation();
@@ -387,10 +387,10 @@ function introductionTips(index) {
 
     for (let i = 0; i < messageTips.length; i++ ) {
       if (i < index)
-        $(messageTips[i].element).addClass('high-index').removeClass('invisible');
+        $(messageTips[i].element).addClass('high-index').removeClass('invisible hide');
       // This finds all previous elements that were "introduced" (aside from the very first, which is <main> itself) and ensures they remain visible.
     };
-    $(target.element).addClass('steady-glow high-index').removeClass('invisible').prepend(`
+    $(target.element).addClass('steady-glow high-index').show().removeClass('invisible hide').prepend(`
     <div class="message-tip">
       <p>${target.text}</p>
       <button class="my-button dark" style="color: #22a0f4" type="button" onclick="introductionTips(${index + 1})">Next</button>
@@ -407,6 +407,7 @@ function introductionTips(index) {
   // =========================================================
 } else {
   $('*').removeClass('invisible high-index');
+  await populateDirectory();
   $('main').css('transition', 'all 0.7s ease-in-out');
 }
 //If no more message tips are left to introduce, reveal everything on the page, remove the high index shenanigans, and allow them to be interacted with normally (mouse events)

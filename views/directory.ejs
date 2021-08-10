@@ -24,6 +24,7 @@
     const UsersDirectory = <%-JSON.stringify(UsersDirectory)%>;
     const UserSession = <%-JSON.stringify(UserSession)%>;
     let Partition = <%-JSON.stringify(partition)%>.replace(`/${UserSession.user.name}`, '');
+    let partition = <%-JSON.stringify(partition)%>;
     let firstVisit = <%-JSON.stringify(firstVisit)%>;
     //When user has set private directory to be home directory, we remove user name from the partition (which is supposed to be there on the back-end, but creates bugs on the front end).
   </script>
@@ -69,7 +70,7 @@
 
       <% if (partition.includes(UserSession.user.name)) {%>
       <button class="navlink">
-        <a href="/users/<%=UserSession.user.name%>">
+        <a href="/home/<%=UserSession.user.name%>">
           <span>Public Directory</span>
           <img src="/public-folder.png" height="120px" width="140px" style="align-self: center">
         </a>
@@ -78,7 +79,7 @@
       <%} else {%>
       <button id="myDir" class="navlink">
         <i class="fa fa-house-user"></i>
-        <a href="/users/<%=UserSession.user.name%>">
+        <a href="/home/<%=UserSession.user.name%>">
           Private Directory
         </a>
       </button>
@@ -157,7 +158,22 @@
         <br><br>
         </h1>
     	</header>
+<!-- <object
+  data='ReleaseNotes_win.pdf'
+  type="application/pdf"
+  width="500"
+  height="678"
+>
 
+  <iframe
+    src='ReleaseNotes_win.pdf'
+    width="500"
+    height="678"
+  >
+  <p>This browser does not support PDF!</p>
+  </iframe>
+
+</object> -->
     <hr>
     <br>
 
@@ -449,7 +465,7 @@
   <div id="FS_Modal" class="modal">
     <div class="modal-content">
       <span class="closemodal"><i class="fa fa-times-circle closemodal"></i></span>
-      <img id="uploadWait" src="/upload.gif" width=300 height=300>
+      <img id="uploadWait" class="modal-image" src="/upload.gif">
       <div class="fs-modal-message">Uploading files...</div>
     </div>
   </div>
@@ -464,9 +480,9 @@
 
 const PrimaryDirectories = <%-JSON.stringify(PrimaryDirectories)%>; //Used only by 'displayDirectoryStats', contains info of all the PRIMARY directories listed at top of page.
 const AllDirectories = <%-JSON.stringify(AllDirectories)%>;
-let Directory = <%-JSON.stringify(directory)%> || {};
+const Directory = <%-JSON.stringify(directory)%> || {};
 let CurrentFolder = ''; //Same as Directory.name
-let rivals = <%-JSON.stringify(rivals)%> || [];
+const rivals = <%-JSON.stringify(rivals)%> || [];
 /* ----------------------------------------- */
 //The base partition that houses all directories. Needs to end with a "/" (example: "uploads/")
 const AllFiles = new Uploaded_Status_Adjuster('uploaded', $('.all-files')[0], []);
@@ -498,28 +514,3 @@ const directoryStats = document.getElementsByClassName('directory-stats');
 <script type="text/javascript" src="/Interactive.js"></script>
 <script type="text/javascript" src="/Mischellaneous.js"></script>
 <script type="text/javascript" src="/KeyMouseTriggers.js"></script>
-
-<script type="text/javascript">
-async function createFolderContent(newfolders) {
-
-    for (let path of newfolders) {
-
-      if (namefinder(AllFiles.count, 'find', path)) {
-        continue;
-      }
-    // -----------------------------------------------------------------------------
-        let newFolder = {
-          name: path,
-          path: CurrentFolder,
-          mode: 16822,
-          stats: {mode: 16822}, // Both this and mode are bogus, did it so functions below would treat it as a legit "folder"
-        };
-
-        fileCard = $(makeFileCard(newFolder));
-        $(FileTable).prepend(fileCard);
-        fileSource = await displayMedia(newFolder, FolderInput[0].value, fileCard[0]);
-        $(fileSource).insertAfter($(fileCard).children('header'));
-        AllFiles.add(newFolder, CurrentFolder);
-    }; //Loop over folders, see how nested they are
-};
-</script>

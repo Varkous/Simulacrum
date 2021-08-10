@@ -136,8 +136,10 @@ async function displayMedia(file, folder, fileCard) {
 // --------------------------------------------------------------
     if (!CurrentFolder) {
     //Then we are at the homepage, viewing all files from other directories.
-    $(fileCard).find('header').append(`<h1 path="${folder}"><i class="fa fa-folder white"></i><a href="/${Partition + folder}">/${folder}</a></h1>`)
-      $(fileCard).addClass('other-directory');
+    $(fileCard).find('header').append(`
+      <h1 path="${folder}" style="font-size: 1.0rem">
+        <i class="fa fa-folder white"></i><a href="/${Partition + folder}">/${folder}</a>
+      </h1>`)
     } if (!file.name.includes('.'))
       $(fileCard).addClass('faulty');
       /*Very rare, this means the file has no extension, but wasn't considered a folder either at the very start, so something's off*/
@@ -185,11 +187,11 @@ async function getMediaType (file, folder, fileCard, source) {
       } else source = createTextFile($(source), file); return source;
 // --------------------------------------------------------------
   } else if (checkFileType(file, imageDocFormats) === true) { //Visual document
-
-  return `${source}
-  <iframe class="media-content" src="/ViewerJS/#../${folder}/${file.name}" width='400' height='400'></iframe>`
+      return `${source}
+      <button class="my-button blue" onclick="viewTextInModal(this.parentNode)">View</button>
+      <object data='/${folder}/${file.name}' type="application/pdf" width="400" height="300"></object>`
 // --------------------------------------------------------------
-} else { //In this case it could be any of the 1000 other formats out there, and 90% of the time it can't be rendered on the page as media content, so we'll just pass in a placeholder image to represent the file type and call it good
+  } else { //In this case it could be any of the 1000 other formats out there, and 90% of the time it can't be rendered on the page as media content, so we'll just pass in a placeholder image to represent the file type and call it good
     let thisFileExt = file.name.slice(file.name.lastIndexOf('.'));
     let validExtension = allExtensions.filter( (ext) => ext === thisFileExt)
     .join('').replace('.', '') || 'unknown';
@@ -259,13 +261,14 @@ async function listDirectoryContents (evt, all) {
 async function findAllFiles (evt) {
 
   await axios.post(`/user/${UserSession.user.uid}`).then( async (res) => {
+    if (!res.data.content)
+      return false;
 
     for (let file of AllFiles.count)
       await AllFiles.delete(file);
 
     if (!Directory.files) {
       //On homepage load, this will trigger.
-      $('.current-directory').addClass('other-directory');
       Directory.files = res.data.content;
       Directory.packs = [Directory.files.slice(0, 500)];
 

@@ -112,7 +112,8 @@ button {
   align-self: center;
   font-size: 1.3rem;
   margin: auto;
-  margin-top: 10%;
+  margin-top: 5%;
+  margin-bottom: 5%;
   padding: 3px;
   min-width: 300px;
   width: 50%;
@@ -127,6 +128,9 @@ button {
   display: block;
   right: 3%;
   font-size: 32px;
+} .modal-image {
+  width: 25%;
+  height: auto;
 }
 .closemodal:hover, .closemodal:focus {
   text-decoration: none;
@@ -217,7 +221,6 @@ button {
   color: aliceblue;
   border: 1px solid #22a0f4;
   font-family: 'Trebuchet MS';
-  pointer-events: auto;
   visibility: visible;
   pointer-events: none;
 

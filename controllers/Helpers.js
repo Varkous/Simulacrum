@@ -2,23 +2,25 @@ const UsersDirectory = process.env.UsersDirectory || 'Users_1';
 const {ReportData} = require('./UserHandling.js');
 const axios = require('axios');
 const fs = require('fs-extra');
-// const { networkInterfaces } = require('os');
 const find_local = require('local-devices');
 const validRegions = ['Idaho', 'Utah', 'Washington', 'Oregon', 'North Carolina', 'Colorado', 'Montana', 'Ontario', 'Saskatchewan', 'Alberta', 'British Columbia', 'Québec'];
 let LocalAddresses;
-find_local().then( addresses => LocalAddresses = addresses);
+
+if (process.env.NODE_ENV === "production") {
+  find_local().then( addresses => LocalAddresses = addresses);
+}
+
 
 module.exports = {
 
   /*======================================================*/
   Geodetect: function (req, res, next) {
 
+    req.location = {ip: req.connection.remoteAddress};
     if (req.session.user) return next();
-    req.location = {ip: req.connection.remoteAddress.replaceAll(':', '').replaceAll('f', '')};
-    //Remove worthless characters from address string
 
-    if (req.session.user || req.connection.localAddress === req.connection.remoteAddress
-    || LocalAddresses.find( local => local.ip === req.location.ip))
+    else if (req.connection.localAddress === req.connection.remoteAddress
+    || LocalAddresses.find( local => req.location.ip.includes(local.ip)))
     //If already logged in, or client is of a local ip address
       return next();
 // --------------------------------------------------------------

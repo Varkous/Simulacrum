@@ -257,25 +257,28 @@ async function returnUploadedContent (res) {
 /*===============================================================
 If a folder was created back-end after an upload/submission attempt, create a 'Folder Card' by referencing the data sent back from response, to determine how many folder cards to create.
 ===============================================================*/
-// async function createFolderContent(newfolders) {
-//
-//     for (let path of newfolders) {
-//     // -----------------------------------------------------------------------------
-//         let newFolder = {
-//           name: path,
-//           path: CurrentFolder,
-//           mode: 16822,
-//           stats: {mode: 16822}, // Both this and mode are bogus, did it so functions below would treat it as a legit "folder"
-//         };
-//
-//         fileCard = $(makeFileCard(newFolder));
-//         $(FileTable).prepend(fileCard);
-//         fileSource = await displayMedia(newFolder, FolderInput[0].value, fileCard[0]);
-//         $(fileSource).insertAfter($(fileCard).children('header'));
-//         AllFiles.add(newFolder, CurrentFolder);
-//     }; //Loop over folders, see how nested they are
-// };
+async function createFolderContent(newfolders) {
 
+    for (let path of newfolders) {
+
+      if (namefinder(AllFiles.count, 'find', path)) {
+        continue;
+      }
+    // -----------------------------------------------------------------------------
+        let newFolder = {
+          name: path,
+          path: CurrentFolder,
+          mode: 16822,
+          stats: {mode: 16822}, // Both this and mode are bogus, did it so functions below would treat it as a legit "folder"
+        };
+
+        fileCard = $(makeFileCard(newFolder));
+        $(FileTable).prepend(fileCard);
+        fileSource = await displayMedia(newFolder, FolderInput[0].value, fileCard[0]);
+        $(fileSource).insertAfter($(fileCard).children('header'));
+        AllFiles.add(newFolder, CurrentFolder);
+    }; //Loop over folders, see how nested they are
+};
 
 /*===============================================================
 If any files were uploaded successfully, loop over all the staged files and (excluding those that failed to upload) we locate the divs/columns which reference each given file (could be a video, image, audio etc.) and insert this new source data into the file card so the user can view the media content, as is now provided by the server.

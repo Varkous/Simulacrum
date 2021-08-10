@@ -1,4 +1,4 @@
-const {app, path, wrapAsync} = require('../index.js');
+const {app, path, wrapAsync, AllDirectories} = require('../index.js');
 let partition = process.env.partition || 'uploads';
 const UsersDirectory = process.env.UsersDirectory || 'Users_1';
 
@@ -8,7 +8,7 @@ const AdmZip = require('adm-zip');
 const {VerifyUser, ReportData, Sessions} = require('../controllers/UserHandling.js');
 const {AccessDirectory, UploadFiles, Rename, IterateDelete} = require('../controllers/FileControllers.js');
 const {Geodetect, CapArraySize} = require('../controllers/Helpers.js');
-const {GetDirectory, GetFolderSize, GetUsersItems} = require('../controllers/FolderProviders.js');
+const {GetDirectory, GetFolderSize, GetAllItems} = require('../controllers/FolderProviders.js');
 
 /*======================================================*/
 module.exports.Authentication = {
@@ -61,15 +61,17 @@ module.exports.FileViewing = {
     ? homedirectory = `${req.session.home}/${req.session.user.name}`
     : homedirectory = req.session.home;
 
-    const files = await GetUsersItems(homedirectory, [], false, req);
+    const items = await GetAllItems(homedirectory, [], false, req);
 
-    return res.send({content: files})
+
+    return res.send({content: items})
   })),
 
   /* ====================================
   Locates all folders/directories with the user ID passed in, and returns all the files in the response.
   ======================================= */
-  getNewHomeDirectory: app.get(`/users/:username`, VerifyUser, wrapAsync( async (req, res, next) => {
+  getNewHomeDirectory: app.get(`/home/:username`, VerifyUser, wrapAsync( async (req, res, next) => {
+
     if (req.session.home.includes(UsersDirectory)) homefolder = partition;
     else homefolder = UsersDirectory; //Get directory
 

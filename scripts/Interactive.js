@@ -59,16 +59,14 @@ async function itemSearch (evt) {
     return false;
   }
   let finds = [];
+  let list = AllDirectories || $('.all-files').children('.uploaded');
 // ---------------------------------------------------------------------------
     if (this && this.id === 'FolderInput') {
-
+      StagedFiles.unlist(StagedFiles.count, true);
       $(FolderInput).val(this.value);
       $('.view-dir').attr('href', `/${Partition + this.value}` || '/');
       view = $(folderSuggestions);
-      list = AllDirectories;
       $(view).empty();
-      StagedFiles.unlist(StagedFiles.count, true);
-
     } else {
       $('.all-files li').not('.selected').hide();
       if (this.offsetParent === $('main')[0])
@@ -81,10 +79,11 @@ async function itemSearch (evt) {
     }
 // ---------------------------------------------------------------------------
     for (let item of list) {
-      item.title ? name = item.title : name = item;
+      item.title ? name = item.title.replace(Partition, '') : name = item.replace(Partition, '');
       //File card has ID so get name that way, otherwise folder listing is just text
 
       if (name.toLowerCase().includes(query)) {
+      // if (name.toLowerCase().slice(0, query.length) === query) {
 
         if (this.id === 'FolderInput') {
           //Cleans up appearance of links before appension, that's all this is

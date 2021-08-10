@@ -14,7 +14,7 @@
 /* -------------------- */
 .folder {
   cursor: move;
-  color:#22a0f4;
+  color: #22a0f4;
   transition: all 0.5s;
 
   position: relative;
@@ -82,6 +82,8 @@
 }
 .column.selected .source-icons, .folder.selected .source-icons {
   display: block !important;
+} .column.uploaded h1 {
+  font-family: monospace;
 }
 .source-icons {
   background: rgba(0,0,0,0.7);
@@ -134,7 +136,7 @@
 .column img,
 .column button,
 .column textarea,
-.column iframe {
+.column object {
   /* max-height: 500px; */
   border: 2px solid black;
   border-radius: 20px;

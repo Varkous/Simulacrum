@@ -5,7 +5,7 @@ let alphabet = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz'.split('');
 const imageFormats = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.ico', '.svg'];
 const audioFormats = ['.mp3', '.wav', '.ogg', '.flac'];
 const videoFormats = ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv'];
-const imageDocFormats = ['.pdf', '.ods', '.odt', '.odp'];
+const imageDocFormats = ['.pdf'];
 const textDocFormats = ['.txt', '.cfg', '.rtf', '.ini', '.info'];
 const compressedFormats = ['.7z', '.zip', '.rar', '.z', '.pkg'];
 const Outbound = {size: 0, staged: [], transfers: [], delete: [], selected: []}; //This is an "intermission" variable that temporarily holds any submission content during a dialog prompt. If the user confirms, the data is retrieved from here and sent on request.
@@ -297,6 +297,63 @@ async function downloadFiles(fileCard) {
 };
 
 
+/*===============================================================
+  All declarations that had to wait for page content/elements/functions to load before execution. This integrates back-end variables such as Session data into the browser for manipulation of page elements.
+===============================================================*/
+async function populateDirectory() {
+  /* ----------------------------------------- */
+if (Directory.name) {
+  /* If within a directory, list all files/folders of the directory and their media contents  */
+  Flash(`<span style="color: #22a0f4;">${Directory.name}</span> loaded`, 'success');
+  for (let rival of rivals) {
+    if (rival.residing === Directory.layers[0]) {
+      Flash([`<span style="color: green;">${rival.user}</span> is currently browsing within this primary directory <span style="color: #22a0f4;">${Directory.layers[0]}</span>.`,
+      `Moving, renaming or deleting files within here is ill-advised`], 'warning');
+      break;
+    }
+  };
+  CurrentFolder = Directory.name.getSpaceChars();
+
+  FolderInput[0].value = CurrentFolder;
+  $('.view-dir').attr('href', `/${Partition + CurrentFolder}` || '/');
+  await listDirectoryContents(event);
+
+} else if (!CurrentFolder) {
+  Directory.index = 0;
+  Directory.layers = ['/'];
+  await findAllFiles(event);
+}
+
+/* ----------------------------------------- */
+if (UserSession.preferences.outsideDir)
+  $('.my-dir').click();
+
+if (UserSession.home === UsersDirectory) {
+  $('td').attr('path', UserSession.user.name);
+  if (!CurrentFolder && !Directory.name) {
+    Directory.name = UserSession.user.name;
+    CurrentFolder = UserSession.user.name;
+  }
+}
+
+$('#tableOfDirectories').clone().appendTo('nav');
+/* ----------------------------------------- */
+//This crap below was a browser exception soley for Mozilla Firefox, which perpetuated nasty page jerking whenever any file card was hovered over. If we find the browser prefixes have no/hardly any Mozilla features, we apply a conventional hover/show behavior to the elements.
+const prefix = (Array.prototype.slice
+  .call(window.getComputedStyle(document.documentElement, '')).filter( (style) => style.includes('-moz')));
+  console.log (prefix);
+  if (!prefix || prefix.length < 10) {
+    $('.ui-draggable').hover( function () {
+
+      $(this).find('.source-icons').show();
+      if (event.type === 'mouseout')
+        $(this).find('.source-icons').hide();
+    });
+  }
+/* ----------------------------------------- */
+};
+
+
 /* ----------------------------------------- */
 $('.logo').hover( function (event) { //Displays Navbar and adds nice lighting effect
 
@@ -323,65 +380,14 @@ $('.logo').draggable({
   },
 });
 
-
-/*===============================================================
-  All declarations that had to wait for the page content/elements/functions to load before they could executed, else bugs occur.
-===============================================================*/
+// --------------------------------------------------------------------
 window.addEventListener('load', async () => {
 
-    /* ----------------------------------------- */
-  if (Directory.name) {
-    /* If within a directory, list all files/folders of the directory and their media contents  */
-    Flash(`<span style="color: #22a0f4;">${Directory.name}</span> loaded`, 'success');
-    for (let rival of rivals) {
-      if (rival.residing === Directory.layers[0]) {
-        Flash([`<span style="color: green;">${rival.user}</span> is currently browsing within this primary directory <span style="color: #22a0f4;">${Directory.layers[0]}</span>.`,
-        `Moving, renaming or deleting files within here is ill-advised`], 'warning');
-        break;
-      }
-    };
-    CurrentFolder = Directory.name.getSpaceChars();
+  if (firstVisit)
+    return false;
 
-    FolderInput[0].value = CurrentFolder;
-    $('.view-dir').attr('href', `/${Partition + CurrentFolder}` || '/');
-
-    await listDirectoryContents(event);
-  } else if (!CurrentFolder) {
-    Directory.index = 0;
-    Directory.layers = ['/'];
-    await findAllFiles(event);
-  }
-
-/* ----------------------------------------- */
-  if (UserSession.preferences.outsideDir)
-    $('.my-dir').click();
-
-  if (UserSession.home === UsersDirectory) {
-    $('td').attr('path', UserSession.user.name);
-    if (!CurrentFolder && !Directory.name) {
-      Directory.name = UserSession.user.name;
-      CurrentFolder = UserSession.user.name;
-    }
-  }
-
-  $('#tableOfDirectories').clone().appendTo('nav');
-/* ----------------------------------------- */
-  //This crap below was a browser exception soley for Mozilla Firefox, which perpetuated nasty page jerking whenever any file card was hovered over. If we find the browser prefixes have no/hardly any Mozilla features, we apply a conventional hover/show behavior to the elements.
-  const prefix = (Array.prototype.slice
-    .call(window.getComputedStyle(document.documentElement, '')).filter( (style) => style.includes('-moz')));
-
-    if (!prefix || prefix.length < 10) {
-      $('.ui-draggable').hover( function () {
-
-        $(this).find('.source-icons').show();
-        if (event.type === 'mouseout')
-          $(this).find('.source-icons').hide();
-      });
-    }
-/* ----------------------------------------- */
+  await populateDirectory();
 });
-
-
 // --------------------------------------------------------------------
 window.addEventListener('pageshow', (evt) => {
   if (firstVisit) {

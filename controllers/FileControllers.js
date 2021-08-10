@@ -1,9 +1,10 @@
 const fs = require('fs-extra');
 const path = require('path');
+const {AllDirectories} = require('../index.js')
 const {ReportData} = require('./UserHandling.js');
 const {CapArraySize, CheckIfUpload, CheckIfTransfer} = require('./Helpers.js');
 const FileType = require('file-type');
-const UsersDirectory = process.env.UsersDirectory || 'Users_1';
+const UsersDirectory = process.env.UsersDirectory || 'users';
 
 module.exports = {
 
@@ -31,6 +32,7 @@ module.exports = {
 
           if (error) {
             let newDirectory = fs.mkdirSync(`${partition}/${directory}`, {recursive: true});
+            AllDirectories.push(newDirectory);
 
             let nextDir = directory.split('/')[1];
             //Simple code, but deceptive concept. The first element is the current directory (don't want that), second element is the newly created directory, and all other elements are sub-directories of the new directory, so don't want those either.
@@ -116,12 +118,9 @@ module.exports = {
       for (let file of req.files.files) {
         let filetype = await FileType.fromBuffer(file.data);
 
-        // if (!filetype || !file.name.toLowerCase().includes(filetype.ext)) {
-        //   req.files.files[i] = file.name; //If there was a problem, file data will not be used, but we keep the name so we can report the name of the file in the browser log
-        // } else
-        // fs.writeFileSync(path.join(__dirname, req.session.home, file.path, file.name), file.data, "UTF8");
-        // fs.writeFileSync(path.resolve(req.session.home, file.path, file.name), file.data, "UTF8");
-        fs.writeFile(path.resolve(req.session.home, file.path, file.name), file.data, "UTF8", function (error) {
+        if (!filetype) {
+          req.files.files[i] = file.name; //If there was a problem, file data will not be used, but we keep the name so we can report the name of the file in the browser log
+        } else fs.writeFile(path.resolve(req.session.home, file.path, file.name), file.data, "UTF8", function (error) {
           if (error) req.files.files[i] = file.name;
 
           i++;
@@ -230,20 +229,20 @@ module.exports = {
         stats = fs.statSync(fullpath);
 
   // ------------------------------------------------------------------------------
-      // if (!stats || req.session.user.uid !== stats.uid) {
-      //   //If item does not exist, or user does not own the item
-      //   failed.push(file.name);
-      //   continue;
-      // }
+      if (!stats || req.session.user.uid !== stats.uid) {
+        //If item does not exist, or user does not own the item
+        failed.push(file.name);
+        continue;
+      }
   // ------------------------------------------------------------------------------
         try {
 
         //If there were no Auth' problems/specificity errors, we proceed to remove the targeted file.
-          if (stats.mode === 33206) {
+          if (stats.mode === process.env.file) {
             await fs.unlinkSync(fullpath)
             fs.existsSync(fullpath) ? failed.push(file.name) : await succeeded.push(file.name);
           }
-          else if (stats.mode === 16822) { //Then it's a folder, and we remove directory
+          else if (stats.mode === process.env.folder) { //Then it's a folder, and we remove directory
 
             await fs.rmdirSync(fullpath, { recursive: true });
             fs.existsSync(fullpath) ? failed.push(file.name) : await succeeded.push(`<span style="color: #22a0f4;">${file.name}</span>`);

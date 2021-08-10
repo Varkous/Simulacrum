@@ -81,9 +81,11 @@ if (UserSession && UserSession.preferences.smoothTransition === true) {
       dismissElement(MessageLog, 'Y', 'down', '40%', true);
 
       if (UserSession.home === UsersDirectory && nextPage.join('/') === `${UsersDirectory}/${UserSession.user.name}`) { //If in private directory, attempts to visit the user folder will go to homepage, since that is presented as the "home" directory
-        window.location = domain
+        setTimeout( () => window.location = domain, 300);
       }
-      else window.location = this.href
+
+      else setTimeout( () => window.location = this.href, 300);
+
 
       //THEN do the redirect
     }

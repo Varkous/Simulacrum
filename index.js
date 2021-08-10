@@ -1,3 +1,6 @@
+if (process.env.NODE_ENV !== "production") {
+  require('dotenv').config();
+}
 const NEW = require('../NodeExpressAppFrame/N.E.W.js');
 const Website = new NEW();
 //NEW stands for "Node Express Website". Contains all the fundamental libraries that express generally uses
@@ -14,21 +17,23 @@ const worthlessURLS = ['/fonts', '/favicon.ico', ...allExtensions];
 
 /*======================================================*/
 const {Sessions} = require('./controllers/UserHandling.js');
-const {WriteLogFilter} = require('./controllers/helpers.js');
-const {GetDirectory, GetFolderSize, GetUsersItems} = require('./controllers/FolderProviders.js');
+const {WriteLogFilter} = require('./controllers/Helpers.js');
+const {GetDirectory, GetFolderSize, GetAllItems} = require('./controllers/FolderProviders.js');
 /*======================================================*/
 
 
 /*====== For uploading files (particularily images and videos) to a CDN or database =======*/
-let partition = process.env.partition || 'uploads';
-const UsersDirectory = process.env.UsersDirectory || 'Users_1';
+let partition = process.env.partition || 'public';
+const UsersDirectory = process.env.UsersDirectory || 'users';
+const AllDirectories = GetAllItems(partition, [], true);
 process.sessionTimers = {};
+
 
 // ============================================================
 const resourceFolders = [
   sessions({
       name: 'user_session',
-      secret: 'thewayofallflesh',
+      secret: process.env.secret,
       saveUninitialized: true,
       resave: false,
       httpOnly: true,
@@ -52,28 +57,30 @@ app.use('/static', express.static(partition));
 app.use(resourceFolders);
 app.use(FileUpload());
 
+
 /*======================================================*/
 app.use('*', wrapAsync( async (req, res, next) => {
 
-    // req.session.user = {name: 'Huskarl', uid: 2, admin: true};
-    // req.session.log = req.session.log || [];
-    //   req.session.preferences = {
-    //     outsideDir: false,
-    //     emptyDir: false,
-    //     smoothTransition: true,
-    //     deleteCheck: true,
-    //     uploadWarning: true,
-    //   };
-    // req.session.home = req.session.home || partition;
-    // req.session.loginAttempts = 0;
+    req.session.user = {name: 'Stroggon', uid: 0, admin: true};
+    req.session.log = req.session.log || [];
+      req.session.preferences = {
+        outsideDir: false,
+        emptyDir: false,
+        smoothTransition: true,
+        deleteCheck: true,
+        uploadWarning: true,
+      };
+    req.session.home = partition;
+    req.session.loginAttempts = 0;
 
   const url = req.originalUrl;
 
   if (worthlessURLS.find( skip_url => url.includes(skip_url)))
     return next();
   //These are unnecessary requests made by browser, dismiss them unless we want the icons
-  else if (url === '/' + partition || url === '/' + UsersDirectory)
+  if (url === '/' + partition || url === '/' + UsersDirectory)
     return res.redirect('/');
+  //Homepage represents top-level partition, so redirect there if they are input as url
 
 
   if (!req.session.user && url !== '/login') {
@@ -98,7 +105,8 @@ app.get('*', wrapAsync(async (req, res, next) => {
     return false;
 
   if (req.session.user && req.originalUrl !== '/login') {
-    const firstVisit = Sessions.users[`User${req.session.user.uid}`].firstVisit;
+    const firstVisit = false;
+    // const firstVisit = Sessions.users[`User${req.session.user.uid}`].firstVisit;
 // -----------------------------------------------------------------
     req.session.home.includes(UsersDirectory) ?
     homedirectory = `${req.session.home}/${req.session.user.name}` :
@@ -108,7 +116,7 @@ app.get('*', wrapAsync(async (req, res, next) => {
     let requestPath = req.params[0].replace(`/${partition}/`, '');
     if (requestPath.includes('/'))
       requestPath = requestPath.substring(0, requestPath.indexOf('/'));
-
+    //Finds the primary directory the current user is requesting/visiting by getting the first name up to the first "/" (after removing partition name from equation)
 
 
     //Very annoying, but this was need to acquire the Primary Directory name apart of the request path, which is in the middle of the string, behind the first "/" after we remove the partition from the equation
@@ -121,6 +129,7 @@ app.get('*', wrapAsync(async (req, res, next) => {
 // -----------------------------------------------------------------
     for (let directory of PrimaryDirectories) {
 
+      if (directory[0] === '@' || directory[0] === '$') continue; //Then it's a hidden/reserved/special folder
       if (requestPath === directory)
         Sessions.users[`User${req.session.user.uid}`].residing = directory;
         //Whatever primary directory the user resides, store it for others to see
@@ -135,7 +144,7 @@ app.get('*', wrapAsync(async (req, res, next) => {
         filestats = fs.statSync(`${homedirectory}/${directory}/${file}`);
         stats.size += filestats.size;
         //Every file's stats are checked, and just their size is returned to be concatenated with the folderStats size (usually 0), so it will ultimately add up the sizes of all present files
-        if (filestats.mode === 16822) /*Then it can't BE a file, so --*/ {
+        if (filestats.mode === process.env.folder) /*Then it can't BE a file, so --*/ {
           let folder = file;
           subfolders.push(folder);
         };
@@ -162,7 +171,7 @@ app.get('*', wrapAsync(async (req, res, next) => {
     //If the public partition is the home, use it with no additions. If home is the user's private directory, add their name (by using homedirectory, see if-else condition at the top), so we aren't browsing the USERS directory, and instead just finding contents of ONE folder within Users directory for THIS user.
 
     res.locals.PrimaryDirectories = PrimaryDirectories;
-    res.locals.AllDirectories = GetUsersItems(homedirectory, [], true, req);
+    res.locals.AllDirectories = AllDirectories;
     res.locals.rivals = [];
     res.locals.firstVisit = firstVisit;
     //The parameter true is for "search", means we are just searching for directory names, not files
