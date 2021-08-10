@@ -1,0 +1,10 @@
+PORT = 3001
+secret = thewayofallflesh
+partition = public
+UsersDirectory = users
+infodir = ../_Info
+info_users = /userlog.txt
+geohost = ip-geolocation-ipwhois-io.p.rapidapi.com
+geokey = 884489cc35msh5522f4c73f6cc97p15d8d3jsnda0391362a21
+file = 33206
+folder = 16822
