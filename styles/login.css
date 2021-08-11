@@ -34,10 +34,14 @@ main {
   margin-right: auto;
   align-self: center;
 }
+#title {
+  opacity: 1.0;
+  filter: brightness(140%);
+  animation: glow 3s infinite forwards;
+}
 img {
   border-radius: 50px;
   opacity: 0.8;
-
 }
 form {
   font-family: 'Courier New';
@@ -64,18 +68,22 @@ label {
   color: #22a0f4;
   text-shadow: 3px 3px 3px black;
   align-self: center;
+  margin-top: 6px;
 }
 input {
   background: rgba(0,0,0,1);
-  color: #22a0f4;
+  color: aliceblue;
 
   padding: 7px;
   font-size: 1.5rem;
 } #newUserForm, textarea {
   background: black;
   color: aliceblue;
+  font-family: monospace;
 
-  font-size: 1.8rem;
+  font-size: 1.5rem;
+} #newUserForm input {
+  font-size: 1.3rem;
 }
 button {
   font-family: 'Jupiter';
@@ -101,7 +109,6 @@ button {
 .secret-message {
   z-index: 2;
   font-size: 1.4rem;
-  /* position: absolute; */
   margin: 0;
 }
 @keyframes steady {
@@ -109,6 +116,11 @@ button {
   50% {border-bottom: 2px solid #22a0f4;}
   75% {border-right: 2px solid #22a0f4;}
   100% {border-top: 2px solid #22a0f4;}
+}
+@keyframes glow {
+  0% {filter: drop-shadow(0.3px 0.5px 1px transparent);}
+  50% {filter: drop-shadow(0.3px 0.5px 1px #44a0ff);}
+  100% {filter: drop-shadow(0.3px 0.5px 1px transparent);}
 }
 @media only screen and (max-width: 1000px) {
   body {

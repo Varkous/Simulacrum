@@ -16,8 +16,8 @@
   <body>
     <main class="container">
 
-      <img src="/TNT Logo 4.png" alt="">
-      <img src="Simulacrum Title.png" alt="" style="opacity: 1.0; filter: brightness(140%);">
+      <img id="logo" src="/TNT Logo 4.png" alt="">
+      <img id="title" src="Simulacrum Title.png" alt="">
 
         <form id="mainForm" action="/login" method="POST">
 
@@ -52,17 +52,19 @@
             </div>
 
             <div class="form-block">
-              <label for="note">Note For Director</label>
-              <textarea name="note" rows="5" cols="50" maxlength="120"></textarea>
+              <label for="note">Note <span>(Optional)</span></label>
+              <textarea name="note" rows="5" cols="50" maxlength="120" placeholder="Any info related to the purpose of this account, and who will be the primary owner/user of it (only the Director will see this)"></textarea>
             </div>
 
-            <div class="form-block">
+            <h5 style="padding: 5px; color: lightgray">Answer the secret question (you should know where to find it).</h5>
+            <br>
+            <div class="form-block" style="border: 1px double gray; padding: 5px">
               <p class="secret-message">When Bruce Wayne unzips his pants...</p>
               <img src="/mrwayne.png" alt="">
             </div>
 
             <div class="form-block">
-              <p class="secret-message">What is Mr. Fox's response?</p>
+              <p class="secret-message" style="border: 1px double gray;">What is Mr. Fox's response?</p>
               <img src="/mrfox.png" alt="">
             </div>
 

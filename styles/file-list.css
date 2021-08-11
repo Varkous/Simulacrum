@@ -175,7 +175,7 @@
   margin: -15px;
   transform: scale(0.9);
 }
-.column.queued h1{
+.column.queued h1 {
   color: gray;
 }
 .column.selected {
