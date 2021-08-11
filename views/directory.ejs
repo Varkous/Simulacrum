@@ -23,7 +23,6 @@
   <script type="text/javascript">
     const UsersDirectory = <%-JSON.stringify(UsersDirectory)%>;
     const UserSession = <%-JSON.stringify(UserSession)%>;
-    const Itemtype = <%-JSON.stringify(Itemtype)%>;
     let Partition = <%-JSON.stringify(partition)%>.replace(`/${UserSession.user.name}`, '');
     let firstVisit = <%-JSON.stringify(firstVisit)%>;
     //When user has set private directory to be home directory, we remove user name from the partition (which is supposed to be there on the back-end, but creates bugs on the front end).
@@ -473,8 +472,9 @@
   </body>
 </html>
 
-
+<script type="text/javascript" src="/general-helpers.js"></script>
 <script type="text/javascript" src="/Core.js"></script>
+
 <!-- ======================================================= -->
 <script text="text/javascript">
 

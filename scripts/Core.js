@@ -1,3 +1,4 @@
+
 const allExtensions =  [
   '.bat','.apk','.com','.jpg','.jpeg','.exe','.doc','.docx','.docm','.rpp','.html','.z','.pkg','.jar','.py','.aif','.cda','.iff','.mid','.mp3','.flac','.wav','.wpl','.avi','.flv','.h264','.m4v','.mkv','.mov','.mp4','.mpg','.rm','.swf','.vob','.wmv','.3g2','.3gp','.doc','.odt','.msg','.pdf','.tex','.txt','.wpd','.ods','.xlr','.xls','.xls','.key','.odp','.pps','.ppt','.pptx','.accdb','.csv','.dat','.db','.log','.mdbdatabase','.pdb','.sql','.tar','.bak','.cabile','.cfg','.cpl','.cur','.dll','.dmp','.drve','.icns','.ico','.inile','.ini','.info','.lnk','.msi','.sys','.tmp','.cer','.ogg','.cfm','.cgi','.css','.htm','.js','.jsp','.part','.odb','.php','.rss','.xhtml','.ai','.bmp','.gif','.jpeg','.max','.obj','.png','.ps','.psd','.svg','.tif','.3ds','.3dm','.cpp','.h','.c','.C','.cs','.zip','.rar','.7z'
 ];
@@ -9,26 +10,6 @@ const imageDocFormats = ['.pdf'];
 const textDocFormats = ['.txt', '.cfg', '.rtf', '.ini', '.info'];
 const compressedFormats = ['.7z', '.zip', '.rar', '.z', '.pkg'];
 const Outbound = {size: 0, staged: [], transfers: [], delete: [], selected: []}; //This is an "intermission" variable that temporarily holds any submission content during a dialog prompt. If the user confirms, the data is retrieved from here and sent on request.
-// ----------------------------------------------------------------------
-function pathfinder (arrays, method, file) {
-if (!Array.isArray(arrays[1]))
-  arrays = [arrays];
-  //This is so we can pass TWO arrays that can be filtered
-
-  for (let array of arrays) {
-    found = array[`${method}`]( (listfile) => (listfile.name === file.name && listfile.path === file.path)) || null;
-    //Example: "this.files.find(>>THE FUNCTION YOU SEE ABOVE<<)"
-    if (found)
-      return found;
-    else continue;
-  }
-};
-
-function namefinder (array, method, file) {
-  file = file.toLowerCase();
-  return array[`${method}`]( (listfile) => listfile.name.toLowerCase() === file || listfile.name.toLowerCase().includes(file)) || null;
-  //Example: "this.files.find(>>THE FUNCTION YOU SEE ABOVE<<)"
-};
 // ----------------------------------------------------------------------
 
 
@@ -69,8 +50,7 @@ class File_Status_Adjuster {
         //This alone does not mean the "file" is a folder, it means it has a folder path.
     /*--------------------------------*/
 
-        if (file.stats.mode !== Itemtype.file) {
-          //Then it's a folder
+        if (checkModeType(file.stats.mode) === 'folder') {
           $(fileCard).removeClass(this.status);
           $(this.listings).children(`[title="${file.name}"][path="${file.path}"]`).html(`
           <i class="fa fa-folder" style="left: -40"></i>

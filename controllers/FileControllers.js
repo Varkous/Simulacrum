@@ -235,13 +235,14 @@ module.exports = {
       }
   // ------------------------------------------------------------------------------
         try {
+         let mode = stats.mode.toString();
 
         //If there were no Auth' problems/specificity errors, we proceed to remove the targeted file.
-          if (stats.mode === process.env.file) {
+          if (mode.slice(0,2) === '33') {
             await fs.unlinkSync(fullpath)
             fs.existsSync(fullpath) ? failed.push(file.name) : await succeeded.push(file.name);
           }
-          else if (stats.mode === process.env.folder) { //Then it's a folder, and we remove directory
+          else if (mode.slice(0,2) === '16') { //Then it's a folder, and we remove directory
 
             await fs.rmdirSync(fullpath, { recursive: true });
             fs.existsSync(fullpath) ? failed.push(file.name) : await succeeded.push(`<span style="color: #22a0f4;">${file.name}</span>`);

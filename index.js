@@ -10,6 +10,8 @@ app.set('', path.join('views'));
 app.set('view engine', 'ejs');
 const fs = require('fs-extra');
 const FileUpload = require('express-fileupload');
+
+
 const allExtensions =  [
   '.bat','.apk','.com','.jpg','.jpeg','.exe','.doc','.docx','.docm','.rpp','.html','.z','.pkg','.jar','.py','.aif','.cda','.iff','.mid','.mp3','.flac','.wav','.wpl','.avi','.flv','.h264','.m4v','.mkv','.mov','.mp4','.mpg','.rm','.swf','.vob','.wmv','.3g2','.3gp','.doc','.odt','.msg','.pdf','.tex','.txt','.wpd','.ods','.xlr','.xls','.xls','.key','.odp','.pps','.ppt','.pptx','.accdb','.csv','.dat','.db','.log','.mdbdatabase','.pdb','.sql','.tar','.bak','.cabile','.cfg','.cpl','.cur','.dll','.dmp','.drve','.icns','.ico','.inile','.ini','.info','.lnk','.msi','.sys','.tmp','.cer','.ogg','.cfm','.cgi','.css','.htm','.js','.jsp','.part','.odb','.php','.rss','.xhtml','.ai','.bmp','.gif','.jpeg','.max','.obj','.png','.ps','.psd','.svg','.tif','.3ds','.3dm','.cpp','.h','.c','.C','.cs','.zip','.rar','.7z'
 ];
@@ -144,7 +146,7 @@ app.get('*', wrapAsync(async (req, res, next) => {
         filestats = fs.statSync(`${homedirectory}/${directory}/${file}`);
         stats.size += filestats.size;
         //Every file's stats are checked, and just their size is returned to be concatenated with the folderStats size (usually 0), so it will ultimately add up the sizes of all present files
-        if (filestats.mode === process.env.folder) /*Then it can't BE a file, so --*/ {
+        if (String(filestats.mode).slice(0, 2) === '16') /*Then it can't BE a file, so --*/ {
           let folder = file;
           subfolders.push(folder);
         };
@@ -172,7 +174,7 @@ app.get('*', wrapAsync(async (req, res, next) => {
 
     res.locals.PrimaryDirectories = PrimaryDirectories;
     res.locals.AllDirectories = AllDirectories;
-    res.locals.Itemtype = {file: process.env.file, folder: process.env.folder};
+    // res.locals.GeneralHelpers = {namefinder, pathfinder, checkModeType, randomizeColor} = GeneralHelpers;
     res.locals.rivals = [];
     res.locals.firstVisit = firstVisit;
     //The parameter true is for "search", means we are just searching for directory names, not files
