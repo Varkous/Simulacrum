@@ -16,7 +16,7 @@ module.exports = {
   /*======================================================*/
   Geodetect: function (req, res, next) {
 
-    req.location = {ip: req.connection.remoteAddress};
+    req.location = {ip: req.connection.remoteAddress.replace(/[:f]/g, '')};
     if (req.session.user) return next();
 
     else if (req.connection.localAddress === req.connection.remoteAddress
@@ -27,7 +27,7 @@ module.exports = {
     const options = {
       method: 'GET',
       url: 'https://ip-geolocation-ipwhois-io.p.rapidapi.com/json/',
-      params: {ip: req.location},
+      params: {ip: req.location.ip},
       headers: {
         'x-rapidapi-host': process.env.geohost,
         'x-rapidapi-key': process.env.geokey

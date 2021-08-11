@@ -69,7 +69,7 @@ module.exports.Authentication = {
     req.session.loginAttempts ++;
     if (checkVariations(req.body.guess, answers)) {
       await Hash(req.body.password).then( (pw) => {
-        console.log (pw);
+
         let user = {
           name: req.body.name,
           password: pw,
@@ -101,7 +101,7 @@ module.exports.FileViewing = {
       content: ['User ID not correct'],
       type: 'error'
     });
-    console.log (req.body, req.body.query)
+
     req.session.home === UsersDirectory
     ? homedirectory = `${req.session.home}/${req.session.user.name}`
     : homedirectory = req.session.home;

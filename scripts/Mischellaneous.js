@@ -141,7 +141,7 @@ function displayDirectoryStats (evt) {
          </div>
         <hr>
         <p>
-          Created By: <span>${PrimaryDirectories[i].stats.uid}</span> <br>
+          Created By: <span>${PrimaryDirectories[i].stats.creator}</span> <br>
           Creation Date: <span>${PrimaryDirectories[i].stats.ctime}</span> <br>
           Size: <span>${getFileSize(PrimaryDirectories[i].stats.size)}</span> <br>
           Files: <span style="color: darkcyan; max-width: 300px; word-wrap: break-word;">

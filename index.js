@@ -61,17 +61,17 @@ app.use(FileUpload());
 /*======================================================*/
 app.use('*', wrapAsync( async (req, res, next) => {
 
-    // req.session.user = {name: 'Stroggon', uid: 0, admin: true};
-    // req.session.log = req.session.log || [];
-    //   req.session.preferences = {
-    //     outsideDir: false,
-    //     emptyDir: false,
-    //     smoothTransition: true,
-    //     deleteCheck: true,
-    //     uploadWarning: true,
-    //   };
-    // req.session.home = partition;
-    // req.session.loginAttempts = 0;
+    req.session.user = {name: 'Stroggon', uid: 0, admin: true};
+    req.session.log = req.session.log || [];
+      req.session.preferences = {
+        outsideDir: false,
+        emptyDir: false,
+        smoothTransition: true,
+        deleteCheck: true,
+        uploadWarning: true,
+      };
+    req.session.home = partition;
+    req.session.loginAttempts = 0;
 
   const url = req.originalUrl;
 
@@ -135,24 +135,26 @@ app.get('*', wrapAsync(async (req, res, next) => {
         //Whatever primary directory the user resides, store it for others to see
 
       let subfolders = [];
-      //Grabbing sub-directories along with the stats and files within the given directory
+      //Grabbing sub-directories along with the stats and items within the given directory
       let stats = fs.statSync(`${homedirectory}/${directory}`);
-      let files = fs.readdirSync(`${homedirectory}/${directory}`);
+      let items = fs.readdirSync(`${homedirectory}/${directory}`);
   // ------------------------------------------------ //
-      for (let file of files) { /*Check every file*/
+      for (let item of items) { /*Check every item*/
 
-        filestats = fs.statSync(`${homedirectory}/${directory}/${file}`);
+        filestats = fs.statSync(`${homedirectory}/${directory}/${item}`);
         stats.size += filestats.size;
-        //Every file's stats are checked, and just their size is returned to be concatenated with the folderStats size (usually 0), so it will ultimately add up the sizes of all present files
+        stats.creator = Sessions.users[`User${stats.uid}`].name || 'Admin';
+        console.log (Sessions.users[`User${stats.uid}`].name)
+        //Every item's stats are checked, and just their size is returned to be concatenated with the folderStats size (usually 0), so it will ultimately add up the sizes of all present items
         if (String(filestats.mode).slice(0, 2) === '16') /*Then it can't BE a file, so --*/ {
-          let folder = file;
+          let folder = item;
           subfolders.push(folder);
         };
 
       }; //End of second For Loop
 
-      for (let subfolder of subfolders) { /*Remove it from files array*/
-        files.splice(files.indexOf(subfolder), 1);
+      for (let subfolder of subfolders) { /*Remove it from items array*/
+        items.splice(items.indexOf(subfolder), 1);
         stats.size += GetFolderSize(req, `${homedirectory}/${directory}/${subfolder}`, 0);
       } //End of third For Loop
 
@@ -160,7 +162,7 @@ app.get('*', wrapAsync(async (req, res, next) => {
       PrimaryDirectories[i] = {
         name: directory,
         stats: stats,
-        files: files,
+        files: items,
         folders: subfolders,
       };
       i++;

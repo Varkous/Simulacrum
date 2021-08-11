@@ -1,4 +1,5 @@
 const fs = require('fs-extra');
+const {Sessions} = require('./UserHandling.js')
 
 module.exports = {
 
@@ -31,6 +32,7 @@ module.exports = {
         stats: stats,
         files: files,
       };
+      directory.stats.creator = Sessions.users[`User${directory.stats.uid}`].name || 'Admin';
 
       let folderStart = [0];
       for (let i = 0; i < folder.length; i++){
@@ -61,10 +63,11 @@ module.exports = {
         if (path[0] === '@' || path[0] === '$') continue; //Then it's a hidden/reserved/special folder
         else if (search) {
           //If search is true, we're searching for folders, and don't want files
-          if (path.includes(search))
+          if (path.toLowerCase().includes(search.toLowerCase()))
+          //Lower case it, no need to be uptight here
             dirStats.push(path);
 
-          dirStats = module.exports.GetAllItems(path, dirStats, true, req);
+          dirStats = module.exports.GetAllItems(path, dirStats, search, req);
         }
         else dirStats = module.exports.GetAllItems(path, dirStats, false, req);
       // -------------------------------------------------------

@@ -134,7 +134,7 @@
 
         <h1>
         <% if (directory) {%>
-      		Browsing directory: <span><%= directory.name %></span>. <br> Created by: <span>User <%=directory.stats.uid %></span> on <%=directory.stats.birthtime %>. <br>There are currently <span><%=directory.files.length%></span> entries listed.
+      		Browsing directory: <span><%= directory.name %></span>. <br> Created by: <span><%=directory.stats.creator %></span> on <%=directory.stats.birthtime %>. <br>There are currently <span><%=directory.files.length%></span> entries listed.
           <ul class="info-list">
             <li>Click folder icons <i class="fa fa-folder"></i> to add their name/path to the folder designation input</li>
             <hr>
@@ -148,7 +148,6 @@
             <hr>
             <li>Double-clicking while holding down SHIFT will select/unselect all items in the given file View</li>
           </ul>
-          <!-- <p style="font-size: 0px; transition: font-size 1s ease;">Click the Overhead Panel for condensed view on contents. Visit Control Info within Navbar <span><img src="/TNT Logo.png" alt="" width="50"></span> for shorthand controls.</p> -->
         <% } else {%>
           You can interact with the Skeleton Hill database here, though optimization is limited. <br>Videos, audio, images, zips and text files that are less than 1 gigabyte are the data types that will be transmitted most reliably. If you have several files, especially any large ones, compress them into a ZIP before uploading.
           <hr>
@@ -157,22 +156,6 @@
         <br><br>
         </h1>
     	</header>
-<!-- <object
-  data='ReleaseNotes_win.pdf'
-  type="application/pdf"
-  width="500"
-  height="678"
->
-
-  <iframe
-    src='ReleaseNotes_win.pdf'
-    width="500"
-    height="678"
-  >
-  <p>This browser does not support PDF!</p>
-  </iframe>
-
-</object> -->
     <hr>
     <br>
 
