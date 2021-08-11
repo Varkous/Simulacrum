@@ -1,8 +1,8 @@
 const fs = require('fs-extra');
-const bcrypt = require('bcrypt');
+const {Hash, Verify} = require('./Hasher.js');
 const {wrapAsync} = require('../index.js')
 let partition = process.env.partition;
-const UsersDirectory = process.env.UsersDirectory || 'Users_1';
+const UsersDirectory = process.env.UsersDirectory || 'users';
 const allowedPreferences = 5;
 class SessionStore {
 
@@ -179,7 +179,7 @@ module.exports = {
 
     for (let i in users) {
 
-      if (await bcrypt.compare(req.body.password, users[i].password)
+      if (await Verify(users[i].password, req.body.password)
           && req.body.name === users[i].name)
         { //If authentication succeeded and user info matched
           if (Sessions.users[`User${users[i].uid}`].locked === true || Sessions.users[`User${users[i].uid}`].loggedIn === true) {

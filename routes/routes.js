@@ -4,7 +4,7 @@ const UsersDirectory = process.env.UsersDirectory || 'Users_1';
 
 const fs = require('fs-extra');
 const AdmZip = require('adm-zip');
-const bcrypt = require('bcrypt');
+const {Hash, Verify} = require('../controllers/Hasher.js');
 
 const {VerifyUser, ReportData, Sessions} = require('../controllers/UserHandling.js');
 const {AccessDirectory, UploadFiles, Rename, IterateDelete} = require('../controllers/FileControllers.js');
@@ -68,19 +68,22 @@ module.exports.Authentication = {
 
     req.session.loginAttempts ++;
     if (checkVariations(req.body.guess, answers)) {
-      await bcrypt.hash(req.body.password, 10, function(err, hash) {
+      await Hash(req.body.password).then( (pw) => {
+        console.log (pw);
         let user = {
           name: req.body.name,
-          password: hash,
+          password: pw,
           uid: 1,
           admin: false,
           note: req.body.note || '',
           firstVisit: true
-        }
+        };
+
         fs.appendFileSync(`${process.env.infodir}/newusers.txt`, JSON.stringify(user), 'utf8');
         let LoginAttempts = {count: req.session.loginAttempts || 0, message: 'Correct. Sending request for new profile.'};
         return res.render('login', {LoginAttempts});
       });
+
     } else {
       return next(new Error('Nope, wrong answer'));
     }
