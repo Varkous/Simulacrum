@@ -158,9 +158,14 @@ module.exports = {
           if (req.body.copy) {
             action = 'copied';
             //Simply copy the item (absolute path needed) to the destination folder, any error means file transfer failed.
+            if (fs.existsSync(newpath) && req.session.user.admin === false)
+              continue; //Then don't override current item, as it may belong to another user
+
             if (stats.isDirectory())
               fs.copySync(oldpath, newpath);
             else fs.copyFileSync(oldpath, newpath);
+
+            fs.chown(newpath, req.session.user.uid, 100);
 
           }
         // ------------------------------------------------------------------------------
@@ -228,7 +233,7 @@ module.exports = {
         stats = fs.statSync(fullpath);
 
   // ------------------------------------------------------------------------------
-      if (!stats || req.session.user.uid !== stats.uid) {
+      if (!stats || req.session.user.uid !== stats.uid && req.session.user.admin === false) {
         //If item does not exist, or user does not own the item
         failed.push(file.name);
         continue;
