@@ -59,7 +59,7 @@ async function itemSearch (evt) {
     return false;
   }
   let finds = [];
-  let list = AllDirectories || $('.all-files').children('.uploaded');
+  let list = $('.all-files').children('.uploaded');
 // ---------------------------------------------------------------------------
     if (this && this.id === 'FolderInput') {
       StagedFiles.unlist(StagedFiles.count, true);
@@ -67,6 +67,8 @@ async function itemSearch (evt) {
       $('.view-dir').attr('href', `/${Partition + this.value}` || '/');
       view = $(folderSuggestions);
       $(view).empty();
+      const found = await axios.post(`/user/${UserSession.user.uid}`, {query: query});
+      list = found.data.content;
     } else {
       $('.all-files li').not('.selected').hide();
       if (this.offsetParent === $('main')[0])
@@ -79,7 +81,7 @@ async function itemSearch (evt) {
     }
 // ---------------------------------------------------------------------------
     for (let item of list) {
-      item.title ? name = item.title.replace(Partition, '') : name = item.replace(Partition, '');
+      item.title ? name = item.title.replace(Partition + '/', '') : name = item.replace(Partition + '/', '');
       //File card has ID so get name that way, otherwise folder listing is just text
 
       if (name.toLowerCase().includes(query)) {

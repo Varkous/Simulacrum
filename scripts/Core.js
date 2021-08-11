@@ -321,7 +321,7 @@ $('#tableOfDirectories').clone().appendTo('nav');
 //This crap below was a browser exception soley for Mozilla Firefox, which perpetuated nasty page jerking whenever any file card was hovered over. If we find the browser prefixes have no/hardly any Mozilla features, we apply a conventional hover/show behavior to the elements.
 const prefix = (Array.prototype.slice
   .call(window.getComputedStyle(document.documentElement, '')).filter( (style) => style.includes('-moz')));
-  console.log (prefix);
+
   if (!prefix || prefix.length < 10) {
     $('.ui-draggable').hover( function () {
 

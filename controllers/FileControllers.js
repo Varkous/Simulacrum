@@ -30,7 +30,7 @@ module.exports = {
 
           if (error) {
             let newDirectory = fs.mkdirSync(`${partition}/${directory}`, {recursive: true});
-            fs.chownSync(path.resolve(newDirectory), req.session.user.uid, 100);
+            fs.chownSync(newDirectory, req.session.user.uid, 100);
 
             let nextDir = directory.split('/')[1];
             //Simple code, but deceptive concept. The first element is the current directory (don't want that), second element is the newly created directory, and all other elements are sub-directories of the new directory, so don't want those either.

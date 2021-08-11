@@ -61,13 +61,14 @@ module.exports = {
         if (path[0] === '@' || path[0] === '$') continue; //Then it's a hidden/reserved/special folder
         else if (search) {
           //If search is true, we're searching for folders, and don't want files
-          dirStats.push(path);
+          if (path.includes(search))
+            dirStats.push(path);
+
           dirStats = module.exports.GetAllItems(path, dirStats, true, req);
         }
         else dirStats = module.exports.GetAllItems(path, dirStats, false, req);
       // -------------------------------------------------------
-      }
-      else if (search) continue; //If not a directory and we're searching, continue, we don't want files
+      } else if (search) continue; //If not a directory and we're searching, continue, we don't want files
       // -------------------------------------------------------
       else {
         dirStats.push({

@@ -4,12 +4,25 @@ const UsersDirectory = process.env.UsersDirectory || 'Users_1';
 
 const fs = require('fs-extra');
 const AdmZip = require('adm-zip');
+const bcrypt = require('bcrypt');
 
 const {VerifyUser, ReportData, Sessions} = require('../controllers/UserHandling.js');
 const {AccessDirectory, UploadFiles, Rename, IterateDelete} = require('../controllers/FileControllers.js');
 const {Geodetect, CapArraySize} = require('../controllers/Helpers.js');
 const {GetDirectory, GetFolderSize, GetAllItems} = require('../controllers/FolderProviders.js');
 
+const checkVariations = (guess, answers) => {
+  guess = guess.toLowerCase();
+
+  for (let answer of answers) {
+    answer = answer.toLowerCase();
+    if (guess === answer || guess.replace(/[',.!?]/g,'') === answer.replace(/[',.!?]/g,'') || guess.includes(answer)) {
+      return true;
+      break;
+    }
+  };
+ return false;
+};
 /*======================================================*/
 module.exports.Authentication = {
 
@@ -31,8 +44,8 @@ module.exports.Authentication = {
       return next( new Error("Login attempts exceeded. Get lost."));
     }
 
-    let LoginAttempts = req.session.loginAttempts || 0;
-    res.render('login', {LoginAttempts});
+        let LoginAttempts = {count: req.session.loginAttempts || 0, message: ''};
+    return res.render('login', {LoginAttempts});
   })),
 
   /* ====================================
@@ -42,9 +55,38 @@ module.exports.Authentication = {
 
     res.redirect(req.session.route || '/');
   })),
+
+  /* ====================================
+  Temporary for creating new user accounts
+  ======================================= */
+  newUser: app.post('/new', Geodetect, wrapAsync( async (req, res, next) => {
+
+    const answers = ["Now that's more like it, Mr. Wayne.",
+        "Now that's more like it, Mister Wayne.",
+        "Now that is more like it, Mr. Wayne.",
+        "Now that is more like it, Mister Wayne."]
+
+    req.session.loginAttempts ++;
+    if (checkVariations(req.body.guess, answers)) {
+      await bcrypt.hash(req.body.password, 10, function(err, hash) {
+        let user = {
+          name: req.body.name,
+          password: hash,
+          uid: 1,
+          admin: false,
+          note: req.body.note || '',
+          firstVisit: true
+        }
+        fs.appendFileSync(`${process.env.infodir}/newusers.txt`, JSON.stringify(user), 'utf8');
+        let LoginAttempts = {count: req.session.loginAttempts || 0, message: 'Correct. Sending request for new profile.'};
+        return res.render('login', {LoginAttempts});
+      });
+    } else {
+      return next(new Error('Nope, wrong answer'));
+    }
+
+  })),
 }; //--------------- End of authentication routes
-
-
 
 module.exports.FileViewing = {
   /* ====================================
@@ -56,12 +98,14 @@ module.exports.FileViewing = {
       content: ['User ID not correct'],
       type: 'error'
     });
-
+    console.log (req.body, req.body.query)
     req.session.home === UsersDirectory
     ? homedirectory = `${req.session.home}/${req.session.user.name}`
     : homedirectory = req.session.home;
 
-    const items = await GetAllItems(homedirectory, [], false, req);
+
+    req.body.query ? items = await GetAllItems(homedirectory, [], req.body.query, req)
+    : items = await GetAllItems(homedirectory, [], false, req);
 
 
     return res.send({content: items})

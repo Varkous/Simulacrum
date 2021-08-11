@@ -17,44 +17,90 @@
     <main class="container">
 
       <img src="/TNT Logo 4.png" alt="">
+      <img src="Simulacrum Title.png" alt="" style="opacity: 1.0; filter: brightness(140%);">
 
-        <form action="/login" method="POST">
+        <form id="mainForm" action="/login" method="POST">
 
           <fieldset disabled>
             <div class="form-block">
               <label for="name">Username </label>
-              <input class="input" type="text" name="name" minlength="6" maxlength="20">
+              <input class="input" type="text" name="name" minlength="6" maxlength="20" required>
             </div>
 
             <div class="form-block">
               <label for="password">Password </label>
-              <input class="input" type="text" name="password" minlength="8" maxlength="20">
+              <input class="input" type="text" name="password" minlength="8" maxlength="20" required>
             </div>
           </fieldset>
 
           <button class="input" type="submit" name="button" disabled>SUBMIT</button>
 
         </form>
+<!-- ========================================================================== -->
+
+        <form id="newUserForm" action="/new" method="POST" hidden>
+          <fieldset>
+
+            <div class="form-block">
+              <label for="name">Username </label>
+              <input class="input" type="text" name="name" minlength="6" maxlength="20" required>
+            </div>
+
+            <div class="form-block">
+              <label for="password">Password </label>
+              <input class="input" type="text" name="password" minlength="8" maxlength="20" required>
+            </div>
+
+            <div class="form-block">
+              <label for="note">Note For Director</label>
+              <textarea name="note" rows="5" cols="50" maxlength="120"></textarea>
+            </div>
+
+            <div class="form-block">
+              <p class="secret-message">When Bruce Wayne unzips his pants...</p>
+              <img src="/mrwayne.png" alt="">
+            </div>
+
+            <div class="form-block">
+              <p class="secret-message">What is Mr. Fox's response?</p>
+              <img src="/mrfox.png" alt="">
+            </div>
+
+            <div class="form-block">
+              <label for="guess">Guess</label>
+              <input class="input" type="text" name="guess" minlength="20" required>
+              <p><span style="color: #22a0f4">Hint: </span> Less than 8 words...</p>
+            </div>
+        </fieldset>
+
+
+        <button class="input" type="submit" name="button">SUBMIT</button>
+        </form>
 
     </main>
+    <button name="button" onclick="showForm()" style="max-width: 400px;">Request New Profile</button>
+    <hr>
   </body>
 </html>
 
 
 <script text="text/javascript">
 
+
   const body = document.querySelector('body');
   const main = document.querySelector('main');
-  const session = <%-JSON.stringify(UserSession)%>;
   const LoginAttempts = <%-JSON.stringify(LoginAttempts || null)%>;
 
-  if (LoginAttempts < 3) {
+  if (LoginAttempts.message) {
+    alert(LoginAttempts.message);
+  }
+  if (LoginAttempts.count < 3) {
     document.querySelector('fieldset').disabled = false;
     document.querySelector('button').disabled = false;
   }
 /* ================================================= */
   window.onsubmit = () => {
-    if (LoginAttempts >= 2) {
+    if (LoginAttempts.count >= 2) {
       alert('Login attempts exceeded.');
       return false;
     }
@@ -68,4 +114,8 @@
   }
 /* ================================================= */
   window.onload = () => main.style.transform = 'scale(100%)';
+  function showForm() {
+    newUserForm.hidden = false;
+    mainForm.hidden = true;
+  }
 </script>

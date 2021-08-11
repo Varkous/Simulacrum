@@ -11,7 +11,6 @@ app.set('view engine', 'ejs');
 const fs = require('fs-extra');
 const FileUpload = require('express-fileupload');
 
-
 const allExtensions =  [
   '.bat','.apk','.com','.jpg','.jpeg','.exe','.doc','.docx','.docm','.rpp','.html','.z','.pkg','.jar','.py','.aif','.cda','.iff','.mid','.mp3','.flac','.wav','.wpl','.avi','.flv','.h264','.m4v','.mkv','.mov','.mp4','.mpg','.rm','.swf','.vob','.wmv','.3g2','.3gp','.doc','.odt','.msg','.pdf','.tex','.txt','.wpd','.ods','.xlr','.xls','.xls','.key','.odp','.pps','.ppt','.pptx','.accdb','.csv','.dat','.db','.log','.mdbdatabase','.pdb','.sql','.tar','.bak','.cabile','.cfg','.cpl','.cur','.dll','.dmp','.drve','.icns','.ico','.inile','.ini','.info','.lnk','.msi','.sys','.tmp','.cer','.ogg','.cfm','.cgi','.css','.htm','.js','.jsp','.part','.odb','.php','.rss','.xhtml','.ai','.bmp','.gif','.jpeg','.max','.obj','.png','.ps','.psd','.svg','.tif','.3ds','.3dm','.cpp','.h','.c','.C','.cs','.zip','.rar','.7z'
 ];
@@ -27,7 +26,6 @@ const {GetDirectory, GetFolderSize, GetAllItems} = require('./controllers/Folder
 /*====== For uploading files (particularily images and videos) to a CDN or database =======*/
 let partition = process.env.partition || 'public';
 const UsersDirectory = process.env.UsersDirectory || 'users';
-const AllDirectories = GetAllItems(process.env.partition, [], true);
 process.sessionTimers = {};
 
 
@@ -85,7 +83,7 @@ app.use('*', wrapAsync( async (req, res, next) => {
   //Homepage represents top-level partition, so redirect there if they are input as url
 
 
-  if (!req.session.user && url !== '/login') {
+  if (!req.session.user && url !== '/login' && url !== '/new') {
     //If no user session present and they aren't requesting to login, redirect them automatically
     req.session.route = url || '/';
     return res.redirect('/login');
@@ -173,8 +171,6 @@ app.get('*', wrapAsync(async (req, res, next) => {
     //If the public partition is the home, use it with no additions. If home is the user's private directory, add their name (by using homedirectory, see if-else condition at the top), so we aren't browsing the USERS directory, and instead just finding contents of ONE folder within Users directory for THIS user.
 
     res.locals.PrimaryDirectories = PrimaryDirectories;
-    res.locals.AllDirectories = AllDirectories;
-    // res.locals.GeneralHelpers = {namefinder, pathfinder, checkModeType, randomizeColor} = GeneralHelpers;
     res.locals.rivals = [];
     res.locals.firstVisit = firstVisit;
     //The parameter true is for "search", means we are just searching for directory names, not files
