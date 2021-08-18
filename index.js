@@ -4,7 +4,8 @@ if (process.env.NODE_ENV !== "production") {
 const NEW = require('../@NodeExpressAppFrame/N.E.W.js');
 const Website = new NEW();
 //NEW stands for "Node Express Website". Contains all the fundamental libraries that express generally uses
-module.exports = {app, express, sessions, path, wrapAsync} = Website;
+module.exports = {app, express, path, wrapAsync} = Website;
+const session = require('cookie-session');
 
 app.set('', path.join('views'));
 app.set('view engine', 'ejs');
@@ -31,14 +32,15 @@ process.sessionTimers = {};
 
 // ============================================================
 const resourceFolders = [
-  sessions({
-      name: 'user_session',
+  session({
+      name: 'simulacrum_session',
       secret: process.env.secret,
       saveUninitialized: true,
       resave: false,
-      httpOnly: true,
+      httpOnly: false,
       loginAttempts: 1,
       cookie: {
+        secure: true,
         path: '/',
         _expires: (10 * 60 * 1000), //Just manipulate the first number, which is set in minutes.
         originalMaxAge: (10 * 60 * 1000),
@@ -61,17 +63,17 @@ app.use(FileUpload());
 /*======================================================*/
 app.use('*', wrapAsync( async (req, res, next) => {
 
-    req.session.user = {name: 'Stroggon', uid: 0, admin: true};
-    req.session.log = req.session.log || [];
-      req.session.preferences = {
-        outsideDir: false,
-        emptyDir: false,
-        smoothTransition: true,
-        deleteCheck: true,
-        uploadWarning: true,
-      };
-    req.session.home = partition;
-    req.session.loginAttempts = 0;
+    // req.session.user = {name: 'Stroggon', uid: 0, admin: true};
+    // req.session.log = req.session.log || [];
+    //   req.session.preferences = {
+    //     outsideDir: false,
+    //     emptyDir: false,
+    //     smoothTransition: true,
+    //     deleteCheck: true,
+    //     uploadWarning: true,
+    //   };
+    // req.session.home = partition;
+    // req.session.loginAttempts = 0;
 
   const url = req.originalUrl;
 
@@ -105,8 +107,8 @@ app.get('*', wrapAsync(async (req, res, next) => {
     return false;
 
   if (req.session.user && req.originalUrl !== '/login') {
-    const firstVisit = false;
-    // const firstVisit = Sessions.users[`User${req.session.user.uid}`].firstVisit;
+    const firstVisit = Sessions.users[`User${req.session.user.uid}`].firstVisit;
+    // const firstVisit = false;
 // -----------------------------------------------------------------
     req.session.home.includes(UsersDirectory) ?
     homedirectory = `${req.session.home}/${req.session.user.name}` :
@@ -144,7 +146,7 @@ app.get('*', wrapAsync(async (req, res, next) => {
         filestats = fs.statSync(`${homedirectory}/${directory}/${item}`);
         stats.size += filestats.size;
         stats.creator = Sessions.users[`User${stats.uid}`].name || 'Admin';
-        console.log (Sessions.users[`User${stats.uid}`].name)
+
         //Every item's stats are checked, and just their size is returned to be concatenated with the folderStats size (usually 0), so it will ultimately add up the sizes of all present items
         if (String(filestats.mode).slice(0, 2) === '16') /*Then it can't BE a file, so --*/ {
           let folder = item;

@@ -3,6 +3,7 @@
 <!-- ================================================================== -->
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- ====================== Essential scripts ======================== -->
     <meta http-equiv="Content-Security-Policy" content="default-src
       'self'
@@ -33,13 +34,13 @@
             </div>
           </fieldset>
 
-          <button class="input" type="submit" name="button" disabled>SUBMIT</button>
+          <button class="input" type="submit" name="button">SUBMIT</button>
 
         </form>
 <!-- ========================================================================== -->
 
-        <form id="newUserForm" action="/new" method="POST" hidden>
-          <fieldset>
+        <form id="newUserForm" action="/new" method="POST" class="hide">
+          <fieldset disabled>
 
             <div class="form-block">
               <label for="name">Username </label>
@@ -85,20 +86,24 @@
   </body>
 </html>
 
-
 <script text="text/javascript">
-
 
   const body = document.querySelector('body');
   const main = document.querySelector('main');
+  const form = document.querySelector('form');
+  const fieldsets = document.querySelectorAll('fieldset');
+  const newUserForm = document.getElementById('newUserForm');
   const LoginAttempts = <%-JSON.stringify(LoginAttempts || null)%>;
 
   if (LoginAttempts.message) {
     alert(LoginAttempts.message);
   }
   if (LoginAttempts.count < 3) {
-    document.querySelector('fieldset').disabled = false;
+  	console.log(fieldsets);
+  	for (let field of fieldsets)
+  		field.removeAttribute('disabled');
     document.querySelector('button').disabled = false;
+    form.hidden = false;
   }
 /* ================================================= */
   window.onsubmit = () => {
@@ -115,9 +120,15 @@
     }, 800);
   }
 /* ================================================= */
-  window.onload = () => main.style.transform = 'scale(100%)';
+  window.onload = () => main.style.transform = "scale(1.0)";
+
   function showForm() {
-    newUserForm.hidden = false;
+    newUserForm.classList.remove('hide');
     mainForm.hidden = true;
   }
+
+  if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent)) {
+  	body.style.background = "url('/staticglobe.gif')";
+    // Take the user to a different screen here.
+	}
 </script>

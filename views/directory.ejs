@@ -8,6 +8,7 @@
     https://code.jquery.com
     https://unpkg.com
   ">
+  <meta name="viewport" content="width=device-width, initial-scale=0.8">
 
   <!-- JQuery --><script
   src="https://code.jquery.com/jquery-3.5.1.min.js"
@@ -63,7 +64,7 @@
     </div>
 
   <aside>
-    <a id="logoLink" href="/" draggable="true"><img class="logo" src="/TNT Logo.png" alt="" width="90"></a>
+    <a id="logoLink" class="taphover" href="/" draggable="true"><img class="logo" src="/TNT Logo.png" alt="" width="90"></a>
 
     <nav>
 
@@ -127,14 +128,16 @@
   </aside>
 
   	<main>
-<!-- ================ -->
-<script type="text/javascript" src="/Aesthetics.js"></script>
-<!-- ================ -->
     	<header class="header d-flex">
 
         <h1>
-        <% if (directory) {%>
-      		Browsing directory: <span><%= directory.name %></span>. <br> Created by: <span><%=directory.stats.creator %></span> on <%=directory.stats.birthtime %>. <br>There are currently <span><%=directory.files.length%></span> entries listed.
+          <% if (directory) {%>
+        		Browsing directory: <span><%= directory.name %></span>. <br> Created by: <span><%=directory.stats.creator %></span> on <%=directory.stats.birthtime %>. <br>There are currently <span><%=directory.files.length%></span> entries listed.
+          <% } else {%>
+            You can interact with the Skeleton Hill database here, though optimization is limited. <br>Videos, audio, images, zips and text files that are less than 1 gigabyte are the data types that will be transmitted most reliably. If you have several files, especially any large ones, compress them into a ZIP before uploading.
+            <hr>
+            After selecting items to upload, input a folder to create and/or upload to, hit SUBMIT, and the contents should be displayed down below shortly afterwards.<br>
+          <% } %>
           <ul class="info-list">
             <li>Click folder icons <i class="fa fa-folder"></i> to add their name/path to the folder designation input</li>
             <hr>
@@ -148,17 +151,14 @@
             <hr>
             <li>Double-clicking while holding down SHIFT will select/unselect all items in the given file View</li>
           </ul>
-        <% } else {%>
-          You can interact with the Skeleton Hill database here, though optimization is limited. <br>Videos, audio, images, zips and text files that are less than 1 gigabyte are the data types that will be transmitted most reliably. If you have several files, especially any large ones, compress them into a ZIP before uploading.
-          <hr>
-          After selecting items to upload, input a folder to create and/or upload to, hit SUBMIT, and the contents should be displayed down below shortly afterwards.<br>
-        <% } %>
-        <br><br>
+          <br>
         </h1>
     	</header>
     <hr>
     <br>
-
+<!-- ===================================================  -->
+<script type="text/javascript" src="/Aesthetics.js"></script>
+<!-- ===================================================  -->
   	 <form id="fileForm" class="form" Method="POST" action="/<%=partition%>" enctype="multipart/form-data">
 
      <section id="directoryList">
@@ -198,7 +198,7 @@
           <!-- Otherwise list normally -->
             <td title="<%=PrimaryDirectories[i].name%>">
               <i class="fa fa-folder"></i>
-              <a id="directory<%=i%>" class="folder-link" href="/<%=partition + PrimaryDirectories[i].name%>"><%=PrimaryDirectories[i].name%></a>
+              <a id="directory<%=i%>" class="folder-link taphover" href="/<%=partition + PrimaryDirectories[i].name%>"><%=PrimaryDirectories[i].name%></a>
             </td>
           <%}%>
 
@@ -211,7 +211,7 @@
 
       <div class="file-box">
         <label type="button" class="folder-label">
-          <img src="/file-folder.png" width="180" draggable="false">
+          <img src="/file-folder.png" width="180" draggable="false" style="filter: drop-shadow(6px 4px 6px black);">
           <input type="file" name="files" hidden webkitdirectory directory multiple onchange="checkAndStageFiles(event.target.files)">
         </label>
       </div>
@@ -455,9 +455,9 @@
   </body>
 </html>
 
-<script type="text/javascript" src="/general-helpers.js"></script>
+<!-- ================ -->
 <script type="text/javascript" src="/Core.js"></script>
-
+<!-- ================ -->
 <!-- ======================================================= -->
 <script text="text/javascript">
 
@@ -490,6 +490,7 @@ const directoryStats = document.getElementsByClassName('directory-stats');
 </script>
 
 <!-- ======================================================= -->
+<script type="text/javascript" src="/general-helpers.js"></script>
 <script type="text/javascript" src="/ContentCreation.js"></script>
 <script type="text/javascript" src="/StageAndUpload.js"></script>
 <script type="text/javascript" src="/Deletion.js"></script>

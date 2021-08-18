@@ -121,10 +121,15 @@
 	const body = document.querySelector('.error-body');
 	const cover = document.querySelector('.cover-background')
 	const returnButton = document.querySelector('#goBack');
+	const BGImage = document.querySelector('.shadow-image');
 /* ================================================= */
 	returnButton.addEventListener('mouseup', () => setTimeout( () => window.location.replace(document.referrer), 300));
 /* ================================================= */
 	window.onload = () => cover.style.transform = "scale(1.0)";
 /* ================================================= */
+if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent)) {
+	BGImage.style.background = "url('/staticglobe.gif')";
+	// Take the user to a different screen here.
+}
 </script>
 <%}%>

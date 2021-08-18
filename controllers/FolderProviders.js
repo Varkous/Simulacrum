@@ -12,28 +12,31 @@ module.exports = {
       folder = partition.pop();
       //It means the primary directory is likely mixed in with the partition name, at the end.
     }
-
+// ----------------------------------------------
     const fullpath = `${partition}/${folder}`
     const stats = fs.statSync(`${fullpath}`); //Get stats from directory
-    const fileNames = fs.readdirSync(`${fullpath}`); //Read directory and retrieve all its files (their names anyway)
+    const files = fs.readdirSync(`${fullpath}`); //Read directory and retrieve all its files (their names anyway)
 
-    let files = [];
-      for (let file of fileNames) { //Create an object with each file that also holds the file's stats
-        files.push({
-          name: file,
+      for (let i = 0; i < files.length; i++) { //Create an object with each file that also holds the file's stats
+        files[i] = {
+          name: files[i],
           path: folder,
-          stats: fs.statSync(`${fullpath}/${file}`),
-          children: await module.exports.GetChildren(`${fullpath}/${file}`)
-        });
+          stats: fs.statSync(`${fullpath}/${files[i]}`),
+          children: await module.exports.GetChildren(`${fullpath}/${files[i]}`),
+        };
+        files[i].stats.creator = Sessions.users[`User${files[i].stats.uid}`].name || 'Admin';
       };
+// ----------------------------------------------
       const directory = {
         name: folder,
         layers: [],
         stats: stats,
         files: files,
+        get creator() {
+          return Sessions.users[`User${this.stats.uid}`].name || 'Admin';
+        }
       };
-      directory.stats.creator = Sessions.users[`User${directory.stats.uid}`].name || 'Admin';
-
+// ----------------------------------------------
       let folderStart = [0];
       for (let i = 0; i < folder.length; i++){
         if (folder[i] === '/') folderStart.push(i);
@@ -45,7 +48,7 @@ module.exports = {
         ); //Gets each sub-directory of the parent folder (our current directory), store each one in a "layer" so we can determine how nested we are in a directory on front-end.
 
       return directory;
-
+// ----------------------------------------------
   },
   /*===============================================================*/
 
@@ -74,11 +77,13 @@ module.exports = {
       } else if (search) continue; //If not a directory and we're searching, continue, we don't want files
       // -------------------------------------------------------
       else {
-        dirStats.push({
+        let item = {
           path: directory.replace(partition + '/', ''), //When its stored, partition path no longer needed
           name: dirfile,
           stats: fs.statSync(path)
-        });
+        };
+        item.stats.creator = Sessions.users[`User${item.stats.uid}`].name || 'Admin';
+        dirStats.push(item);
       } //If it was actually a file, and not directory
 
       }; //End of For Loop

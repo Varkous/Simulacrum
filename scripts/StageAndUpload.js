@@ -1,17 +1,18 @@
 
+
 /*===============================================================
 Detects the user dragging any "thing" or "item" onto the browser window. If they are a type of "File", start a loop iteration of them -- and after a given time -- try to stage them.
 ===============================================================*/
 async function fileDragger(evt) {
   evt.preventDefault();
 
+  if (evt.dataTransfer && evt.dataTransfer.items && evt.type !== 'dragover' && !mobile) {
 
-  if (evt.dataTransfer && evt.dataTransfer.items && evt.type !== 'dragover') {
   if (!evt.dataTransfer.files.length) return false;
     for (let item of evt.dataTransfer.items) {
       let entry = item.webkitGetAsEntry();
       await traverseFileTree(entry, "");
-    }
+    };
 
   } else return false;
 
@@ -71,14 +72,17 @@ function checkAndStageFiles (inputFiles) {
   if (!input || !alphabet.find( (letter) => input.includes(letter) ))
     return Flash('Folder path input not valid, use a better name', 'error');
     //If the user provides some bullshit folder path, like something with no alphabet letters, reject it
-    else if ($('#mydirCheck').is(':checked')) {
-      return Flash('Cannot submit items from public to private directory. Visit personal directory if you wish to upload there', 'error');
-    }
+  else if ($('#mydirCheck').is(':checked'))
+    return Flash('Cannot submit items from public to private directory. Visit personal directory if you wish to upload there', 'error');
+
   while (input.slice(-1) === '/') {
     $(FolderInput).val(input.slice(0, -1));
     input = input.slice(0, -1);
+  } while (input.slice(0, 1) === '/') {
+    $(FolderInput).val(input.slice(1));
+    input = input.slice(1);
   }
-  //Just in case the user left a '/' (or more) at the end of folder input, for some misguided reason. Remove them all.
+  //Just in case the user left a '/' (or more) at the end OR beginning of folder input, for some misguided reason. Remove them all.
 
   const duplicateFiles = [];
   const badFiles = [];

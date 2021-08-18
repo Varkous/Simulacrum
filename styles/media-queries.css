@@ -9,7 +9,7 @@
   #directoryList {
     width: 100%;
   }
-  #panelButtons, footer input {
+  #panelButtons, footer .input-container {
     position: sticky;
     top: 0;
   }
@@ -17,24 +17,17 @@
     display: flex;
     flex-flow: wrap;
   }
-  li *{
-    font-family: 'Arial';
-    font-size: 0.8rem !important;
-  }
 }
 /* ==================== Mobile size ====================== */
 @media only screen and (max-width: 750px) {
   body * {      font-size: 1.1rem;      }
+  	.steady-glow {
+  	  box-shadow: inset 1px 1px 40px #22a0f4;
+  	  animation: null 1.5s forwards;
+  	  /*animation: steady-glow 2.5s forwards infinite;*/
+  	}
   /* ------------------------------------ */
   #MessageLog {     left: 0;    }
-  /* ------------------------------------ */
-  .logo:not(.high-index)  {
-    transition: all 0.5s ease-in-out;
-    width: 80px;
-    left: -60px;
-  } .logo:hover {
-    left: 0;
-  }
   /* ------------------------------------ */
   nav:hover {    max-width: 300px;    }
   /* ------------------------------------ */
@@ -48,7 +41,7 @@
   }
   .directory-stats {
     max-width: 100%;
-    z-index: 7;
+    z-index: 11;
     margin: 0px 5px 0px 5px;
   }
   .file-search, .resize {
@@ -57,8 +50,6 @@
   .input-container {
     align-items: center;
     flex-direction: column;
-  } .target-folder-div {
-    flex-wrap: wrap;
   }
   .column {
     min-width: 270px;
@@ -76,7 +67,7 @@
   /* ------------------------------------ */
   footer i {    font-size: 22px !important;     }
   /* ------------------------------------ */
-  #questionMessage, .info-list,   #moreFiles span {
+  #questionMessage, #moreFiles span {
     display: none;
   }
   /* ------------------------------------ */

@@ -82,7 +82,7 @@ function getFileCard(file) {
     return $(`div[id="${file.name}"][path="${file.path}"]`)[0] || document.getElementById(file.name || file);
   } else return document.getElementById(file.name || file);
 
-}
+};
 
 
 /*===============================================================
@@ -122,10 +122,13 @@ async function displayMedia(file, folder, fileCard) {
     <i onclick="makeEdit(this, $(this).parents('.column')[0])" class="fa fa-edit"></i>
   </div>`
 // --------------------------------------------------------------
-  $(fileCard).draggable(draggableOptions); //Make the file-card draggable using the options defined within draggableOptions object-function near the top of this .js file
+
+  mobile ? null : $(fileCard).draggable(dragItem);
+  //Make the file-card draggable using the options defined within dragItem object-function. If mobile, don't use it at at all
+
   if (file.stats && checkModeType(file.stats.mode) === 'folder') {
     //Then it's a folder, and we're obviously in a directory so absolute path needed
-    $(fileCard).droppable(makeFoldersDroppable);
+    mobile ? null : $(fileCard).droppable(dropItem); //If folder make droppable, unless using mobile device
     let downloadFolder = `
     <div class="source-icons">
       <i class="fa fa-download" aria-hidden="true" onclick="downloadFiles(this.parentNode.parentNode)"></i>
@@ -157,9 +160,10 @@ async function getMediaType (file, folder, fileCard, source) {
     return `${source}<img class="media-content" id="source" src="/${folder}/${file.name}" alt="">`
 // --------------------------------------------------------------
   } else if (checkFileType(file, audioFormats) === true) { //Audio
+    mobile ? audio_image = "/audio-icon.png" : audio_image = "/audiocircle.gif";
      return `${source}
      <i class="fa fa-volume-up" style="align-self:center;"></i>
-     <img class="media-content audio-pic" src="/audiocircle.gif" class="audio-pic">
+     <img class="media-content audio-pic" src="${audio_image}" class="audio-pic">
      <audio controls>
        <source id="source" src="/${folder}/${file.name}">
        Your browser does not support the audio element.

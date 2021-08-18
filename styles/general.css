@@ -89,11 +89,14 @@ a:hover {
 button {
   box-shadow: 7px 10px 12px black;
 }
+.uploaded span {
+  color: darkcyan;
+}
 
 /* -----------Modal stuff------------ */
 .modal {
   background-color: rgba(0,0,0,0.4);
-  z-index: 5;
+  z-index: 7;
 
   display: none;
   position: fixed;

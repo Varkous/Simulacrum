@@ -155,24 +155,34 @@ module.exports.FileManagement = {
   Gathers all files (referenced by the anchor tag hrefs) on the file cards the user selected to download, and compiles them all into a zip before returning it as a download response to the sender/user.
   ======================================= */
   downloadFilesZip: app.post('/zip', wrapAsync( async (req, res, next) => {
+    console.log(req.body);
 
-    const files = req.body;
+    const files = req.body.files;
     const zip = new AdmZip();
+    const failed = [];
 
     for (let file of files) {
       filepath = `${req.session.home}/${file.path}/${file.name}`;
 
       if (fs.statSync(filepath).isDirectory())
         zip.addLocalFolder(filepath);
-
       else zip.addLocalFile(filepath);
     }
 
     // zip.writeZip('uploads/output.zip');
-    let zipFile = zip.toBuffer();
-    res.contentType('blob');
-    res.write(zipFile);
-    res.end();
+      let zipFile = zip.toBuffer();
+      // console.log (zipFile);
+      console.log (zipFile.length)
+      res.contentType('blob');
+      res.write(zipFile);
+      res.end();
+
+    // else if (failed.length) return ReportData(req, res, false, {
+    //         content: ["Cannot download folders", "when using mobile device. files only"],
+    //         type: 'error',
+    //         items: failed
+    //       });
+
   })),
 
   /* ====================================

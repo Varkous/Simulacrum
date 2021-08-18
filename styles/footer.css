@@ -48,7 +48,7 @@ svg {
   bottom: 100%;
   left: 0;
   transition: all 0.5s ease-in-out;
-  font-size: 1.0rem;
+  font-size: 1.2rem;
   padding: 17px;
   width: auto;
   max-width: 450px;
@@ -61,13 +61,13 @@ svg {
   content: 'Download any selected files/folders, or everything in the current folder if nothing is selected';
 }
 #transferBtn:hover::before {
-  content: 'Moves any selected items to the targeted folder destination. Hold CTRL button to copy instead';
+  content: 'Moves any selected items to the targeted folder destination. (Desktop only) Hold CTRL button to copy instead. Automatic copy on mobile device';
 }
 #deleteBtn:hover::before {
   content: 'Removes the selected items from the current folder, or removes all items if nothing is selected. This cannot be undone';
 }
 #moreFiles:hover::before {
-  content: 'Loads more files further down the list. Hold the SHIFT key to load all files/folders in the entire directory';
+  content: 'Loads more files further down the list. (Desktop only) Hold the SHIFT key to load all files/folders in the entire directory';
 }
 
 /* ----------------------------- */

@@ -121,7 +121,7 @@ nav {
   transition: all 1s ease-in-out;
 
   position: fixed;
-  z-index: 7;
+  z-index: 11;
   padding: 16px;
   font-size: 0.6rem;
   max-width: 350px;

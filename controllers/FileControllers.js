@@ -114,17 +114,18 @@ module.exports = {
       });
 
       for (let file of req.files.files) {
-        let filetype = await FileType.fromBuffer(file.data);
-
-        if (!filetype) {
-          req.files.files[i] = file.name; //If there was a problem, file data will not be used, but we keep the name so we can report the name of the file in the browser log
-        } else fs.writeFile(path.resolve(req.session.home, file.path, file.name), file.data, "UTF8", (error) => {
-            if (error) req.files.files[i] = file.name;
-            else fs.chownSync(path.resolve(req.session.home, file.path, file.name), req.session.user.uid, 100);
-
-          i++;
+        let filepath = path.resolve(req.session.home, file.path, file.name);
+        // let filetype = await FileType.fromBuffer(file.data);
+        //
+        // if (!filetype) {
+        //   req.files.files[i] = file.name; //If there was a problem, file data will not be used, but we keep the name so we can report the name of the file in the browser log
+        // }
+        fs.writeFile(filepath, file.data, "UTF8", (error) => {
+          if (error) req.files.files[i] = file.name;
+          else fs.chownSync(filepath, req.session.user.uid, 100);
+          i++
         });
-      };
+      }; //End of For Loop over files
 
     next();
   },

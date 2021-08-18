@@ -244,14 +244,18 @@ async function downloadFiles(fileCard) {
 
   $(FS_Modal).show();
   $('.fs-modal-message').text('Zipping files for download...');
-  let data;
+  let data = {};
 
-  if (SelectedFiles.count.length && event.shiftKey === false) {
-    data = SelectedFiles.count || [];
-  } else if (event.shiftKey) data = AllFiles.count;
-  else data = [{name: fileCard.id, path: $(fileCard).attr('path')}];
+  if (SelectedFiles.count.length && event.shiftKey === false) { //Some but not all
+    data.files = SelectedFiles.count || [];
+  } else if (event.shiftKey) data.files = AllFiles.count; //All items
+  else data.files = {name: fileCard.id, path: $(fileCard).attr('path')}; //Single item
+  data.files;
 // ---------------------------------------------------------------------------------
-  await axios({
+if (mobile) {
+  //If using mobile device
+  await makeDownloadLinks(false, data);
+} else await axios({
     method: 'post',
     url: `/zip`,
     data: data,
@@ -260,21 +264,44 @@ async function downloadFiles(fileCard) {
   	// responseType: 'arraybuffer', = Can do this, but would have to convert to blob anyway
     // responseType: 'stream', = Did not work, not valid type
     // responseType: 'buffer', = Did not work, not valid type
-  })
-// ---------------------------------------------------------------------------------
-  .then( (res) => {
-    $(FS_Modal).hide();
-    // const downloadUrl = window.URL.createObjectURL(new Blob([res.data]));
-    const downloadUrl = window.URL.createObjectURL(res.data);
-    const link = document.createElement('a');
-    $(link).attr({ href: downloadUrl, download: 'Files.zip' });
-    document.body.appendChild(link); /*-->*/ link.click(); /*-->*/ link.remove();
-    //Create a url link to raw data itself, and use 'download' attribute to receive it as a download link. We create the link, auto-click it, then remove it for user experience.
-
-    SelectedFiles.unlist();
-// ---------------------------------------------------------------------------------
-  }).catch( (err) => Flash('Download request failed', 'error'));
+  }).then( makeDownloadLinks).catch( (err) => Flash('Download request failed', 'error'));
 };
+
+async function makeDownloadLinks (res, data) {
+  $(FS_Modal).hide();
+  const downloadLinks = [], failed = [];
+
+  // const downloadUrl = window.URL.createObjectURL(new Blob([res.data]));
+  if (res) {
+    console.log (res.data);
+    const link = document.createElement('a');
+    const downloadUrl = window.URL.createObjectURL(res.data);
+    $(link).attr({ href: downloadUrl, download: 'Files.zip' });
+    downloadLinks.push(link);
+    //Create a url link to raw data itself, and use 'download' attribute to receive it as a download link.
+  } else if (mobile) for (let file of data.files) {
+    const link = document.createElement('a');
+    if (StagedFiles.count.length && pathfinder(StagedFiles.count, 'find', file))
+      //Don't upload staged
+      continue;
+    else if (pathfinder(AllFiles.count, 'find', file).stats.mode.toString().slice(0, 2) === '16') {
+      //Lol then it's a folder type, and mobile does not download those
+      failed.push(`<span style="color: #22a0f4">${file.name}</span>`);
+      continue;
+    }
+    $(link).attr({ href: `/${file.path}/${file.name}`, download: file.name });
+    downloadLinks.push(link);
+  };
+
+  for (let link of downloadLinks) {
+    document.body.appendChild(link); /*-->*/ link.click(); /*-->*/ link.remove();
+    // We create the link, auto-click it, then remove it unbeknownst to user.
+  }
+  if (failed.length)
+    Flash([`Failed to upload`, `Folders can not be downloaded on mobile devices, files only.`], 'error', failed);
+  SelectedFiles.unlist();
+// ---------------------------------------------------------------------------------
+}
 
 
 /*===============================================================
@@ -334,17 +361,22 @@ const prefix = (Array.prototype.slice
 };
 
 
-/* ----------------------------------------- */
-$('.logo').hover( function (event) { //Displays Navbar and adds nice lighting effect
+/*===============================================================
+  Slides navbar over or away upon hovering/touching logo.
+===============================================================*/
+function showNavbar (evt) { //Displays Navbar and adds nice lighting effect
 
-  if (event.type === 'mouseleave')
+  if (evt.type === 'mouseleave')
     return $('main, nav, #FileTable').removeClass('glow-right shift-over');
 
   $('main').addClass('glow-right');
   $(FileTable).addClass('glow-right');
   $('nav').addClass('shift-over');
+};
 
-});
+/* ----------------------------------------- */
+$('.logo').hover(showNavbar);
+$('.logo').on('touchstart', showNavbar);
 /* ----------------------------------------- */
 $('.logo').draggable({
   containment: 'body',
@@ -363,15 +395,18 @@ $('.logo').draggable({
 // --------------------------------------------------------------------
 window.addEventListener('load', async () => {
 
-  if (firstVisit)
+  if (firstVisit) {
+    $('svg, .header > h1').hide();
     return false;
-
+  }
   await populateDirectory();
 });
 // --------------------------------------------------------------------
 window.addEventListener('pageshow', (evt) => {
+  dismissElement('#panelHeader', 'Y', 'up', '80%');
+  // ------------------------------------
   if (firstVisit) {
-  // Just for first-time visitors. Page will transition into view much slowly to give elements time to hide themselves (see 'introductionTips' function for more info)
+  // Just for first-time visitors. Page will transition into view much more slowly to give elements time to hide themselves (see 'introductionTips' function for more info)
     introductionTips(0);
     $('main').css({
       'transform': 'translate(0)',

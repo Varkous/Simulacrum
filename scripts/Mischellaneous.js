@@ -1,15 +1,18 @@
 const messageTips = [
 /* 0 */ {
-    text: `Welcome to Simulacrum, a more aesthetic interactive file systems manager. You may search, view and interact with items from your private directory <span class="dimblue">${UserSession.user.name}</span>, or the public directory <span class="dimblue">${Partition}</span> from here`,
-    element: '.header',
-  },
+      text: `Welcome to Simulacrum, a browser-based GUI file systems manager. You may search, view and interact with items from your private directory <span class="dimblue">${UserSession.user.name}</span>, or the public directory <span class="dimblue">${Partition}</span> from here<hr>
+       Some rules of thumb: <br><span class="dimblue">1.</span> Do not upload any sensitive/confidential data that may expose your private info (like banking, home address, etc.)<br>
+       <span class="dimblue">2.</span> If the items are only relevant to you, upload them to your private directory instead of the public one <br>
+       <span class="dimblue">3.</span> Be reasonable. Avoid uploading 30-40 gigabyte programs, and if you have to upload massive files, please compress them to zip or rar file first.`,
+      element: '.header',
+    },
 /* 1 */  {
     text: `The Navbar portal, which you may click to return home, or hover to view advanced controls for the page. You may also drag/readjust its position if needed.`,
     element: '#logoLink',
     otherElements: '.logo'
   },
 /* 2 */  {
-    text: `The Primary Directories list: The top-level folders one step down from the partition <span class="dimblue">${Partition}</span>. They are meant to house more specific folders/sub-directories, and should be made as vague as possible.`,
+    text: `The Primary Directories list: These represent all top-level folders within the current home partition. They are meant to house more specific folders/sub-directories, and should be made as vague as possible.`,
     element: '#directoryList',
   },
 /* 3 */  {
@@ -32,6 +35,8 @@ const messageTips = [
     otherElements: '#overheadPanel'
   }
 ];
+if (mobile)
+  messageTips[2].text += ' Tap them to view their properties, double-tap to visit them.'
 
 
 /*===============================================================
@@ -82,6 +87,7 @@ function viewTextInModal (textElement) {
     //Then the element is actually an entire panel listing
     $('.modal-image').attr('src', '/listing.png');
     $('ol li').show();
+    $('#overheadPanel').click();
     textcontent = textElement;
   } else {
     //Then it has to be a textarea element, likely from a textfile
@@ -210,7 +216,7 @@ async function transferFiles (files, destinationFolder, copy) {
           if (CurrentFolder) {
             //If we are in a directory.
             let fileCard = getFileCard(transfer);
-            $(fileCard).draggable( 'option', 'revert', false );
+            !mobile ? $(fileCard).draggable( 'option', 'revert', false ) : null;
             $(fileCard).addClass('fadeout');
             AllFiles.delete(transfer, true);
           } else await setTimeout( () => findAllFiles(), 100); //Otherwise we're at the homepage, and transfers should not signal the deletion of anything, and should just adjust paths
@@ -251,11 +257,10 @@ async function transferMultiple (evt) {
 
     let fileCard = getFileCard(file);
     if (!fileCard) continue;
-    else evt.ctrlKey /*True*/? fileCard.copy = true /*False*/: fileCard.copy = false;
-
+    else evt.ctrlKey ? fileCard.copy = true : fileCard.copy = mobile; //If using mobile, always copy
   };
 
-  await transferFiles(SelectedFiles.count, FolderInput[0].value, event.ctrlKey);  //Every file uploaded -- Regardless of being in a Directory or on Main Page -- Will have a folder path attatched to it, and that's all we need back-end to acquire folder's current location.
+  await transferFiles(SelectedFiles.count, FolderInput[0].value, mobile ? true : evt.ctrlKey);  //Every file uploaded -- Regardless of being in a Directory or on Main Page -- Will have a folder path attatched to it, and that's all we need back-end to acquire folder's current location.
 };
 
 
@@ -340,9 +345,7 @@ function closeModal() {
   if (!event)
     return false;
 
-  let target = event.target;
-
-  if ($(target).hasClass('closemodal') || $(target).hasClass('modal') || event.keyCode === 27) {
+  if ($(event.target).hasClass('closemodal') || $(event.target).hasClass('modal') || event.keyCode === 27) {
       $('.fs-modal-message').text('').removeClass('view-text');
       //Clear any previous text content, else it stacks up
       $('.modal-image').attr('src', '/upload.gif');
@@ -377,7 +380,6 @@ async function introductionTips(index) {
   // 'high-index' class puts elements in "front" and ensures they're visible. We remove this privilege from any previous elements
   $('.message-tip').remove(); //Else it remains on page ever after
 
-
 // =========================================================
   if (index !== false && index < messageTips.length) {
     //Remember arrays: The index number within starts from 0. So if 'index' passed in equals array LENGTH, then it does not exist.
@@ -405,48 +407,11 @@ async function introductionTips(index) {
     });
     //After all content established, scroll to it on the page
   // =========================================================
-} else {
-  $('*').removeClass('invisible high-index');
-  await populateDirectory();
-  $('main').css('transition', 'all 0.7s ease-in-out');
-}
+  } else {
+    $('svg, .header > h1').show();
+    $('*').removeClass('invisible high-index');
+    await populateDirectory();
+    $('main').css('transition', 'all 0.7s ease-in-out');
+  }
 //If no more message tips are left to introduce, reveal everything on the page, remove the high index shenanigans, and allow them to be interacted with normally (mouse events)
 };
-
-
-/* ----------------------------------------- */
-$('#overheadPanel').click(bringUpPanel); // Animations/CSS, brings up the overhead panel
-/* ----------------------------------------- */
-$('.hide-lists').click( function (evt) {
-  evt.stopPropagation();
-  const panel_list = $(this).next();
-
-  if ($(panel_list).height() < 80 && $(panel_list).children('li')[0])
-    $(panel_list).animate({
-      height: '180px',
-    }, 100, () => $(this).addClass('fa-arrow-circle-up').removeClass('fa-arrow-circle-down'));
-
-  else
-  $(panel_list).animate({
-    height: '0px',
-  }, 100, () => $(this).addClass('fa-arrow-circle-down').removeClass('fa-arrow-circle-up'));
-
-
-}); // Animations/CSS, folds/unfolds lists within the overhead panel
-/* ----------------------------------------- */
-$('#moreFiles').click(listDirectoryContents); //Creates and displays more file cards
-$('.show-modal').click( function () {
-  if ($(this).next().is(':hidden')) $(this).next().show();
-}); // When the user clicks on the button, open the modal
-$('.closemodal').click(closeModal);
-$('.modal').click(closeModal); // When the user clicks anywhere outside of the modal, close it
-$('#emptydirCheck').change( function (evt) {
-  $(this).next().hasClass('fa-folder')
-  ? $(this).next().removeClass('hide fa-folder').addClass('fa-folder-open')
-  : $(this).next().removeClass('fa-folder-open').addClass('fa-folder');
-}); //Changes adjacent icon on checking box of 'emptyDir' creation option
-$('#inputQuestion').click( (evt) => hideOrShow($('#questionMessage'))); // Resizes/displays message hidden beneath info icon
-
-dismissElement('#panelHeader', 'Y', 'up', '80%');
-/* ----------------------------------------- */
-window.onload = () => $('.folder-link').hover(displayDirectoryStats);

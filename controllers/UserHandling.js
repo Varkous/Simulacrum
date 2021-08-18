@@ -38,7 +38,7 @@ class SessionStore {
 // -----------------------------------------------------------------------
     if (log && log.length) {
       this.users[`User${session.user.uid}`].firstVisit = false;
-      message = log.replaceAll(',', '').replace(/<span.*?>/g, '').replace(/<\/span.*?>/g, '\r\n'); //Remove the span elements, intended only for front-end display
+      message = log.replace(/,/g, '').replace(/<span.*?>/g, '').replace(/<\/span.*?>/g, '\r\n'); //Remove the span elements, intended only for front-end display
     }
     if (fresh === true) {
       message = 'Logged in: ';

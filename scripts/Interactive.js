@@ -125,24 +125,25 @@ async function itemSearch (evt) {
 /*===============================================================
   Self-explanatory. Brings up the overhead footer panel upon clicking the button. Reverses and sends it back down if clicked again.
 ===============================================================*/
-function bringUpPanel (evt) {
+async function bringUpPanel (evt) {
 
   if ($('footer').is(':hidden')) {
-    $('footer').show();
+    $(FileTable).hide();
+    $('footer, #exitPanel').show();
     $('#panelHeader').addClass('moveUp');
     $('#overheadPanel').hide();
-    $('#exitPanel').show();
     setTimeout( () => $('#panelHeader').removeClass('moveUp'), 950);
   //All animations/aesthetics for displaying the overhead panel, or hiding it
   }
   else {
-    $('#overheadPanel').show();
-    $('#exitPanel').hide();
     $('#panelHeader').addClass('moveDown');
+    $('#exitPanel').hide();
     setTimeout( () => {
       $('#panelHeader').removeClass('moveDown');
+      $('#FileTable').show();
       $('footer').hide();
     }, 950);
+    $('#overheadPanel').show();
   }
 };
 
@@ -162,13 +163,12 @@ function clearInput(input) {
 /*===============================================================
   Triggers whenever a user CTRL+Mouse-Clicks a File Card. This inserts it into the "SelectedFiles.count" array (so that any time a user clicks Delete or DeleteAll or Transfer, any File Cards with the ID of that selected file will be removed/transferred). This function itself though, just adds some CSS to indicate a file card been selected.
 ===============================================================*/
-async function selectFiles (fileCard) {
+async function selectFiles (fileCard, all) {
 
-  let target = event.target;
-
-  if (target.tagName === 'I' && $(target.offsetParent).hasClass('ui-draggable') || target.tagName === 'A')
-  //If we're selecting icon within FileTable, downloading, or clicking anchor then no reason to select, could be annoying to user
-  return false;
+  if (!all && event) { //If 'all' is true, we're on mobile device, and doing multi-file select with double-tap
+    if (event.target.tagName === 'I' || event.target.tagName === 'A' || $(event.target).hasClass('changed'))
+      return false; //If we're selecting icon within FileTable, downloading, or clicking anchor then no reason to select, could be annoying to user
+  }
 
   let file = {name: fileCard.id || fileCard.title, path: $(fileCard).attr('path')};
   if (!file) return false;
@@ -190,16 +190,49 @@ async function selectFiles (fileCard) {
   Occurs when the user double-clicks within a panel-listing to select/unselect all items in that group.
 ===============================================================*/
 async function selectAll (files, all) {
-  if ($(event.target).hasClass('fa-layer-group')) {
-    return SelectedFiles.count.length ? SelectedFiles.unlist(files) : SelectedFiles.add(files);
-  }
 
-  if (event.shiftKey || all) {
+  if ($(event.target).parents('.uploaded')[0]) //Selecting file itself, then stop from propagating
+    return false;
+
+  if (mobile || all || event.shiftKey) {
     //"all" is for selecting all given items, regardless if the shift key was pressed
     if (SelectedFiles.count.length)
-      await SelectedFiles.unlist(files);
-    else await SelectedFiles.add(files);
+      return await SelectedFiles.unlist();
+    else return await SelectedFiles.add(files);
   }
+  if ($(event.target).hasClass('fa-layer-group'))
+    return SelectedFiles.count.length ? SelectedFiles.unlist(files) : SelectedFiles.add(files)
+};
+
+
+/*===============================================================
+  While holding shift, selects all elements between the current clicked list item, and the most recent previously selected list item
+===============================================================*/
+function shiftSelect(evt) {
+
+  if (!evt) return false;
+
+  evt.target.tagName !== 'I' ? $('.file-info').remove() : null //Close any displays from clicked file icons
+  evt.preventDefault();
+  evt.stopPropagation();
+  if (!mobile && SelectedFiles.count.length > 1) {
+
+    let lastSelected = SelectedFiles.count[SelectedFiles.count.length - 2]; // Basically only necessary when two files are selected, we need to get the first one before the one we just clicked
+    let rootli = $(this).find(`li[title="${lastSelected.name}"]`)[0];
+    if (evt.shiftKey) {
+      let nextSelected = evt.target;
+
+      for (let li of $(rootli).nextAll('li')) { //Any list items <li> in between last and root select
+        if (li === nextSelected)
+          break;
+        else if ($(li).hasClass('selected'))
+          continue;
+
+        selectFiles(li);
+      };
+
+    }
+  } else return false;
 };
 
 
@@ -217,33 +250,6 @@ function resizeCards (zoom) {
     $('.media-content').removeClass('hide');
   }
   return false;
-};
-
-
-/*===============================================================
-  While holding shift, selects all elements between the current clicked list item, and the most recent previously selected list item
-===============================================================*/
-function shiftSelect() {
-  event.preventDefault();
-  event.stopPropagation();
-  if (SelectedFiles.count.length > 1) {
-
-    let lastSelected = SelectedFiles.count[SelectedFiles.count.length - 2];
-    let rootli = $(this).find(`li[title="${lastSelected.name}"]`)[0];
-    if (event.shiftKey) {
-      let nextSelected = event.target;
-
-      for (let li of $(rootli).nextAll('li')){
-        if (li === nextSelected)
-          break;
-        else if ($(li).hasClass('selected'))
-          continue;
-
-        selectFiles(li);
-      };
-
-    }
-  } else return false;
 };
 
 
@@ -285,14 +291,16 @@ async function makeEdit (icon, anchor) {
 
       if (res.data.type === 'error') return false;
       if (li.id === 'primeDirectoryInput') return window.location.reload();
+      //Then the renaming was through Primary Directories input, too complicated to find all refs, so just reload page
       else {
         res.data.path.name = res.data.path.old;
+        //Need 'property' to satisfy file operation functions
         SelectedFiles.unlist(res.data.path);
         AllFiles.rename(res.data.path);
       }
 // ------------------------------------------
     }).catch( error => Flash(error.message, 'error'));
-//And regardless...
+    //And regardless...
     $(icon).removeClass('changed');
     $(li).removeClass('changed');
     $(anchor).attr('contenteditable', 'false').text(li.title);
@@ -326,25 +334,31 @@ async function renameItem (li) {
 };
 
 
-/* ----------------------------------------- */
-$('main').click( function (evt) {
+/*===============================================================
+  Any time file-icon is clicked, its parent will always be uploaded file card or LI. Find the given directory file with the name and path of that element, collect its essential stats, and place those into hover-display element for user
+===============================================================*/
+function showFileInfo (evt) {
 
-  if (evt.target === folderSuggestions || $(evt.target).hasClass('search-result')) {
-    evt.stopPropagation();
-    evt.preventDefault();
-  } else $(folderSuggestions).empty();
-  //This is to prevent anchor redirect when clicking on anchors in folder suggestions, and clearing it also
-}); //For clearing folder suggestion list
-// -------------------------------------------------------------------------------------
-$('*').on('input', 'a', function (evt) {$(this).closest('li, td').addClass('changed')}); //When an anchor has its text edited from within an li or td
-/* ----------------------------------------- */
-$(FolderInput).on('input', itemSearch); //Any change to folder input prompts suggestions of like-name folders. Change is also reflected by current directory within overhead panel
-$('div').on('input', '.file-search', itemSearch);
-/* ----------------------------------------- */
-$('.selected-files, .all-files').on('click', '.fa-layer-group', () => selectAll(SelectedFiles.count)); //When clicking on layer icon in panel lists, selects/unselects all files in that list without needing to double-click
-/* ----------------------------------------- */
-$('.message').click( function (evt) {return $(this).removeClass('fadein').addClass('fadeout')}); //Dismisses info messages (display directory stats and flash messages) on click
-/* ----------------------------------------- */
-$('body').on('click', 'ol', shiftSelect);
-/* ----------------------------------------- */
-$('body').on('click', '.fa-folder', inputItemName); //Create this function after window load. Every time a folder icon is clicked, add its name to Folder Input. We use ".on" so any future icons will use this function.
+  $('.file-info').remove(); //Remove any previous displays
+
+  let fileRef = $(this).parents('.uploaded')[0] // <LI> or File Card
+  let file = {
+    name: fileRef.id || fileRef.title,
+    path: $(fileRef).attr('path')
+  } //Name and path attribute is all we need
+  let filedata = pathfinder(Directory.files, 'find', file).stats;
+  let creationDate = new Date(filedata.birthtimeMs);
+
+  file.date = creationDate.toLocaleDateString();
+  file.creator = filedata.creator;
+  file.size = getFileSize(filedata.size);
+
+  $(fileRef).append(`
+    <ul class="folder-children fadein file-info" style="background: black; padding: 3px;">
+    <span>Path: </span>${file.path}<br>
+    <span>Size: </span>${file.size}<br>
+    <span>Created By: </span>${file.creator}<br>
+    <span>Uploaded: </span>${file.date}<br>
+    </ul>
+  `);
+};
