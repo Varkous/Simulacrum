@@ -66,11 +66,13 @@ nav {
   box-shadow: 2px 3px 12px 2px white;
 } .navlink a {
   color: #22a0f4 !important;
+  color: inherit;
   -webkit-text-stroke: 0.3px white !important;
+  
   display: flex;
   flex-direction: column;
   font-size: 1.2rem;
-  color: inherit;
+  word-break: break-word;
 }
 .navlink i { float: left; }
 #myDir i { text-shadow: 2px 2px 2px green; }

@@ -1,5 +1,4 @@
-
-
+'use strict';
 /*===============================================================
 Detects the user dragging any "thing" or "item" onto the browser window. If they are a type of "File", start a loop iteration of them -- and after a given time -- try to stage them.
 ===============================================================*/
@@ -71,18 +70,10 @@ function checkAndStageFiles (inputFiles) {
 
   if (!input || !alphabet.find( (letter) => input.includes(letter) ))
     return Flash('Folder path input not valid, use a better name', 'error');
-    //If the user provides some bullshit folder path, like something with no alphabet letters, reject it
-  else if ($('#mydirCheck').is(':checked'))
+  if ($('#mydirCheck').is(':checked'))
     return Flash('Cannot submit items from public to private directory. Visit personal directory if you wish to upload there', 'error');
+  input = filterInput(input, 0);
 
-  while (input.slice(-1) === '/') {
-    $(FolderInput).val(input.slice(0, -1));
-    input = input.slice(0, -1);
-  } while (input.slice(0, 1) === '/') {
-    $(FolderInput).val(input.slice(1));
-    input = input.slice(1);
-  }
-  //Just in case the user left a '/' (or more) at the end OR beginning of folder input, for some misguided reason. Remove them all.
 
   const duplicateFiles = [];
   const badFiles = [];
@@ -108,12 +99,13 @@ function checkAndStageFiles (inputFiles) {
 // ------------------------------------------------------------------
     file.mode = 33256;
     file.stats = {mode: 33256};
-    if (StagedFiles.count.length < 50) {
+
+    if (StagedFiles.count.length < 50 && file.path === CurrentFolder) {
 
       //Meaning, don't bother with this if the user uploaded dozens of files, overkill
       if (!$(`[id="${file.name}"]`)[0]) { //If an uploaded file card does not already exist
-        let fileCard = makeFileCard(file, 'queued');
-        fileCard.path = file.path;
+        let fileCard = $(makeFileCard(file, 'queued'));
+        $(fileCard).attr('path', file.path);
         $(FileTable).prepend(fileCard);
       }
     }
@@ -124,12 +116,12 @@ function checkAndStageFiles (inputFiles) {
   $(FileTable).children('.uploaded').removeClass('queued');
 // ------------------------------------------------------------------
   if (StagedFiles.count.length >= 50) {
-      $(FileTable).children('.queued').addClass('hide');
+    $(FileTable).children('.queued').remove();
 
     window.clearTimeout(window.uploadWarning);
     window.uploadWarning = setTimeout( () => {
       Flash(['Large number of files being uploaded: ', 'Compression to zip file before upload is advised'], 'warning', `${StagedFiles.count.length}`);
-    }, 6000);
+    }, 4000);
   }
 // ------------------------------------------------------------------
   $(FolderInput).attr('disabled', 'true');
@@ -171,6 +163,7 @@ Triggers when a user clicks SUBMIT. Halts default form submission, appends file 
 ===============================================================*/
 async function submitFiles (event) {
   clearDialog();
+  let operation = 'Upload';
   event.preventDefault();
   event.stopPropagation();
   // Halt conventional post request, and perform our own using axios futher below
@@ -189,19 +182,26 @@ async function submitFiles (event) {
       formData.append('mydirectory', true);
 
     formData.append('preferences', JSON.stringify(UserSession.preferences));
+    formData.append('operation', operation);
     SelectedFiles.unlist();
-    $(FS_Modal).show();
-    $('.fs-modal-message').text('Uploading files...');
+    showOperation(operation);
+
   // ------------------------------------------
     await axios({
       method  : 'post',
       url : `/${Partition + folderChoice}`,
       data : formData,
-    })
-    .then(returnUploadedContent)
+      onUploadProgress: data => {
+	    const {loaded, total} = data;
+	    //Using local progress events
+  	    if (data.lengthComputable) {
+          let progress = loaded / total * 100;
+          $('.progress').attr('value', progress);
+  	    }
+	    }
+    }).then(returnUploadedContent)
     .catch( (error) => {
       if (StagedFiles.count.length >= 50)
-        window.location.href = window.location.href;
         Flash(error.message, 'error');
         return false;
     });
@@ -214,47 +214,36 @@ async function submitFiles (event) {
 Receives the data/info after submitting a post request to upload files and/or create a folder. The staged File Card referenced by each created file's name is manipulated and populated with media content and updated in real-time for the user to view. Beforehand, we determine if a lot of files/folders were uploaded, whereas we trigger a page refresh.
 ===============================================================*/
 async function returnUploadedContent (res) {
+  await checkForServerError(res);
+  // if (res.config.url === `/${Partition + CurrentFolder}`) { //If the Current Folder has changed by the time reponse has occured, don't try to display any files (as we're not in the directory those files belong to)
 
-  Flash(...Object.values(res.data));
-  $('.file-name').text('');
+    Flash(...Object.values(res.data));
+    $('.file-name').text('');
 
-  if (res.data.newfolders) {
-    // Special response data, as 'folders' is only returned when uploading files and new directory/directories were created in the process. Usually an array of arrays.
-    let newfolders;
-
-    typeof(res.data.newfolders) === 'string'
-    ? newfolders = [res.data.newfolders]
-    : newfolders = res.data.newfolders;
-    //Must always be an array OF arrays, since each 'array' element represents a directory created, and each element within those arrays how many sub-directories were created
-
-    if (!CurrentFolder || !FolderInput[0].value.includes(CurrentFolder) || parseInt(newfolders) > 15) {
-      //If we are at homepage, or submitting to a directory not within the current folder, or we created a lot of folders back-end, refresh page
-      $(FS_Modal).show();
-      $('.fs-modal-message').text('Reloading directory...');
-      folderChoice = FolderInput[0].value;
-      return setTimeout( () => window.location.href = (`${window.location.origin}/${Partition + folderChoice}`), parseInt(res.data.items) * 2 || 800);
-
-    } else if (res.data.newfolders[0]) await createFolderContent(newfolders);
-
-  }; //End of: If new directories were created ---->
-
-// -----------------------------------------------------------------------------
-  if (res.data.type !== 'error') {
-  //If no errors, and files were uploaded successfully.
-
-    if (StagedFiles.count.length >= 50) {
-      $(FS_Modal).show();
-      $('.fs-modal-message').text('Reloading directory...');
-      //Refresh page, don't overload browser trying to display 50 or so file cards
-      return setTimeout( () => window.location.href = window.location.href, 500);
+    if (!Directory.name || !res.config.url.includes(Partition) || !$(FolderInput).val().includes(CurrentFolder)) {
+      //If we're not in a directory (a child of Partition anyway), re-direct to the target folder
+      dismissElement('main', 'Y', 'down', '50%', 600, true);
+      return changeDirectory(event, `${window.location.origin}/${Partition + $(FolderInput).val()}`);
     }
-    await createFileContent(res);
 
-// -----------------------------------------------------------------------------
-  } else Flash(...Object.values(res.data));
-  //End of: major Else statement. If there was no server response errors.
-  checkForEmpty();
-  $('.input').removeAttr('disabled');
+    if (res.data.newfolders) {
+      // Special response data, as 'folders' is only returned when uploading files and new directory/directories were created in the process. Usually an array of arrays.
+      let newfolders;
+      typeof (res.data.newfolders) === 'string'
+      ? newfolders = [res.data.newfolders]
+      : newfolders = res.data.newfolders;
+      console.log (res.data.newfolders);
+      //Must always be an array OF arrays, since each 'array' element represents a directory created, and each element within those arrays how many sub-directories were created
+      if (newfolders[0]) createFolderContent(newfolders);
+    }; //End of: If new directories were created ---->
+
+  // -----------------------------------------------------------------------------
+    checkForEmpty();
+    if (res.data.type !== 'error' && StagedFiles.count.length)   //If no errors, and files were uploaded successfully.
+      createFileContent(res);
+    else Flash(...Object.values(res.data));
+    //End of: major Else statement. If there was no server response errors.
+    $('.input').removeAttr('disabled');
 };
 
 
@@ -263,60 +252,66 @@ If a folder was created back-end after an upload/submission attempt, create a 'F
 ===============================================================*/
 async function createFolderContent(newfolders) {
 
-    for (let path of newfolders) {
+  for (let folder of newfolders) {
+    if (namefinder(AllFiles.count, 'find', folder)) {
+      continue;
+    }
+  // -----------------------------------------------------------------------------
+      let newFolder = {
+        name: folder,
+        path: CurrentFolder,
+        mode: 16822,
+        stats: {mode: 16822}, // Both this and mode are bogus, did it so functions below would treat it as a legit "folder"
+      };
 
-      if (namefinder(AllFiles.count, 'find', path)) {
-        continue;
-      }
-    // -----------------------------------------------------------------------------
-        let newFolder = {
-          name: path,
-          path: CurrentFolder,
-          mode: 16822,
-          stats: {mode: 16822}, // Both this and mode are bogus, did it so functions below would treat it as a legit "folder"
-        };
+      let fileCard = $(makeFileCard(newFolder));
+      $(FileTable).prepend(fileCard);
+      StagedFiles.add(newFolder);
+  }; //Loop over folders, see how nested they are
 
-        fileCard = $(makeFileCard(newFolder));
-        $(FileTable).prepend(fileCard);
-        fileSource = await displayMedia(newFolder, FolderInput[0].value, fileCard[0]);
-        $(fileSource).insertAfter($(fileCard).children('header'));
-        AllFiles.add(newFolder, CurrentFolder);
-    }; //Loop over folders, see how nested they are
 };
+
 
 /*===============================================================
 If any files were uploaded successfully, loop over all the staged files and (excluding those that failed to upload) we locate the divs/columns which reference each given file (could be a video, image, audio etc.) and insert this new source data into the file card so the user can view the media content, as is now provided by the server.
 ===============================================================*/
 async function createFileContent(res) {
+  if (StagedFiles.count.length) {
+    for (let file of StagedFiles.count) {
 
-  for (let file of StagedFiles.count) {
+      if (res.data.type === 'warning' && res.data.items.includes(file.name)) /*---->*/ continue;
+      //Then some items were not uploaded, do not unstage those or attempt to display their content
 
-    if (res.data.type === 'warning' && res.data.items.includes(file.name)) /*---->*/ continue;
-    //Then some items were not uploaded, do not unstage those or attempt to display their content
+      else { //Then all items were successful, display all of them.
+        StagedFiles.unlist(file);
+        // -----------------------------------------------------------------------------
+        if (file.path !== CurrentFolder)
+          continue; //If the file was uploaded outside current directory, don't bother displaying it.
+        // -----------------------------------------------------------------------------
+        let fileCard = getFileCard(file) ? getFileCard(file) : $(makeFileCard(file));
 
-    else { //Then all items were successful, display all of them.
-
-      let fileCard = getFileCard(file);
-      if (fileCard && file.path !== CurrentFolder) fileCard.remove();
-      else if (!fileCard) continue;
-      //If the file was uploaded outside current directory, don't bother displaying it.
-// -----------------------------------------------------------------------------
-      else {
-        let fileSource = await displayMedia(file, FolderInput[0].value, fileCard); //Get source content
-        $(fileSource).insertAfter($(fileCard).children('header')); //Add it into card
         $(fileCard).removeClass('queued').addClass('uploaded'); //Turn it darkcyan instead of orange
-        $(FileTable).append(fileCard); //And to end of list
-        //This removes the orange outline and turns it to darkcyan, the user knows it is uploaded and no longer staged/queued to be uploaded.
+        await createMedia(file, $(FolderInput).val(), fileCard)
+        .then( source => insertFileCard(source, fileCard, file));
+        // -----------------------------------------------------------------------------
+        let newfile = {name: file.name, path: file.path, stats: {mode: file.mode || file.stats.mode || 33206}}
 
-        let newfile = {name: file.name, path: file.path, stats: {mode: 33206}}
+        if (Directory.packs) {
+          let pack = Directory.packs;
+          if (pack.last().length >= maxfiles) { //More than max files that can be displayed
+            Directory.packs.push([newfile]); //Make a new pack
+          } else Directory.packs.last().push(newfile); //Any new uploaded files go in last pack
+        }
+        if (Directory.files) {
+          Directory.files.push(newfile);
+          // Directory.files.length < maxfiles ? Directory.files.push(newfile) : divideDirectory(Directory);
+        }
         AllFiles.add(newfile, true);
-        CurrentFolder ? Directory.files.push(newfile) : "";
-      };
-
-    StagedFiles.unlist(file);
-    }; //End of: If no failed files
-// -----------------------------------------------------------------------------
-  }; //End of: For loop going over staged files
+      }; //End of: If no failed files
+  // -----------------------------------------------------------------------------
+    }; //End of: For loop going over staged files
+    Directory.packs ? findAllFiles(event, Directory.packs.length -1) : null;
+  }
 };
 
 
@@ -325,12 +320,12 @@ $(form).submit( (event) => {
   event.preventDefault();
   event.stopPropagation();
 
-  if (FolderInput[0].value !== Directory.name
+  if ($(FolderInput).val() !== Directory.name
     && UserSession.preferences.outsideDir === false
     && document.URL.includes(Partition) && StagedFiles.count.length) {
 //If target folder is not current directory, user has not set preference, and we are not on the homepage
       dialogPrompt({
-        warning: `You are currently submitting all staged files to a folder (<span class="dimblue">${FolderInput[0].value}</span>) outside this directory (<span class="dimblue">${Directory.name || CurrentFolder}</span>).`,
+        warning: `You are currently submitting all staged files to a folder (<span class="dimblue">${$(FolderInput).val()}</span>) outside this directory (<span class="dimblue">${Directory.name || CurrentFolder}</span>).`,
         responseType: 'confirm',
         proceedFunction: "submitFiles(event)",
         preference: 'outsideDir'

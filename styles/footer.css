@@ -58,16 +58,16 @@ svg {
   content: 'Presents a basic list-view of all files/folders in the current directory, including staged/selected files. Provides quicker navigation, ideal for mobile, or in a very large directory.';
 }
 #downloadBtn:hover::before {
-  content: 'Download any selected files/folders, or everything in the current folder if nothing is selected';
+  content: 'Download any selected files/folders, (hold shift and click to download everything in current directory)';
 }
 #transferBtn:hover::before {
-  content: 'Moves any selected items to the targeted folder destination. (Desktop only) Hold CTRL button to copy instead. Automatic copy on mobile device';
+  content: 'Moves any selected items to the targeted folder destination. Hold CTRL button to copy instead. Automatic copy on mobile device';
 }
 #deleteBtn:hover::before {
-  content: 'Removes the selected items from the current folder, or removes all items if nothing is selected. This cannot be undone';
+  content: 'Removes the selected items from the current folder, or removes all items if shift is held down upon click. This cannot be undone';
 }
 #moreFiles:hover::before {
-  content: 'Loads more files further down the list. (Desktop only) Hold the SHIFT key to load all files/folders in the entire directory';
+  content: 'Loads more files further down the list. Hold the SHIFT key to load all files/folders in the entire directory';
 }
 
 /* ----------------------------- */

@@ -1,26 +1,41 @@
+'use strict';
+const {ReportData, Sessions} = require('./UserHandling.js');
+const {CapArraySize, CheckIfTransfer, CheckIfUpload, EntryToHTML} = require('./Utilities.js');
+const {GetFolderSize} = require('./FolderProviders');
 const fs = require('fs-extra');
 const path = require('path');
-const {ReportData} = require('./UserHandling.js');
-const {CapArraySize, CheckIfUpload, CheckIfTransfer} = require('./Helpers.js');
-const FileType = require('file-type');
+const child_process = require("child_process");
+
 const UsersDirectory = process.env.UsersDirectory || 'users';
 
 module.exports = {
+
   /*===============================================================*/
   AccessDirectory: async function (req, res, next) {
 
-    let maindir = req.params.folder + req.params[0];
-    //Req.params.folder is the directory the user is currently in/posting from. When converted to array, the first element becomes the current directory. Relevant further down.
+    if (req.body.query)
+      return res.end();
 
-    let partition = await CheckIfTransfer(req, res, maindir);
+    if (req.files || req.body && req.body.files)
+      Sessions.user(req).operation = {type: req.body.operation, size: 0, location: req.params.folder};
+
+    let targetDir = req.params.folder + req.params[0];
+    let user = req.session.user;
+
+    if (req.session.home === UsersDirectory && targetDir.slice(0, user.name.length) !== user.name) {
+      return next(new Error(`Cannot transfer or submit to other private directories. Be sure to include ${user.name} as root of folder input while within your directory`));
+    }
+    let partition = await CheckIfTransfer(req, res, targetDir);
     if (!partition) return false;
+
+
     //Checks if its a transfer, and if user is attempting transfer from public to private
 
-    let paths = await CheckIfUpload(req, res, maindir);
+    let paths = await CheckIfUpload(req, res, targetDir);
     //Needs to be an array regardless, for simplicity of operations
 
     req.body.newfolders = new Set();
-    //Everything related to this (newfolders) is for front-end aesthetics, back-end does not use it
+     //This data is not relevant for any operations back-end, anything code related to 'newfolders' is used solely to create any new Folder Cards on the front-end display for user clarity
 // ------------------------------------------------------------------------------
       for (let directory of paths) {
         let loop = false;
@@ -30,25 +45,27 @@ module.exports = {
 
           if (error) {
             let newDirectory = fs.mkdirSync(`${partition}/${directory}`, {recursive: true});
-            fs.chownSync(newDirectory, req.session.user.uid, 100);
 
-            let nextDir = directory.split('/')[1];
-            //Simple code, but deceptive concept. The first element is the current directory (don't want that), second element is the newly created directory, and all other elements are sub-directories of the new directory, so don't want those either.
-              if (!req.body.newfolders.has(nextDir)) {
+            if (newDirectory) {
+              fs.chown(newDirectory, user.uid, 100);
+
+              let nextDir = directory.replace(user.residing || targetDir, '').replace('/', '').split('/')[0]
+              //Simple code, but deceptive concept. The goal is to find any new directories created that are DIRECT children of the current posting directory (the folder the user is residing in), anything deeper should cannot be displayed, as page will only show relative directories
+
+              if (!req.body.newfolders.has(nextDir))
                 req.body.newfolders.add(nextDir);
-                //Front-end will only create folders that are immediate relatives of the current directory, so we these off later after upload is complete
-              }
+            }
 
-              if (paths.indexOf(directory) !== paths.length - 1)
-                return loop = true;
-              // Async patterns made this necessary. Start next iteration by setting "loop" to true and "continuing" if its true, since 'continue' could not be used WITHIN these functions, but "loop" could be recognized outside.
+            if (paths.indexOf(directory) !== paths.length - 1)
+              return loop = true;
+              // Async pattern of 'fs.access' made this necessary. Start next iteration by setting "loop" to true and "continuing" if its true, since 'continue' could not be used WITHIN these functions, but "loop" could be recognized outside.
 
               else if (newDirectory && !req.files && !req.body.transfer) {
 
                 return ReportData(req, res, false, {
                   content: [`Directory`, `created`],
                   type: 'success',
-                  items: [`<span style="color: #22a0f4;">${directory}</span>`],
+                  items: [`<span style="color: ${process.env.folder_color};">${directory}</span>`],
                   newfolders: Array.from(req.body.newfolders)
                 });
               }
@@ -63,7 +80,7 @@ module.exports = {
 
             if (fs.existsSync(`${partition}/${destinationFolder}`) === false)
               return ReportData(req, res, false, {
-                content: [`Transfer aborted. Directory <span style="color: #22a0f4;">${destinationFolder}</span> was not found, or does not exist`],
+                content: [`Transfer aborted. Directory <span style="color: ${process.env.folder_color};">${destinationFolder}</span> was not found, or does not exist`],
                 type: 'error'
               });
 
@@ -81,7 +98,7 @@ module.exports = {
                 });
 
               else if (!req.files) {
-                  entries = fs.readdirSync(`${partition}/${directory}`);
+                  const entries = fs.readdirSync(`${partition}/${directory}`);
                   return ReportData (req, res, false, {
                     content: [`Directory already exists. ${entries.length ? 'Items within:' : 'Empty.'}`],
                     type: 'warning',
@@ -106,116 +123,255 @@ module.exports = {
 
 /*===============================================================*/
   UploadFiles: async function (req, res, next) {
+    return console.log (req.files);
+    if (!req.files) return ReportData(req, res, false, {
+      content: ['No files sent for upload'],
+      type: 'error'
+    });
 
-    let i = 0; //Needed this to reassign an element of req.files.files, using "file" didn't work
-      if (!req.files) return ReportData(req, res, false, {
-        content: ['No files sent for upload'],
-        type: 'error'
-      });
 
-      for (let file of req.files.files) {
-        let filepath = path.resolve(req.session.home, file.path, file.name);
-        // let filetype = await FileType.fromBuffer(file.data);
-        //
-        // if (!filetype) {
-        //   req.files.files[i] = file.name; //If there was a problem, file data will not be used, but we keep the name so we can report the name of the file in the browser log
-        // }
-        fs.writeFile(filepath, file.data, "UTF8", (error) => {
-          if (error) req.files.files[i] = file.name;
-          else fs.chownSync(filepath, req.session.user.uid, 100);
-          i++
-        });
-      }; //End of For Loop over files
+    else if (req.files) {
 
-    next();
+    //If there aren't, it means no files were uploaded. Not used by any other directory access calls.
+      fs.readdir(path.resolve('temp'), async (error) => {
+        const filesToWrite = req.files.files.map( (file, i, arr) => {
+          Sessions.user(req).operation.size += file.size;
+          //Absoluetly essential function to this application, it's how we upload data AND report the results without stalling the server.
+
+            return new Promise( (resolve, reject) => {
+            // Has to be a promise or route will just continue on without returning any data to user
+
+              let src = file.tempFilePath;
+              let read = fs.createReadStream(src);
+              // Every uploaded file is put in a temp directory (the source)
+
+              let dest = path.resolve(req.session.home, file.path, file.name);
+              let write = fs.createWriteStream(dest);
+              // every file is assigned a path on upload (destination), we start the writing
+
+              read.on("open", () => read.pipe(write)) //Start the writing process from source to destination path
+              .on("error", () => { //If there was a problem, delete file source regardless, and reject the upload if files are spread throughout multiple folders
+                console.log ('failed');
+                  fs.unlink(src);
+                if (req.body.newfolders > 1) {
+                  return reject({name: file.name, uploaded: false}); // 'Reject' will stop the upload
+                } else return resolve({name: file.name, uploaded: false}); // Otherwise just inform user it wasn't uploaded
+              }).on("end", () => {
+                //After writing ends, delete source (temp file) regardless, and return the file completed
+                fs.unlink(src);
+                return resolve({name: file.name, uploaded: true});
+              })
+          }); //End of Promise
+        }); //End of reading Temp directory
+
+      req.files = await Promise.all(filesToWrite);
+      next(); //Continue on to end of route when all files are ready to report
+      }); //Read directory of temp
+
+      // ------------------------------------------------------------------------------
+    } else next(); //If there were files at all
   },
 /*===============================================================*/
 
 /*===============================================================*/
-  DirectoryTransfer: async function (req, res, partition, items, destination) {
-    let transfers = [], paths = [], failed = [], already = [];
-    let color, stats, action = 'moved';
+Archiver: async function (req, res, files, userDir) {
+    const archive = archiver('zip', {
+      zlib: { level: 9 } // Sets the compression level.
+    });
+    let zipSize = 0;
 
-    //The items could be either files or folders.
-    // ------------------------------------------------------------------------------
-      for (let item of items) {
+    for (let file of files) {
+      const filepath = path.resolve(req.session.home, file.path, file.name);
+      fs.statSync(filepath).isDirectory() ? zipSize = await GetFolderSize(req, filepath, zipSize)
+      : zipSize += fs.statSync(filepath).size;
+    }
 
-        oldpath = `${req.session.home}/${item.path}/${item.name}`;
-        newpath = `${partition}/${destination}/${item.name}`;
+    res.setHeader('Bullshit', zipSize * 2);
+    archive.pipe(res);
+  try {
+    const filesToDownload = files.map( (file, i, arr) => {
+      const filepath = path.resolve(req.session.home, file.path, file.name);
+      return new Promise( function (resolve, reject) {
+        fs.stat(filepath, (err, stats) => {
 
-        if (fs.existsSync(oldpath))
-          stats = fs.statSync(oldpath);
+          if (err) return reject('Does not exist. Download aborted');
 
-        try {
+          archive.pipe(res).on('warning', async (err) => {
+            if (err.code === 'ENOENT')
+              return reject('Failed');
+              throw err;
+            }).on('error', async (err) => {
+              return reject('Failed');
+              throw err;
+          }).on('finish', async (err, data) => {
+            resolve('Good');
+          })
+
           if (stats.isDirectory())
-            color: '#22a0f4';
+            archive.directory(filepath, file.name);
+          else archive.file(filepath, {name: file.name});
 
-          if (oldpath === newpath) {
-            already.push(item.name);
-            continue;
+          if (i === arr.length - 1) {
+            archive.finalize();
           }
+        }); //End of file existence check
+      }); //End of promise
+    }); //End of mapping
 
-        // ------------------------------------------------------------------------------
-          if (req.body.copy) {
-            action = 'copied';
-            //Simply copy the item (absolute path needed) to the destination folder, any error means file transfer failed.
-            if (fs.existsSync(newpath) && req.session.user.admin === false)
-              continue; //Then don't override current item, as it may belong to another user
+    await Promise.all(filesToDownload).then( async (data) => {
+      Sessions.user(req).operation = false;
+    }).catch( error => error);
+  } catch (err) {
+    next(err)
+  };
+},
+/*===============================================================*/
 
-            if (stats.isDirectory())
-              fs.copySync(oldpath, newpath);
-            else fs.copyFileSync(oldpath, newpath);
+/*===============================================================*/
+ChildExec: async function (req, res, files, userDir) {
 
-            fs.chown(newpath, req.session.user.uid, 100);
+  let stream;
+  const filesToDownload = files.map( (file, i, arr) => {
+    //Go through each file under a promise for parallel processing
 
-          }
-        // ------------------------------------------------------------------------------
-          else {
-            if (stats.uid !== req.session.user.uid) {
-              failed.push(item.name);
-              continue;
+    const src = path.resolve(req.session.home, file.path, file.name);
+    const dest = `${userDir}/${file.name}`;
+// ------------------------------------------------------------- If file is already copied, resolve true, if not, copy it, any errors reject file that caused it
+    return new Promise( async function (resolve, reject) {
+      if (!fs.existsSync(src)) { //If copied file doesn't exist, return it as missing
+        return resolve({name: file.name, missing: true});
+      } else if (fs.existsSync(dest)) {
+        return resolve({name: file.name, size: fs.statSync(dest).size});
+      } //If the file is already present, skip
+      else fs.copy(src, dest, async (err) => { //Copy to staging user staging directory
+        if (err) return reject(err.message);
+        else return resolve({name: file.name, size: fs.statSync(dest).size});
+      });
+    });
+
+  }); //End of file mapping
+    // ------------------------------------------------------------- //When all files to be downloaded have finished
+  await Promise.all(filesToDownload).then( async (files) => {
+      if (files.filter( file => file.missing).length) {
+        //If any files attempted to be extracted actually do not exist (failed to be copied), reject request with error report
+        return ReportData(req, res, false, {
+          content: ["Problem, some files selected for download: ", 'Do not exist in location, either deleted or moved already'],
+          type: 'error',
+          items: files.filter( file => file.missing).filter( file => file.name)
+        });
+      // ---------------------------------------------------------
+    } else return new Promise( function (resolve, reject) {
+
+        const zipOptions = fs.existsSync(`${userDir}/Files.zip`) //If the zip file already exists
+        ? `u -mmt -uz0 -so -r -mx1 ${userDir}/Files.zip * -x!*.zip` //Update archive
+        // Update > Multithread > Ignore if file already archive > Stream Output > Recursive > Compression LVl 1 > Zip Name > All Files that are not a zip file
+        :`a -mmt -sdel -so -r -mx1 ${userDir}/Files.zip *`; //Create new archive
+        // Add > Multithread > Delete after > Stream Output > Recursive > Compression LVl 1 > Zip Name > All Files
+
+        stream = child_process.spawn('7z', zipOptions.split(' '), {cwd: userDir, detached: true, encoding: 'buffer'});
+        //Begin streaming to client, 'Bullshit' header gives approximate time wait
+        res.setHeader('Bullshit', GetFolderSize(req, userDir, 0) * 50 / 100);
+
+        stream.stdout.pipe(res).on("finish", () => {
+          fs.rmdir(userDir, {recursive: true, force: true}, (err) => err ? console.log (err) : null); //Delete archive after being sent to user
+          let downloaded = CapArraySize(files.filter( file => !file.missing).filter( file => file.name))
+          Sessions.user(req).log.push(`Successfully downloaded ${downloaded}`);
+          //Could not send usual Report Data, so needed to update these two properties manually
+          Sessions.user(req).operation = false;
+          return resolve('Compression complete');
+        }).on("error", (err) => reject( ReportData(req, res, err))); //Error if problem on download stream
+
+      Sessions.user(req).operation.size = files.reduce( (prev, next) => prev.size + next.size);
+    }); //Promise for: After all files have been copied to staging
+  }).catch( (err) => next(err)); //If there was an error thrown by file copying, crash server
+},
+/*===============================================================*/
+
+/*===============================================================*/
+  DirectoryTransfer: async function (req, res, partition, items, destination) {
+    let action = req.body.copy ? 'copied' : 'moved';
+
+    const itemsToTransfer = items.map( (item, i, arr) => {
+      //The items could be either files or folders.
+      return new Promise( (resolve, reject) => {
+        let oldpath = `${req.session.home}/${item.path}/${item.name}`;
+        let newpath = `${partition}/${destination}/${item.name}`;
+        fs.stat(oldpath, async (err, stats) => {
+
+          if (err) return resolve({name: item.name, color: item.color, failed: true});
+
+          if (stats.isDirectory()) { // Diff colors for files/folders, just for looks
+            item.color = process.env.folder_color;
+          } else item.color = process.env.file_color;
+    // -----------------------------------------------------------------------------  If copying the item
+          if (fs.existsSync(newpath)) //Then don't override current item, as it may belong to another user
+            return resolve({name: item.name, color: item.color, already: true});
+            // --------------------------------------------
+            if (req.body.copy) { //COPY item
+
+              if (item.color === process.env.folder_color) {
+                fs.copy(oldpath, newpath, async (error) => {
+                    if (error) {
+                      console.log ('file failed', error.message);
+                      return resolve({name: item.name, color: item.color, failed: true});
+                    }
+                    else {
+                      fs.chown(newpath, req.session.user.uid, 100);
+                      return resolve({name: item.name, path: item.path, color: item.color, transferred: true});
+                    }
+                });
+              } // --------------------------------------------
+              else fs.copyFile(oldpath, newpath, async (error) => {
+                  if (error) {
+                    console.log ('file failed', error.message);
+                    return resolve({name: item.name, color: item.color, failed: true});
+                  }
+                  else {
+                    fs.chown(newpath, req.session.user.uid, 100);
+                    return resolve({name: item.name, path: item.path, color: item.color, transferred: true});
+                  }
+              });
+
+            } //End of if copy
+            // ----------------------------------------------------------------------------- Simply MOVE the item to the destination folder, any error means item transfer failed
+            else {
+              // if (stats.uid !== req.session.user.uid)
+              //   return resolve({name: item.name, failed: true});
+
+              fs.rename(oldpath, newpath, async (error) => {
+                if (error) return resolve({name: item.name, color: item.color, failed: true});
+                else return resolve({name: item.name, path: item.path, color: item.color, transferred: true});
+              });
+
             }
-            fs.renameSync(oldpath, newpath, { overwrite: true, recursive: true });
-            //Simply MOVE the item (absolute path needed) to the destination folder, any error means item transfer failed.
+          }); //End of stat/item existence check
+// -----------------------------------------------------------------------------
+      });
+    });
 
-            // ------------------------------------------------------------------------------
-            let remainingItems = fs.readdirSync(`${req.session.home}/${item.path}`);
+    req.body.transfers = await Promise.all(itemsToTransfer).catch( (error) => ReportData(req, res, error));
 
-              if (remainingItems.length < 1
-              && `${partition}/${item.path}` !== `${UsersDirectory}/${req.session.user.name}`) {
-                //If folder is empty after file deletion (and it doesn't happen to be the partition/home folder itself), remove directory as well)
-                fs.rmdirSync(`${partition}/${item.path}`);
-              }
-          }
+    //After all is said and done, gather any successful/failed/already established items for front-end to display results report to user on browser
+    let transfers = req.body.transfers.map( (item) => item.transferred ? EntryToHTML(item) : null).filter(Boolean);
+    let paths = req.body.transfers.map( (item) => item.transferred ? item.path : null).filter(Boolean);
+    let failed = req.body.transfers.map( (item) => item.failed ? EntryToHTML(item) : null).filter(Boolean);
+    let already = req.body.transfers.map( (item) => item.already ? EntryToHTML(item) : null).filter(Boolean);
 
-          transfers.push(item.name);
-          paths.push(item.path);
-
-        // ------------------------------------------------------------------------------
-        } catch (error) { failed.push(item.name) };
-      }; //End of For Loop
-
-      [transfers = [], failed = [], already = []]
-        = await CapArraySize([transfers, failed, already]);
+      [transfers = [], failed = [], already = []] = await CapArraySize([transfers, failed, already]);
 // ------------------------------------------------------------------------------
         if (transfers.length && failed.length)
           return ReportData (req, res, false, {
-            content: [`successfully ${action}`, `to <span style="color: #22a0f4;">${destination}</span>. <hr> <span style="color: #e0e082 !important;">${failed}</span> were not successful`], type: 'warning', items: transfers, paths: paths
-          });
-// ------------------------------------------------------------------------------
-        else if (!failed.length && transfers.length > 0)
-          return ReportData (req, res, false, {
-            content: [`Successfully ${action}`, `to <span style="color: #22a0f4;">${destination}</span>`], type: 'success', items: transfers, paths: paths
+            content: [`successfully ${action}`, `to <span style="color: ${process.env.folder_color};">${destination}</span>. <hr> <span style="color: #e0e082 !important;">${failed + already}</span> were not successful`], type: 'warning', items: transfers, incomplete: failed.concat(already), paths: paths
           });
 // ------------------------------------------------------------------------------
         else if (failed.length > 0 && !transfers.length)
           return ReportData (req, res, false, {
-            content: [`Failed to move`, `to <span style="color: #22a0f4;">${destination}</span>. Check permission, verify item location, or try copying instead.`], type: 'error', items: failed
+            content: [`Failed to move`, `to <span style="color: ${process.env.folder_color};">${destination}</span>. Check permission, verify item location, or try copying instead.`], type: 'error', items: failed
           });
 // ------------------------------------------------------------------------------
         else return ReportData (req, res, false, {
-          content: [`Transfer cancelled`, `already within target directory`],
-          type: 'warning', items: already, paths: paths
+          content: [`${transfers ? `Successfully ${action}` : 'Cancelled.'}`, `${transfers ? `to <span style="color: ${process.env.folder_color};">${destination}</span>`: ''}<hr>${already.length ? [...already]  + ' already within that directory': ''}`],
+          type: 'success', items: transfers, paths: paths, incomplete: already
         });
 
   }, //End of: Transfer function
@@ -225,7 +381,6 @@ module.exports = {
   IterateDelete: async function (req, res, files) {
 
     let succeeded = [], failed = [], stats;
-
   // ------------------------------------------------------------------------------
     for (let file of files) {
 
@@ -251,7 +406,7 @@ module.exports = {
           else if (mode.slice(0,2) === '16') { //Then it's a folder, and we remove directory
 
             await fs.rmdirSync(fullpath, { recursive: true });
-            fs.existsSync(fullpath) ? failed.push(file.name) : await succeeded.push(`<span style="color: #22a0f4;">${file.name}</span>`);
+            fs.existsSync(fullpath) ? failed.push(file.name) : await succeeded.push(`<span style="color: ${process.env.folder_color};">${file.name}</span>`);
           }
         } catch (error) {
           await failed.push(file.name);
@@ -260,7 +415,7 @@ module.exports = {
         finally {
 
           await fs.readdir(`${req.session.home}/${file.path}`, async (error, items) => {
-            user = req.session;
+            const user = req.session;
             if (error) throw error;
             if (!items || items.length === 0
             && `${user.home}/${file.path}` !== `${UsersDirectory}/${user.user.name}`)
@@ -281,9 +436,9 @@ module.exports = {
 
     if (fs.statSync(oldpath).isDirectory()) {
       //Aesthetic purposes
-      color = '#22a0f4';
+      color = `${process.env.folder_color}`;
       req.body.directory = true;
-    } else color = 'darkcyan';
+    } else color = `${process.env.file_color}`;
 
     try {
       await fs.renameSync(oldpath, newpath);

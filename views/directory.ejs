@@ -23,7 +23,8 @@
 <!-- ====================== Essential back-end data ======================== -->
   <script type="text/javascript">
     const UsersDirectory = <%-JSON.stringify(UsersDirectory)%>;
-    const UserSession = <%-JSON.stringify(UserSession)%>;
+    let Server = <%-JSON.stringify(Server)%>;
+    let UserSession = <%-JSON.stringify(UserSession)%>;
     let Partition = <%-JSON.stringify(partition)%>.replace(`/${UserSession.user.name}`, '');
     let firstVisit = <%-JSON.stringify(firstVisit)%>;
     //When user has set private directory to be home directory, we remove user name from the partition (which is supposed to be there on the back-end, but creates bugs on the front end).
@@ -41,6 +42,7 @@
 <link rel="stylesheet" type="text/css" href="/animations.css">
 <link rel="stylesheet" type="text/css" href="/media-queries.css">
 <link rel="stylesheet" href="/body-logo.css">
+<link rel="stylesheet" href="/error-block.css">
 <!-- ======================================================================= -->
 
 <title>Simulacrum</title>
@@ -55,8 +57,15 @@
   <div class="shadow-image">
     <img src="/voidglobe.gif" class="background-logo">
   </div>
+  <div class="error-display">
 
+  </div>
+  <div class="operation-status fixed high-index hide">
+    <progress value="0" max="100">0%</progress>
+    <h3 class="progress-op"></h3>
+  </div>
   <body ondrop="fileDragger(event)" ondragover="fileDragger(event)">
+
 
     <div id="MessageLog" class="message fadeout hide">
       <i class="fa fa-times"></i>
@@ -90,12 +99,10 @@
         <a class="view-dir"href="/">View Target Folder</a>
       </button>
 
-      <% if (!directory) {%>
-      <button id="myItems" class="navlink">
-        <i class="fa fa-archive"></i>
-          <a href="#">Next File Set <span id="dirIndex">(1)</span></a>
+      <button id="fetchFiles" class="navlink d-flex">
+        <a href="#" id="prevAll" onclick="findAllFiles(event, Directory.index - 1)"><i class="fa fa-arrow-left"></i> Prev File Set</a>
+        <a href="#" id="nextAll" onclick="findAllFiles(event, Directory.index + 1)">Next File Set<span id="dirIndex">(1)</a>
       </button>
-      <%}%>
 
       <button id="openLog" class="navlink show-modal">
         <i class="fa fa-clipboard" style="font-size: 0.8rem;"></i>
@@ -116,7 +123,7 @@
 
       <button class="navlink">
         <i class="fa fa-sign-out"></i>
-        <a href="/login">Signout</a>
+        <a href="/signout">Signout</a>
       </button>
 
     </nav>
@@ -128,7 +135,7 @@
   </aside>
 
   	<main>
-    	<header class="header d-flex">
+    	<header class="header d-flex" hidden>
 
         <h1>
           <% if (directory) {%>
@@ -171,37 +178,13 @@
           <a id="editPrime" href="#" disabled="true" title="Drag a primary directory into the box, or click its folder icon to stage it for edit or deletion."></a>
           <i class="fa fa-edit" onclick="makeEdit($(this), $(this).prev('a'))"></i>
         </li>
-        <% let dirname;%>
-        <% if (directory && UserSession.home === UsersDirectory) {%>
-          <% dirname = directory.name.slice(UserSession.user.name.length + 1)%>
-          <% directory.layers.splice(0, 1) %>
-        <%} else if (directory) {%>
-          <% dirname = directory.name%>
-        <%}%>
 
         <% for (let i = 0; i < PrimaryDirectories.length; i++) {%>
-          <% if (directory && dirname === PrimaryDirectories[i].name ||
-          directory && directory.layers[0] === PrimaryDirectories[i].name) {%>
-              <!-- The first element of 'layers' is always the top-level directory or current directory. Highlight it -->
-
-              <td>
-                <i class="fa fa-folder-open"></i>
-                <% for (let i = 1; i < directory.layers.length; i++) {%>
-                  .
-                <!-- A dot (period) for each "floor" down we are in the current directory -->
-                <%}%>
-                <a id="directory<%=i%>" class="white" href="#"><%=PrimaryDirectories[i].name%></a>
-              </td>
-
-
-          <%} else {%>
           <!-- Otherwise list normally -->
             <td title="<%=PrimaryDirectories[i].name%>">
               <i class="fa fa-folder"></i>
               <a id="directory<%=i%>" class="folder-link taphover" href="/<%=partition + PrimaryDirectories[i].name%>"><%=PrimaryDirectories[i].name%></a>
             </td>
-          <%}%>
-
         <%}%>
 
       </table>
@@ -227,41 +210,25 @@
               None
             </span>
           </label>
+
+          <div class="operation-status">
+            <progress class="progress" value="0" max="100" height=30></progress>
+            <h3 class="progress-op"></h3>
+            <span class="staged-count main-staged-count queued" title="Number of files staged for upload"></span>
+    	    </div>
         </div>
 
           <section class="input-container">
-            <% if (directory) {%>
-            <%thisDirectory = directory.layers[directory.layers.length - 1]%>
-              <div class="current-directory">
-                  Current Directory:
-
-                  <%let prevDirectory = UserSession.home + "/"%>
-                  <% for (let layer of directory.layers) {%>
-
-                    /
-
-                    <% if (layer == thisDirectory) {%>
-                    <!-- Last index will always be the current directory, if so, self-link and highlight white -->
-                      <i class="fa fa-folder"></i>
-                      <a href="/<%=prevDirectory + layer%>" style="color: white;" disabled><%=layer%></a>
-
-                    <% } else {%>
-                      <i class="fa fa-folder"></i><a href="/<%=prevDirectory + layer%>"><%=layer%></a>
-                      <!-- Absolute path necessary. All layers minus the current directory will always be the previous folder. UserSession home necessary since "partition" is not accurate when viewing User home-->
-
-                    <% } %>
-                      <%prevDirectory += `${layer}/`%>
-                  <%}%>
-              </div>
-            <% } %>
+            <div class="current-directory">
+            </div>
 
             <span id="inputQuestion" title="Information on folder submission" type="button">
             <i class="fa fa-info-circle"></i>
             </span>
 
-            <div id="folderInfo" class="container">
+            <div id="folderInfo">
 
-              <div id="questionMessage" class="container hide" style="align-self: center;">
+              <div id="questionMessage" hidden>
                 <p><span style="color: #22a0f4">Creating new directory:</span>
                   If you wish to create a new folder, type in a name below. If you wish to make a sub-directory (create within an already existing folder), you must specifiy the parent directory as well in your designation (divided by a "/"). For example: If you wanted to create a "Halloween" folder within the "Movies" directory, you would need to input "Movies/Halloween".
                   Any directory without a parent ("/") is considered a Primary Directory/Base Folder, and can be found in the navbar, or within the list on your left.
@@ -281,7 +248,7 @@
 
                 <div class="input-container">
                   <input id="emptydirCheck" title="Allow empty directory creation?" class="checkbox" type="checkbox" style="transform: scale(1.5); margin-bottom: 6px">
-                  <i class="fa fa-folder empty-dir" onclick="$(this).prev().click()"></i>
+                  <i class="fa fa-folder-open" onclick="$(this).prev().click()"></i>
                 </div>
 
                 <% if (UserSession.home !== UsersDirectory) {%>
@@ -291,6 +258,7 @@
 
                     <a href="<%=UsersDirectory%>/<%=UserSession.user.name%>"></a>
                   </div>
+
                 <%}%>
               <h4 style="margin: 0px;">Select folder destination:</h4>
 
@@ -328,8 +296,6 @@
       <input class="file-search" type="search" name="search" placeholder="File">
     </div>
 
-    <span class="staged-count queued" style="font-size: 1.4rem" title="Number of files staged for upload"></span>
-
     <div class="resize">
       <i class="fa fa-search-minus resize" title="Show only basic file info" onclick="resizeCards(true)"></i>
       <i class="fa fa-search-plus resize" title="View media content of files" onclick="resizeCards(false)"></i>
@@ -346,7 +312,7 @@
 
     <section id="panelHeader">
 
-      <svg height="60px" viewBox="0 0 2400 60">
+      <svg height="60px" viewBox="0 0 2400 60" hidden>
         <polyline points="2400,1 2400,60 1,60 1,1 2400,1"/>
       </svg>
 
@@ -443,12 +409,16 @@
       </footer>
     </section>
 
+  <iframe id="viewImage" style="z-index: -1; position: fixed;" src="" title="Image Viewer" allowfullscreen></iframe>
+
   <button class="hide show-modal" type="button" name="button"></button>
   <div id="FS_Modal" class="modal">
     <div class="modal-content">
       <span class="closemodal"><i class="fa fa-times-circle closemodal"></i></span>
       <img id="uploadWait" class="modal-image" src="/upload.gif">
-      <div class="fs-modal-message">Uploading files...</div>
+      <div class="fs-modal-message">Uploading files...
+
+      </div>
     </div>
   </div>
 
@@ -457,14 +427,15 @@
 
 <!-- ================ -->
 <script type="text/javascript" src="/Core.js"></script>
+<script type="text/javascript" src="/DirectoryManipulation.js"></script>
 <!-- ================ -->
 <!-- ======================================================= -->
 <script text="text/javascript">
 
-const PrimaryDirectories = <%-JSON.stringify(PrimaryDirectories)%>; //Used only by 'displayDirectoryStats', contains info of all the PRIMARY directories listed at top of page.
-const Directory = <%-JSON.stringify(directory)%> || {};
+let PrimaryDirectories = <%-JSON.stringify(PrimaryDirectories)%>; //Used only by 'displayDirectoryStats', contains info of all the PRIMARY directories listed at top of page.
+let Directory = <%-JSON.stringify(directory)%> || {};
 let CurrentFolder = ''; //Same as Directory.name
-const rivals = <%-JSON.stringify(rivals)%> || [];
+let rivals = <%-JSON.stringify(rivals)%> || [];
 /* ----------------------------------------- */
 //The base partition that houses all directories. Needs to end with a "/" (example: "uploads/")
 const AllFiles = new Uploaded_Status_Adjuster('uploaded', $('.all-files')[0], []);
@@ -480,20 +451,26 @@ const FileTable = document.querySelector('#FileTable');
 //Element that houses ALL staged/uploaded file/folder cards (divs) on the page
 const FolderInput = document.getElementsByClassName('folder-input');  //The folder input within the form, stores folder designation
 
+const body = document.querySelector('body');
 const FS_Modal = document.getElementById('FS_Modal');
 const LOG_Modal = document.getElementById('LOG_Modal');
 const form = document.querySelector('#fileForm'); //The form that sends file upload data
 const fileInput = document.getElementsByClassName('file-input'); //The input within the form that stages the files themselves
+const dragbox = $('.drag-select-box');
 const folderSuggestions = document.querySelector('#folderSuggestions');
 const directoryStats = document.getElementsByClassName('directory-stats');
 //Element that houses all directory info of the given Primary directory being hovered
 </script>
 
 <!-- ======================================================= -->
-<script type="text/javascript" src="/general-helpers.js"></script>
-<script type="text/javascript" src="/ContentCreation.js"></script>
+<!-- <script type="text/javascript" src="/general-helpers.js"></script> -->
+<script type="module">
+  import {getFileSize} from 'C:/WebDevelopment/Simulacrum/scripts/general-helpers.mjs';
+</script>
+<script type="text/javascript" src="/ContentDisplay.js"></script>
 <script type="text/javascript" src="/StageAndUpload.js"></script>
 <script type="text/javascript" src="/Deletion.js"></script>
 <script type="text/javascript" src="/Interactive.js"></script>
+<script type="text/javascript" src="/Prompts.js"></script>
 <script type="text/javascript" src="/Mischellaneous.js"></script>
 <script type="text/javascript" src="/KeyMouseTriggers.js"></script>

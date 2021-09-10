@@ -1,30 +1,55 @@
+'use strict';
+// ===========================================================
+  document.onreadystatechange = async function (evt) { //Page starts loading
+    /* ----------------------------------------- */
+
+    if (document.readyState === 'interactive') { //When DOM scripts are available
+    /* ----------------------------------------- */
+      if (performance.navigation.type === performance.navigation.TYPE_RELOAD) { //If page was reloaded
+        if (UserSession && UserSession.user.residing && UserSession.user.residing !== '/') {
+          Directory.layers = UserSession.user.residing.split('/') || ['/'];
+          CurrentFolder = UserSession.user.residing;
+          let dirPath = '/' + Partition + CurrentFolder;
+          dismissElement('main', 'Y', 'down', '50%', 600, true);
+          await retrieveDirectory(event, window.location.origin + dirPath + '?fetch');
+        }
+      }
+    }; //If interactive available
+
+  }; //End of document state change
+
+
 /*===============================================================
   This affects the element that is passed in with a transform relocation. Moving it up, down, left or right in the given direction specified by 'axis' and 'direction'. If 'hide' is true, don't rewind its position.
 ===============================================================*/
-function dismissElement (element, axis, direction, duration = '60%', hide) {
-
+function dismissElement (element, axis, direction, duration = '60%', wait = 600, hide) {
+  return new Promise ( (resolve, reject) => {
   duration = Math.abs(parseInt(duration) / 100);
   //Turns duration (which is a string of a number percentage) into an integer, divided into a 1.0 digit float number. The lower the percentage (and the number), the less or "quicker" the duration
 
-  if (direction === 'down') {
-    $(element).css('transform', `translate${axis}(-125%)`)
-  }
-  else if (direction === 'up') {
-    $(element).css('transform', `translate${axis}(125%)`);
-  }
-  //These simply decide where the element starts off (-% is above screen, regular is below)
+  if (direction === 'down' || direction === 'right')  $(element).css('transform', `translate${axis}(125%)`);
+  else if (direction === 'up' || direction === 'left') $(element).css('transform', `translate${axis}(-125%)`);
+  //These simply decide where the element is sent (-% is down/right screen, regular is above/left screen)
+// ----------------------------------------------
+    if (hide) { //After going off screen, make element transition instant for quick follow-up relocation
+      let moveSpeed = parseFloat($(element)[0].style.transitionDuration);
 
-  if (!hide) {
-      //With 'hide' they simply remain hidden, otherwise we do this and return it to its origin
-    setTimeout( () => {
-      $(element).css({
-        'transform': 'translate(0)',
-        'transition': `all ${duration}s ease-in-out`,
-      });
-    }, 700);
-  };
+      setTimeout( () => {
+        $(element).css('transition', 'none');
+        resolve();
+      }, Math.abs(moveSpeed * 1000));
+    } else {
+      //With 'hide' they simply remain hidden, otherwise we do this and return it to its origin at same speed
+      setTimeout( () => {
+        $(element).css({'transform': 'translate(0)', 'transition': `all ${duration}s ease-in-out`});
+        resolve();
+      }, wait);
+    }
+    // ----------------------------------------------
+  }); //Return promise
 };
 
+// ---------------------------------------------------------------------------------------
 let dragItem;
 let dropItem;
 let mobile = false;
@@ -43,7 +68,7 @@ if (mobile) {
 } else {
 
   	/*===============================================================
-  	  Similar to below except much less complex as it only serves aesthetic purposes. Allows files to be dragged in a "cool" fashion by adding/removing classes depending on whether it is being dragged, dropped or released. Added to every uploaded file.
+  	  Allows files to be dragged in a "cool" fashion by adding/removing classes depending on whether it is being dragged, dropped or released. Added to every uploaded file. Holding control "clones" on dragging, without it the whole card is displaced
   	===============================================================*/
     dragItem = {
   	  start: function(evt, ui) {
@@ -94,7 +119,7 @@ if (mobile) {
 
 
   	/*===============================================================
-  	  Not even a function, but an object. This is used exclusively by ALL '.folder' elements, which makes them "droppable" and makes an entire POST request when an item is dropped on them. This process emulates the act of transfering or moving a file, by taking the HREF of the file dropped on the folder, sending it to the back-end, and initiating a file-transfer with the FS module before returning here to remove the element and complete the process.
+  	  Not even a function, but an object. This is used exclusively by ALL '.folder' elements, which makes them "droppable" and makes an entire POST request when an item is dropped on them. This process emulates the act of transfering or moving a file, by taking the HREF of the file dropped on the folder and sending it to the back-end.
   	===============================================================*/
       dropItem = {
   	    classes: {
@@ -114,68 +139,6 @@ if (mobile) {
 
   	    }, //-----------All of this crap above happens if you drop an item on the given folder card
   	};
-/* ----------------------------------------- */
-	if (UserSession && UserSession.preferences.smoothTransition === true) {
-
-	  let thisPage = document.URL.replace(window.location.origin, '').split('/').filter( (ele) => ele !== "");
-	  thisPage === '/' ? thisPage = thisPage.split('') : thisPage = thisPage;
-	  let prevPage = document.referrer.replace(window.location.origin, '').split('/').filter( (ele) => ele !== "");
-	  //Had to do all this crap so we can just get the folder layers of current directory, removing the URL and the other nonsense. And if it's the homepage, make sure the array still has a length of One (one element that is "/")
-
-	  if (performance.navigation.type !== performance.navigation.TYPE_RELOAD) {
-	    //If the page was not refreshed/reloaded. Otherwise we don't do any of these animations.
-	    if (document.referrer === document.URL) dismissElement('main', 'Y', 'up');
-	     //Same page refresh, then start off below screen.
-	    else if (prevPage.length >= thisPage.length) /**/ dismissElement('main', 'X', 'down');
-	    //We backpeddaled directory, enter screen from left-side.
-	    else /**/ dismissElement('main', 'X', 'up');
-	    //We traversed directories, enter screen from right-size.
-
-	    dismissElement('.logo', 'Y', 'down');
-	  };
-
-	/* ======================================================= */
-	  $('body').on('click', 'a', function (evt) { //Upon clicking any link (leaving the page), dismiss the entire page body, sending it left or right depending on whether the user is going "forwards" through directories (send it left), or "backwards" (send page right).
-	    if (this.download) return true;
-
-	    evt.preventDefault();
-	    evt.stopPropagation();
-
-	    let domain = window.location.origin;
-
-	    if (this.href && !this.href.replace(domain, '').includes('#')
-	    && !$(this).hasClass('search-result') && !this.download) {
-	    //If link is homepage, search result anchor, or download icon, do not shift the page off screen
-
-	      let nextPage = this.href.replace(domain, '').split('/').filter( (ele) => ele !== "");
-	      let thisPage = window.location.href.replace(domain, '').split('/').filter( (ele) => ele !== "");
-	      //Had to do all this crap so we can just get the folder layers of current directory, removing the URL and the other nonsense, and get the next directory's "length"
-
-	      if (window.location.href === this.href) {
-	        //If the user wants to reload/refresh the same page, send the body-page downward off-screen.
-	        if (confirm('Redirect to current page?')) $('main').css('transform', 'translateY(100%)');
-	        else return false;
-
-	        //Traversing directory, then retreat back to LEFT-side-screen.
-	      } else if (nextPage.length >= thisPage.length) {
-	        $('main').css('transform', 'translateX(-110%)');
-	        //Send it left if next page is deeper in directory, or is a relative directory (same depth as current directory)
-	      } else if (nextPage.length < thisPage.length) $('main').css('transform', 'translateX(110%)');
-	      //Send it right if we're treading backwards in directory
-
-	      dismissElement('.logo', 'Y', 'down', '40%', true);
-	      dismissElement('#panelHeader', 'Y', 'up', '40%', true);
-	      dismissElement('.directory-stats', 'Y', 'down', '40%', true);
-	      dismissElement(MessageLog, 'Y', 'down', '40%', true);
-
-	      if (UserSession.home === UsersDirectory && nextPage.join('/') === `${UsersDirectory}/${UserSession.user.name}`) { //If in private directory, attempts to visit the user folder will go to homepage, since that is presented as the "home" directory
-	        window.location = domain;
-	      } else window.location = this.href;
-	      //THEN do the redirect
-	    }
-	  });
-	// =============================================================
-	};
 
 
 	/*===============================================================
@@ -184,7 +147,6 @@ if (mobile) {
 	function startDrag (evt) {
 
 	  if (event.target !== this) return false;
-	  let dragbox = $('.drag-select-box');
 	  //Else clicking file cards will also trigger it
 
 	  clearTimeout(window.startdrag);
@@ -211,7 +173,6 @@ if (mobile) {
 	===============================================================*/
 	async function resizeDragbox() {
 
-	  let dragbox = $('.drag-select-box');
 	  if (event.buttons !== 1)
 	    return $(dragbox).hide();
 
@@ -227,7 +188,6 @@ if (mobile) {
 	      height: `${heightAdjust}px`,
 	      width: `${widthAdjust}px`
 	    });
-
 	  }
 	};
 
@@ -238,14 +198,13 @@ if (mobile) {
 	$('html').on('mouseup', '*', function () {
 	  //Dragbox official parent is actually the HTML document, so mouseup function must be derived from that.
 
-	  if ($('.drag-select-box').is(':hidden'))
+	  if ($(dragbox).is(':hidden'))
 	    return false;
 	    // To avoid repeat calls to this function due to mouseup
 
 	  //Then the user is not even drag-selecting, no reason to run this function
 	  window.clearTimeout(window.startdrag);
 	// --------------------------------------------------------
-	  let dragbox = $('.drag-select-box');
 	    if ($(dragbox).hasClass('is-dragging') === true) {
 	        $(dragbox).removeClass('is-dragging');
 
@@ -287,7 +246,7 @@ if (mobile) {
 	  };
 	  $(dragbox).hide();
 	});
-
+// ===========================================================
 	window.addEventListener('load', async () => {
 	  $('#FileTable').on('mousedown', startDrag);
 	  $('html').on('mousemove', '#FileTable', resizeDragbox);
@@ -295,3 +254,4 @@ if (mobile) {
 	  $('#FileTable').on('mousemove', '.drag-select-box', resizeDragbox);
 	});
 };
+/* ======================================================= */

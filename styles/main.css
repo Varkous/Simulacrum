@@ -7,6 +7,7 @@ main {
   background-image: url('/Gray-Smooth Surface.png');
   background-size: repeat;
 
+  transform: translateX(-100%);
   position: relative;
   width: auto;
 	padding: 1%;
@@ -54,6 +55,11 @@ td {
   font-weight: normal;
 
   font-size: 1.1rem;
+} .dir-depth {
+  color: white;
+  pointer-events: none;
+} .dir-depth:before {
+  content: attr(data-before);
 }
 .directory-stats {
   font-family: 'Courier New';
@@ -82,49 +88,11 @@ td {
   width: 100%;
   margin: auto;
 }
-/* -------------------- */
-#questionMessage {
-  font-family: 'Trebuchet MS';
-  color: grey;
-
-  transition: all 1.5s ease;
-} .show {
-  transform: scale(1.0) !important;
-  font-size: 1.0rem !important;
-}
-.current-directory {
-  background: rgba(30, 30, 30, 0.7);
-  color: white;
-  box-shadow: 1px 8px 12px 8px black;
-  text-shadow: 9px 12px 14px black;
-  border-radius: 3px;
-  font-family: 'Trebuchet MS';
-
-  font-size: 1.2rem;
-  text-align: center;
-  max-width: 500px;
-  min-width: 270px;
-  padding: 5px;
-  margin-top: 10px;
-}
-.input-container {
-
-  align-items: center;
-  flex-direction: column;
-}
-/* -------------------- */
-label {
-	border-radius: 3%;
-
-  font-size: 1.4rem;
-  margin: 5px;
-  padding: 2px;
-}
 .file-box {
 
-  margin: auto;
+  flex-direction: column;
+  display: grid;
   font-size: 1.4rem;
-  width: 50%;
 }
 .folder-label {
   cursor: pointer;
@@ -138,7 +106,7 @@ label {
   background-image: linear-gradient( #22a0f4, black);
   border-top: 2px double gray;
   border-left: 2px double gray;
-  box-shadow: 1px 4px 3px 4px black;
+  box-shadow: 5px 10px 10px 5px black;
 
   flex-direction: column;
   align-items: center;
@@ -158,6 +126,91 @@ label {
 
   padding: 3px;
   width: 90%;
+}
+.operation-status {
+  border-radius: 25px;
+
+  padding: 8px;
+  display: -webkit-box;
+  margin: auto;
+}
+progress {
+  border: 1px solid gray;
+  border: ridge;
+  border-color: darkgray;
+  border-radius: 15px;
+  -webkit-appearance: none;
+
+  min-height: 25px;
+  min-width: 200px;
+  z-index: 1;
+}
+progress::-webkit-progress-bar {
+  border-radius: 15px;
+  background: black;
+  z-index: 1;
+}
+progress::-webkit-progress-value {
+  background: transparent;
+  box-shadow: inset 1px 1px 24px 1px green;
+  border-radius: 25px;
+  z-index: 1;
+}
+.progress-op {
+  color: lightgrey;
+  z-index: 2;
+  top: -3px;
+  left: 32%;
+  position: absolute;
+  font-size: 1rem;
+}
+.main-staged-count {
+  background: black;
+} .main-staged-count:hover {
+  color: white;
+}
+.current-directory {
+  background: rgba(30, 30, 30, 0.9);
+  color: white;
+  box-shadow: 1px 8px 12px 8px black;
+  text-shadow: 9px 12px 14px black;
+  border-radius: 3px;
+  font-family: 'Trebuchet MS';
+  font-size: 1.2rem;
+  min-width: 270px;
+  padding: 5px;
+  margin-top: 10px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+/* -------------------- */
+#folderInfo {
+  font-family: 'Trebuchet MS';
+  background: rgba(0,0,0,0.8);
+  border: 3px double gray;
+  padding: 5px;
+} #questionMessage {
+  font-family: 'Trebuchet MS';
+  /* align-self: center; */
+  color: darkgrey;
+
+  font-size: 1.1rem;
+} .show {
+  transform: scale(1.0) !important;
+  font-size: 1.0rem !important;
+}
+.input-container {
+
+  align-items: center;
+  flex-direction: column;
+}
+/* -------------------- */
+label {
+	border-radius: 3%;
+
+  font-size: 1.4rem;
+  margin: 5px;
+  padding: 2px;
 }
 i, .fa{
   transition: all 0.2s ease-in-out;
@@ -197,13 +250,6 @@ i, .fa{
   transform: scale(0.9);
   box-shadow: 3px 3px 3px #22a0f4;
 }
-#folderInfo {
-  font-family: 'Trebuchet MS';
-  background: rgba(0,0,0,0.7);
-  border: 3px double gray;
-  padding: 5px;
-}
-
 #folderSuggestions {
   background: rgba(0,0,0,0.3);
 
@@ -223,6 +269,11 @@ i, .fa{
   align-self: baseline;
 } #folderSuggestions span {
   color: white;
+}
+#submit {
+  font-family: 'Allerta Stencil';
+  font-size: 1.2rem;
+  text-shadow: 2px 1px 1px black;
 }
 .file-search, .resize {
   position: sticky;

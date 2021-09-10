@@ -1,4 +1,4 @@
-
+'use strict';
 /*===============================================================
   Whenever a "folder icon" is clicked, from the directory lists and the folder cards in the File List, the relative folder name will be added to the folder input form. This is a shorthand wait to add a sub-directory to the file designation as opposed to typing by hand.
 ===============================================================*/
@@ -47,11 +47,15 @@ function inputItemName (anchor) {
 //Either we're searching through folder input, or in the file search. They both need a list to query through, and a view to display results on. File results are the file card elements, folder results are just anchor tags with the directory names.
 ===============================================================*/
 async function itemSearch (evt) {
-  this.value ? query = this.value.toLowerCase() : query = '';
+  evt.preventDefault();
+  evt.stopPropagation();
+  clearTimeout(window.input);
 
-  event.preventDefault();
-  event.stopPropagation();
+  let query = filterInput(this.value ? this.value.toLowerCase() : '', 1);
+  //Remove any bullshit "/" the user puts in folder input
+
   if (!query) {
+    console.log ('asd')
     //If it was a blank search, reset everything and don't run function
     $(FileTable).children('*').removeClass('fadeout');
     $('li').removeClass('hide').show();
@@ -59,17 +63,30 @@ async function itemSearch (evt) {
     return false;
   }
   let finds = [];
-  let list = $('.all-files').children('.uploaded');
+  let view;
+  let list = $('.all-files').children('.uploaded'); //File table search by default
 // ---------------------------------------------------------------------------
-    if (this && this.id === 'FolderInput') {
+    if (this && this.id === 'FolderInput') { //If we're searching folder input
       StagedFiles.unlist(StagedFiles.count, true);
       $(FolderInput).val(this.value);
+
+      if (Partition === UsersDirectory + '/'
+      && this.value.slice(0, UserSession.user.name.length) !== UserSession.user.name) {
+        $(FolderInput).val(UserSession.user.name);
+      }
       $('.view-dir').attr('href', `/${Partition + this.value}` || '/');
+
       view = $(folderSuggestions);
-      $(view).empty();
-      const found = await axios.post(`/user/${UserSession.user.uid}`, {query: query});
-      list = found.data.content;
-    } else {
+      $(view).empty(); //Clears any previous folder link search results
+      let found;
+      window.input = await setTimeout( async () => { //Creates a small delay before posting, in case user is quickly typing input
+        found = await axios.post(`/all/${query}`, {query: query}); //Makes the request to get the folder data
+      if (await checkForServerError(found))
+        return false;
+
+      list = found.data || [];
+      }, 700);
+    } else { //Then it's a file search, anything that's uploaded (and not selected) will be initially hidden
       $('.all-files li').not('.selected').hide();
       if (this.offsetParent === $('main')[0])
         $('.column, .folder').not('.selected').addClass('fadeout');
@@ -80,23 +97,23 @@ async function itemSearch (evt) {
 
     }
 // ---------------------------------------------------------------------------
+  if (list.length) {
     for (let item of list) {
       item.title ? name = item.title.replace(Partition + '/', '') : name = item.replace(Partition + '/', '');
       //File card has ID so get name that way, otherwise folder listing is just text
 
       if (name.toLowerCase().includes(query)) {
-      // if (name.toLowerCase().slice(0, query.length) === query) {
 
         if (this.id === 'FolderInput') {
           //Cleans up appearance of links before appension, that's all this is
-          let i = Directory.layers[Directory.layers.length - 1]; //This directory
+          let i = Directory.layers[Directory.layers.length - 1] || '/'; //This directory
           let styled_link = name.replace(Partition, '').replaceAll('/', '<span class="search-result">/</span>').replace(i, `<span>${i}</span>`); //Find all directories, replace Partition name (don't need it), add a <span> with a slash for folder division clarity, and make current directory white with span as well
-          result = `<a href="/${name}" class="search-result" onfocus="inputItemName(this)">${styled_link}</a>`;
+          let result = `<a href="/${name}" class="search-result" onfocus="inputItemName(this)">${styled_link}</a>`;
 
           finds.push(result);
           // ----------------------------------------------
         } else finds.push(item); //This means its a file card
-      };
+      }
     }; //---End of For loop
 
 // ---------------------------------------------------------------------------
@@ -110,14 +127,15 @@ async function itemSearch (evt) {
         $(finds).each( (i, ele) => {
           //5 milisecond timeout so re-population is smoother, instead of 1-2 second freeze before collective display of all elements
 
-            setTimeout( () => {
-              if (this.offsetParent === $('main')[0])
-                $(`div[id="${ele.title}"]`).prependTo(FileTable).removeClass('fadeout');
+          setTimeout( () => {
+            if (this.offsetParent === $('main')[0])
+              $(`div[id="${ele.title}"]`).prependTo(FileTable).removeClass('fadeout');
 
-                $(ele).show();
-            }, 5);
+              $(ele).show();
+          }, 5);
         });
       }
+    } else return false;
 // ---------------------------------------------------------------------------
 }; //End of function
 
@@ -130,6 +148,7 @@ async function bringUpPanel (evt) {
   if ($('footer').is(':hidden')) {
     $(FileTable).hide();
     $('footer, #exitPanel').show();
+    $('body').css('overflow-y', 'hidden');
     $('#panelHeader').addClass('moveUp');
     $('#overheadPanel').hide();
     setTimeout( () => $('#panelHeader').removeClass('moveUp'), 950);
@@ -138,11 +157,14 @@ async function bringUpPanel (evt) {
   else {
     $('#panelHeader').addClass('moveDown');
     $('#exitPanel').hide();
+
     setTimeout( () => {
       $('#panelHeader').removeClass('moveDown');
+      $('body').css('overflow-y', 'auto');
       $('#FileTable').show();
       $('footer').hide();
     }, 950);
+
     $('#overheadPanel').show();
   }
 };
@@ -163,14 +185,16 @@ function clearInput(input) {
 /*===============================================================
   Triggers whenever a user CTRL+Mouse-Clicks a File Card. This inserts it into the "SelectedFiles.count" array (so that any time a user clicks Delete or DeleteAll or Transfer, any File Cards with the ID of that selected file will be removed/transferred). This function itself though, just adds some CSS to indicate a file card been selected.
 ===============================================================*/
-async function selectFiles (fileCard, all) {
+async function selectFiles (evt, all) {
 
-  if (!all && event) { //If 'all' is true, we're on mobile device, and doing multi-file select with double-tap
-    if (event.target.tagName === 'I' || event.target.tagName === 'A' || $(event.target).hasClass('changed'))
+  let target = evt.target || evt;
+  if (!all && evt) { //If 'all' is true, we're on mobile device, and doing multi-file select with double-tap
+    if (target.tagName === 'I' || $(target).hasClass('changed'))
       return false; //If we're selecting icon within FileTable, downloading, or clicking anchor then no reason to select, could be annoying to user
   }
+  let name = this ? this.id || this.title : target.id || target.title;
+  let file = {name: name, path: $(this).attr('path') || $(target).attr('path')}; //Sometimes 'this' refers to the given link clicked, other times it must use the event.target or event itself to find the item selected
 
-  let file = {name: fileCard.id || fileCard.title, path: $(fileCard).attr('path')};
   if (!file) return false;
 
     if (SelectedFiles.count.length && pathfinder(SelectedFiles.count, 'find', file))
@@ -186,7 +210,6 @@ async function selectFiles (fileCard, all) {
 
 
 /*===============================================================
-
   Occurs when the user double-clicks within a panel-listing to select/unselect all items in that group.
 ===============================================================*/
 async function selectAll (files, all) {
@@ -283,10 +306,10 @@ async function makeEdit (icon, anchor) {
 
 // ------------------------------------------
   } else {
-    await renameItem (li).then( (res) => {
+    await renameItem (li).then( async (res) => {
 
       if (!res) return false;
-
+	  await checkForServerError(res);
       Flash(res.data.content, res.data.type, res.data.items);
 
       if (res.data.type === 'error') return false;
@@ -331,34 +354,4 @@ async function renameItem (li) {
 
   } else return false;
 
-};
-
-
-/*===============================================================
-  Any time file-icon is clicked, its parent will always be uploaded file card or LI. Find the given directory file with the name and path of that element, collect its essential stats, and place those into hover-display element for user
-===============================================================*/
-function showFileInfo (evt) {
-
-  $('.file-info').remove(); //Remove any previous displays
-
-  let fileRef = $(this).parents('.uploaded')[0] // <LI> or File Card
-  let file = {
-    name: fileRef.id || fileRef.title,
-    path: $(fileRef).attr('path')
-  } //Name and path attribute is all we need
-  let filedata = pathfinder(Directory.files, 'find', file).stats;
-  let creationDate = new Date(filedata.birthtimeMs);
-
-  file.date = creationDate.toLocaleDateString();
-  file.creator = filedata.creator;
-  file.size = getFileSize(filedata.size);
-
-  $(fileRef).append(`
-    <ul class="folder-children fadein file-info" style="background: black; padding: 3px;">
-    <span>Path: </span>${file.path}<br>
-    <span>Size: </span>${file.size}<br>
-    <span>Created By: </span>${file.creator}<br>
-    <span>Uploaded: </span>${file.date}<br>
-    </ul>
-  `);
 };

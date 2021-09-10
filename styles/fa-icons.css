@@ -21,6 +21,8 @@
 .fa-arrow-circle-o-right:before{content:"\f18e"}
 .fa-arrow-circle-o-left:before{content:"\f190"}
 .fa-archive:before {content: "\f187"}
+.fa-file-archive:before {
+  content: "\f1c6"; }
 .fa-angle-double-right:before {content: "\f101"}
 
 .fa-clipboard:before{content:"\f0ea"}

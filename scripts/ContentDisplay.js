@@ -1,31 +1,11 @@
-/*===============================================================
-  Given file size is usually in bytes, which is a bloated number to read. This function uses Math to parse it into kilobytes/megabytes/gigabytes depending on amount of bytes of file.
-===============================================================*/
-function getFileSize(filesize) {
-// If filesize is at least Delta digits and less than Gamma digits, read by kilobytes
-     if (filesize > 999 && filesize < 1000000)//Divide filesize (bytes) by Delta
-     filesize = Math.floor(filesize / 1000) + ' Kilobytes';
-
-// If filesize is at least Gamma digits and less than Juliett digits, read by megabytes, which would cap at 999 megabytes
-     else if (filesize > 999999 && filesize < 1000000000) //Divide filesize (bytes) by Gamma
-     filesize = (filesize / 1000000).toFixed(1) + ' Megabytes';
-
-// If filesize is Juliet digits or more, read by gigabytes
-     else if (filesize > 999999999)  //Divide filesize (bytes) by Juliet
-     filesize = (filesize / 1000000000).toFixed(1) + ' Gigabytes';
-
-     else filesize = filesize + ' Bytes';
-
-     return filesize;
-  };
+'use strict';
+const {getFileSize} = require('./general-helpers.js');
 
 
 /*===============================================================
   Returns a new div element with various children, known as a File Card on here. The appearance of the card is based on the "item input", which is usually a file. File cards are interacted with frequently so reading what it's composed of will clarify the intentions of many other blocks.
 ===============================================================*/
-function makeFileCard(item, status) {
-
-//Important. Created upon staging/pre-loading a file, used as the bedrock for displaying media. The ID, "status" and title are used by the application to indentify the file's existence when deleting, transferring or downloading it.
+function makeFileCard(item, status) { //Important. Created upon staging/pre-loading a file, used as the bedrock for displaying media. The ID, "status" and title are used by the application to indentify the file's existence when deleting, transferring or downloading it.
 
     if (checkModeType(item.mode) === 'file' || checkModeType(item.stats.mode) === 'file')  {
       //33206 is code for 'file'
@@ -34,7 +14,7 @@ function makeFileCard(item, status) {
 
       let filesize = getFileSize(item.size || 1);
       return `
-       <div id="${item.name}" path="${item.path || ''}" class="column ${status}" onclick="selectFiles(this)">
+       <div id="${item.name}" path="${item.path || ''}" class="column ${status}">
         <header class="filehead">
           <h1 title="${item.path}/${item.name}">
             <i class="fa fa-file-text"></i>${item.name}
@@ -53,7 +33,7 @@ function makeFileCard(item, status) {
       }
 
       return `
-        <div id="${item.name}" path="${item.path || ''}" class="folder" onclick="selectFiles(this)">
+        <div id="${item.name}" path="${item.path || ''}" class="folder">
           <header class="filehead">
             <i class="fa fa-folder"></i>
             <a href="/${Partition + CurrentFolder}/${item.name}" title="${CurrentFolder}/${item.name}">${item.name}</a>
@@ -61,7 +41,6 @@ function makeFileCard(item, status) {
             <ol class="folder-children">
              ${folderChildren.join('')}
             </ol>
-            <i class="fa fa-trash-alt gray remove" onclick="deleteSingle(this.parentNode.parentNode)"></i>
           </header>
         </div>`;
     } //Path is the exact folder path it is within, title is the "full" path with folder name included, needed for access on back-end
@@ -112,7 +91,7 @@ function createTextFile(fileCard, file) {
 /*===============================================================
   Triggers after a user SUCCESFULLY uploads files through a post request, or loads a directory. It takes in a file name and renders the file's content into the file card using its source from the database. If its type is a folder it will return an anchor tag and an un-draggable 'folder card' instead.
 ===============================================================*/
-async function displayMedia(file, folder, fileCard) {
+async function createMedia(file, folder, fileCard) {
 
   let sourceLinks = `
   <div class="source-icons hide" style="transition: all 0.5s ease-in-out;">
@@ -129,15 +108,10 @@ async function displayMedia(file, folder, fileCard) {
   if (file.stats && checkModeType(file.stats.mode) === 'folder') {
     //Then it's a folder, and we're obviously in a directory so absolute path needed
     mobile ? null : $(fileCard).droppable(dropItem); //If folder make droppable, unless using mobile device
-    let downloadFolder = `
-    <div class="source-icons">
-      <i class="fa fa-download" aria-hidden="true" onclick="downloadFiles(this.parentNode.parentNode)"></i>
-      <i onclick="makeEdit(this, $(this).parents('.folder')[0])" class="fa fa-edit" style="right: 0"></i>
-    </div>`
-    return downloadFolder + `<img src="/folder.png"><a title="${folder}/${file.name}" href="${folder}/${file.name}" class="hide">${file.name}</a>`;
+    return sourceLinks + `<img src="/folder.png"><a title="${folder}/${file.name}" href="${folder}/${file.name}" class="hide">${file.name}</a>`;
   }
 // --------------------------------------------------------------
-    if (!CurrentFolder) {
+    if (!CurrentFolder || CurrentFolder === UserSession.user.name) {
     //Then we are at the homepage, viewing all files from other directories.
     $(fileCard).find('header').append(`
       <h1 path="${folder}" style="font-size: 1.0rem">
@@ -152,15 +126,15 @@ async function displayMedia(file, folder, fileCard) {
 
 
 /*===============================================================
-  Used exclusively by "displayMedia", this checks what type of content the media of the file suggests (image, text, audio, etc.), and returns the appropriate element tags to best represent it.
+  Used exclusively by "createMedia", this checks what type of content the media of the file suggests (image, text, audio, etc.), and returns the appropriate element tags to best represent it.
 ===============================================================*/
 async function getMediaType (file, folder, fileCard, source) {
 
   if (checkFileType(file, imageFormats) === true) { //Image
-    return `${source}<img class="media-content" id="source" src="/${folder}/${file.name}" alt="">`
+    return `${source}<i class="fa fa-eye" style="align-self: center;" onclick="viewImage(this.nextSibling)"></i><img class="media-content" id="source" src="/${folder}/${file.name}" alt="">`
 // --------------------------------------------------------------
   } else if (checkFileType(file, audioFormats) === true) { //Audio
-    mobile ? audio_image = "/audio-icon.png" : audio_image = "/audiocircle.gif";
+    const audio_image = mobile ? "/audio-icon.png" : "/audiocircle.gif"; //Don't use gifs on mobile
      return `${source}
      <i class="fa fa-volume-up" style="align-self:center;"></i>
      <img class="media-content audio-pic" src="${audio_image}" class="audio-pic">
@@ -183,7 +157,7 @@ async function getMediaType (file, folder, fileCard, source) {
        if (Directory) { // If we're in a directory, we'll have to fetch the text files again in order to use a file reader on them (to place in a text-area)
          await axios(`/${folder}/${file.name}`, {responseType: 'blob'})
          .then( (res) => {
-           //Retrieve the actual blob file from back-end, create a new browser-side File out of it, and pass it in to the text-file reader before displaying it onto a <textarea> below.
+          //Retrieve the actual blob file from back-end, create a new browser-side File out of it, and pass it in to the text-file reader before displaying it onto a <textarea> below.
           let textfile = new File([res.data], file.name);
           source = createTextFile($(source), textfile);
         }).catch( (error) => Flash(error.message, 'error'));
@@ -207,29 +181,66 @@ async function getMediaType (file, folder, fileCard, source) {
 
 
 /*===============================================================
+  Uses 'source content', which may be an <img>, <video> or <audio> etc. and places it into the given file card. Prepends file card if it's a folder, appends if it's file.
+===============================================================*/
+function insertFileCard (source, fileCard, file) {
+  $(source).insertAfter($(fileCard).children('header'));
+
+  if ($(fileCard).hasClass('folder') || $('.file-search').val())
+    $(FileTable).prepend(fileCard);
+  else $(FileTable).append(fileCard);
+
+  if (pathfinder(SelectedFiles.count, 'find', file))
+    $(fileCard).addClass('selected');
+  //Occasionally, the user may select files from the panel listing (which always shows every file in the directory), while the FileTable is only displaying a few. We need to update them to match the panel selectinos.
+}
+
+
+/*===============================================================
+//We wish to segregate files into "packs" (max number depends on client device). The first pack is automatically initiated with the first max amount of files, the loop acquires the previous packs length to know which index to begin slice from (incrementally)
+===============================================================*/
+function divideDirectory (dir) {
+  dir.packs = [dir.files.slice(0, maxfiles)];
+  for (let i = 0; i < Math.floor(dir.files.length / maxfiles); i++) {
+    let nextindex = (dir.packs[i].length * dir.packs.length);
+    dir.packs.push(dir.files.slice(nextindex, nextindex + maxfiles));
+  };
+  if (dir.files.length >= maxfiles)
+    Flash([`Will not display more than ${maxfiles} files at a time. The remaining`, `will be segregated. Select [Next File Set] to cycle through them`], 'warning', [`${dir.files.length -maxfiles}`]);
+  dir.files = dir.packs[dir.index];
+  $('.all-count').text(`${AllFiles.count.length}/${dir.files.length}`);
+  $('#dirIndex').text(`(${dir.index + 1}/${dir.packs.length})`);
+
+  return dir;
+};
+
+
+/*===============================================================
   Third most important function here. Whenever the page loads or a user requests all their OWN files, this function will be called on loading a directory, clicking "More Files", or clicking "View My Files". It basically lists the media content of every file, and displays every folder within a 'Card' element.
 ===============================================================*/
 async function listDirectoryContents (evt, all) {
+  // Directory.packs ? $('#fetchFiles').show() : $('#fetchFiles').hide();
   clearDialog();
 
   if (AllFiles.count.length < Directory.files.length)
-    await AllFiles.add(Directory.files.slice(0, 500), true);
+    await AllFiles.add(Directory.files.slice(0, maxfiles), true);
 
-  $('.file-search')[0].value
-  ? filesToList = namefinder(Directory.files, 'filter', $('.file-search')[0].value)
-  : filesToList = Directory.files.slice(0, 500);
   //If user has search input, only list files that contain the characters input
-
+  const filesToList =  $('.file-search')[0].value
+    ? namefinder(Directory.files, 'filter', $('.file-search')[0].value)
+    : Directory.files.slice(0, maxfiles);
   let filesListed = 0;
 
   for (let file of filesToList) {
 
       if ($(FileTable).children('.ui-draggable').length > AllFiles.count.length || filesListed >= 10)
         break; /*Then we stop listing, to avoid overloading page*/
-      else if ($(`div[id="${file.name}"][path="${file.path}"]`)[0] || file.path === 'uploads')
+      else if ($(`div[id="${file.name}"][path="${file.path}"]`)[0] || file.path === Partition.replace('/', ''))
         continue; //Simple, if that file (file card) already exists, don't display it again obviously
-      else if (checkModeType(file.stats.mode) === 'folder') /*Then it's a folder, should always display*/
+      else if (checkModeType(file.mode || file.stats.mode) === 'folder') /*Then it's a folder, should always display*/ {
         filesListed = filesListed;
+      }
+
       else filesListed += 1;
 
       if (evt && evt.shiftKey || all)
@@ -237,24 +248,13 @@ async function listDirectoryContents (evt, all) {
       //List all of them, 'filesListed' will remain at 0
 
       //Each iteration creates a file/folder card, gets any media content, and appends/displays it to the page. No more than 10-15 files are listed/displayd per function call, unless Shift is pressed when More Files is clicked.
+      let fileCard = $(makeFileCard(file, 'uploaded'));
+      setTimeout( () => {
+        createMedia(file, file.path, fileCard).then( (source) => insertFileCard(source, fileCard, file));
+      }, 5);
 
-      $(FileTable).append(makeFileCard(file, 'uploaded'));
-      let fileCard = getFileCard(file);
-
-      await displayMedia(file, file.path, fileCard).then( (fileSource) => {
-      //Returns the anchor link and the media elements (IMG, AUDIO or VIDEO), before inserting into the static File Card.
-        $(fileSource).insertAfter($(fileCard).children('header'));
-        if ($(fileCard).hasClass('folder') || $('.file-search').val())
-          $(FileTable).prepend(fileCard);
-
-        if (pathfinder(SelectedFiles.count, 'find', file))
-          $(fileCard).addClass('selected');
-        //Occasionally, the user may select files from the panel listing (which always shows every file in the directory), while the FileTable is only displaying a few. We need to update them to match the panel selectinos.
-
-      });
 
   }; //End of For loop going over files
-
   checkForEmpty();
 };
 
@@ -262,45 +262,26 @@ async function listDirectoryContents (evt, all) {
 /*===============================================================
 //Intensive function. Sends a request, and finds ALL files that belong to the given user, and returns them to the browser to replace the current "Directory.files"
 ===============================================================*/
-async function findAllFiles (evt) {
+async function findAllFiles (evt, index) {
 
-  await axios.post(`/user/${UserSession.user.uid}`).then( async (res) => {
-    if (!res.data.content)
-      return false;
+  if (!Directory.files || index !== undefined) {
+    Directory.index = Math.min(Math.max(index ? index : Directory.index, 0), Directory.maxindex || 1);
 
-    for (let file of AllFiles.count)
-      await AllFiles.delete(file);
+    axios.post(`/all/${Directory.name}`, {index: Directory.index}).then( (res) => {
 
-    if (!Directory.files) {
-      //On homepage load, this will trigger.
-      Directory.files = res.data.content;
-      Directory.packs = [Directory.files.slice(0, 500)];
+      Directory = res.data;
 
-      for (let i = 0; i < Math.floor(Directory.files.length / 500); i++) {
-        let nextindex = (Directory.packs[i].length * Directory.packs.length);
-        Directory.packs.push(Directory.files.slice(nextindex, nextindex + 500));
-      } //We wish to segregate files into "packs" of 500. The first pack is automatically initiated with the first 500 files, the loop acquires the previous packs length to know which index to begin slice from (incrementally)
+      if (Directory.files.length === 500) {
+        Flash([`Will not display more than`, `files at a time. Request next file set in navbar to retrieve more. This will be replace the current 500`], 'warning', [maxfiles]);
+      }
+      // Directory = divideDirectory(Directory);
+      Directory.index === Directory.maxindex && Directory.index > 0 ? $('#nextAll').hide() : $('#nextAll').show();
+      Directory.index === 0 ? $('#prevAll').hide() : $('#prevAll').show();
 
-      if (Directory.files.length >= 500)
-        Flash(['Will not display more than 500 files at a time.', 'will be segregated into groups. Select [Next File Set] to cycle through them'], 'warning', [`${Directory.files.length -500}`]);
+      listDirectoryContents(event);
 
-    } else {
-      //Every SUBSEQUENT trigger of this axios function will put us here. The Directory index aligns with the current file pack index in the Directory, and each time the user selects "Next File Set", it will increment to display next pack.
-      Directory.index ++;
-      Directory.index = Directory.index % Directory.packs.length;
-      //Index cannot surpass number of file packs within directory
-      Directory.files = Directory.packs[Directory.index];
-      $('#dirIndex').text(`(${Directory.index + 1}/${Directory.packs.length})`);
-    }
+    }).catch( (err) => Flash(err.message, 'error'));
 
-    await listDirectoryContents(evt).then( () => {
-      $('.all-count').text(Directory.files.length);
-    })
-
-  }).catch( (error) => Flash(error.message, 'error'));
-
+    AllFiles.delete(AllFiles.count);
+  }
 };
-
-
-/* ----------------------------------------- */
-$('#myItems').click(findAllFiles);

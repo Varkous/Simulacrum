@@ -194,8 +194,5 @@
   transform: scale(0.7);
 }
 .faulty {
-  box-shadow: 1px 3px 3px 1px black,
-  4px 7px 6px 7px rgb(10,10,10),
-  inset 1px 3px 3px 1px red !important;
   border: 1px dashed red;
 }

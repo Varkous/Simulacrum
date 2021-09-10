@@ -1,3 +1,4 @@
+'use strict';
 /*===============================================================
   Triggered by either clicking the 'Trash bin' icon, clicking Delete, or Delete All. Target is the button, deleteCondition is to tell the function which delete method was requested by user.
   Very convoluted function, it is meant to deal with all instances of deletion even amidst user mismanagement. After completing any delete requests to the back-end, it removes the file cards that represent the file data as well.
@@ -5,27 +6,25 @@
 async function deleteMultiple(condition) {
 
   clearDialog();
-  let canDelete = false, failedFiles = [];
-  let selectedFiles = SelectedFiles.count;
   $('.input').removeAttr('disabled');
+  let canDelete = false, failedFiles = [];
+  const uploadedFiles = SelectedFiles.count.filter( file => !pathfinder(StagedFiles.count, 'find', file));
+  //Before sending it to back-end for deletion, remove any Staged Files from the submission. Can't "Delete" those obviously, as they are not uploaded. But the user still wants them removed from front-end, so leave them in Selected Files.
 
-    if (SelectedFiles.count.length) {
-      await selectAll(StagedFiles.count, true);
-      SelectedFiles.count.length
-      ? [canDelete, failedFiles] = await sendDeleteRequest(SelectedFiles.count)
-      : canDelete = true;
-    } else if (SelectedFiles.count.length < 1 && event.shiftKey || condition === 'ALL') {
+
+    if (uploadedFiles.length) {
+      [canDelete, failedFiles] = await sendDeleteRequest(uploadedFiles)
+    } else if (event.shiftKey || condition === 'ALL') {
         SelectedFiles.count = [];
-        await selectAll(Directory.files, true);
-        selectedFiles = SelectedFiles.count;
-        [canDelete, failedFiles] = await sendDeleteRequest(Directory.files);
+        await selectAll(AllFiles.count, true);
+        [canDelete, failedFiles] = await sendDeleteRequest(AllFiles.count);
     } else canDelete = true;
 
 
 // --------------------------------------------------------------------------------
   if (canDelete === false) /*Then*/ return false;
 
-    for (let file of selectedFiles) {
+    for (let file of SelectedFiles.count) {
       if (failedFiles && failedFiles.includes(file.name)) /*If some files were not deleted in database, don't remove their cards on page (skip over them)*/ continue;
 
       let fileCardToRemove = getFileCard(file);
@@ -33,7 +32,6 @@ async function deleteMultiple(condition) {
 
       setTimeout( () => {
         AllFiles.delete(file, canDelete);
-        StagedFiles.unlist(file, true);
         checkForEmpty(canDelete, fileCardToRemove);
       }, 1000);
     };
@@ -65,7 +63,7 @@ async function deleteSingle(fileCard) {
   if (failedFiles && failedFiles.includes(fileCard.id) || canDelete === false)
   /*Then*/ return false;
 
-    if ($(FileTable).children().length < 30) {
+    if ($(FileTable).children().length < 30 && !mobile) {
       const otherFiles = $(fileCard).siblings('div');
       const leftMostFile = $(FileTable).children([0]); //This will always select the FIRST file card, which should always be on the left-side of screen
 
@@ -79,11 +77,10 @@ async function deleteSingle(fileCard) {
 
     } else $(fileCard).addClass('fadeout');
 
+
     setTimeout( () => {
-      $('.input').removeAttr('disabled');
-      $(FileTable).children('div').removeClass('move');
       AllFiles.delete(file, canDelete);
-      $('.staged-count').text(`(${StagedFiles.count.length})`);
+      $(FileTable).children('div').removeClass('move');
       checkForEmpty(canDelete, fileCard);
     }, 1000);
 // --------------------------------------------------------------------------------
@@ -99,22 +96,29 @@ async function sendDeleteRequest(filesToDelete, refresh) {
 if (!Array.isArray(filesToDelete))
   filesToDelete = [filesToDelete];
 
+  const operation = 'Delete';
   const data = {
     files: filesToDelete,
-    preferences: JSON.stringify(UserSession.preferences)
+    preferences: JSON.stringify(UserSession.preferences),
+    operation: operation,
   }
 
-  $(FS_Modal).show();
-  $('.fs-modal-message').text('Deleting files...');
+  showOperation(operation);
   let failedFiles = [];
 // --------------------------------------------------------------------------------
   //Send user form information to verify permission for deleting the file(s) in question
   return await axios({
-    method: 'delete',
+    method: 'DELETE',
     url: `/delete/${CurrentFolder || Partition}`,
     data: data,
   })
-  .then( (res) => {
+  .then( async (res) => {
+    $('.input').removeAttr('disabled');
+
+    if (await checkForServerError(res))
+      return false;
+
+
     Flash(...Object.values(res.data));
     if (res.data.type === 'error')
       throw new Error(res.data.content);
@@ -123,33 +127,41 @@ if (!Array.isArray(filesToDelete))
       typeof(res.data.items) === 'string'
       ? failedFiles = [res.data.items]
       : failedFiles = res.data.items;
-      }
+    } //Make sure it's an array
 
-    //The server sends back a manufactured response with a message and "type" that our Flash uses to provide spoonful information to the page based on what happened server-side
-    if (refresh) setTimeout( () => window.location = window.location, 300);
-    return [true, failedFiles];
+    if (refresh) setTimeout( () => window.location = window.location, 300); //This is called when deleting a Primary Directory, not used for anything else
+    return [true, failedFiles]; //Needs to be an array in this order. The first element represents whether to actually delete the file card/file references from the page
 // --------------------------------------------------------------------------------
   })
   .catch( (error) => {
-    return [false, failedFiles];
+  	if (failedFiles.length)
+      return [false, failedFiles];
+    else return window.location = '/login';
   });
 };
 
 
 // ------------------------------------------------------------------------------
 $('#deleteBtn').click( () => {
-  SelectedFiles.count.length
-  ? targetedFiles = SelectedFiles.count.length
-  : targetedFiles = 'ALL';
+  const targetFiles = SelectedFiles.count.length ? SelectedFiles.count : AllFiles.count;
 
-  if (targetedFiles === 'ALL' && !event.shiftKey)
+  if (targetFiles === AllFiles.count && !event.shiftKey)
     return Flash('No files selected for deletion.', 'warning');
 
-  if (UserSession.preferences.deleteCheck) {
+  let totalSize = 0;
+  for (let file of targetFiles) {
+    if (totalSize >= 50000000) { // No need to keep counting if already past warning threshold
+      break;
+    } else if (pathfinder(StagedFiles.count, 'find', file)) continue;
+    else totalSize += pathfinder(AllFiles.count, 'find', file).size || 0;
+  };
+
+  if (UserSession.preferences.deleteCheck && totalSize >= 50000000) {
+    // If size is more than 50 MBs send a warning before deletion
     dialogPrompt({
-      warning: `Delete <span class="dimblue">${targetedFiles}</span> files? This cannot be undone.`,
+      warning: `Delete <span class="dimblue">${targetFiles.length}</span> files (<span class="dimblue">${getFileSize(totalSize)}</span>)? This cannot be undone.`,
       responseType: 'boolean',
-      proceedFunction: `deleteMultiple('${targetedFiles}')`,
+      proceedFunction: `deleteMultiple('${targetFiles === AllFiles.count ? 'ALL' : false}')`,
       preference: 'deleteCheck'
     });
 

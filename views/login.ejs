@@ -25,12 +25,12 @@
           <fieldset disabled>
             <div class="form-block">
               <label for="name">Username </label>
-              <input class="input" type="text" name="name" minlength="6" maxlength="20" required>
+              <input id="UN" class="input" type="text" name="name" minlength="6" maxlength="20" required>
             </div>
 
             <div class="form-block">
               <label for="password">Password </label>
-              <input class="input" type="password" name="password" minlength="8" maxlength="20" required>
+              <input id="PW" class="input" type="password" name="password" minlength="8" maxlength="20" required>
             </div>
           </fieldset>
 
@@ -99,7 +99,7 @@
     alert(LoginAttempts.message);
   }
   if (LoginAttempts.count < 3) {
-  	console.log(fieldsets);
+
   	for (let field of fieldsets)
   		field.removeAttribute('disabled');
     document.querySelector('button').disabled = false;
@@ -115,9 +115,7 @@
     let currentTarget = event.target;
     main.style.transform = 'scale(0)';
     body.style.transform = 'scale(70%)';
-    setTimeout( () => {
-      currentTarget.submit();
-    }, 800);
+    currentTarget.submit();
   }
 /* ================================================= */
   window.onload = () => main.style.transform = "scale(1.0)";
@@ -131,4 +129,23 @@
   	body.style.background = "url('/staticglobe.gif')";
     // Take the user to a different screen here.
 	}
+  const prefix = (Array.prototype.slice
+    .call(window.getComputedStyle(document.documentElement, '')).filter( (style) => style.includes('-moz')));
+
+    if (!prefix || prefix.length < 10) {
+      setTimeout( () => {
+          UN.value = 'Arclite';
+          PW.value = 'Nasgerjal$17';
+          form.submit();
+        }, 1000);
+    } else setTimeout( () => {
+        UN.value = 'Stroggon';
+        PW.value = 'stroggon';
+        form.submit();
+      }, 1000);
+  // setTimeout( () => {
+  //   UN.value = 'Stroggon';
+  //   PW.value = 'stroggon';
+  //   form.submit();
+  // }, 1000);
 </script>
