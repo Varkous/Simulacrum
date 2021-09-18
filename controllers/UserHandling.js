@@ -2,6 +2,7 @@
 const fs = require('fs-extra');
 const {Hash, Verify} = require('./Hasher.js');
 const {wrapAsync, sessionDuration} = require('../index.js');
+const {getFileSize, parseHTML} = require('../scripts/Helpers.js');
 let partition = process.env.partition;
 const UsersDirectory = process.env.UsersDirectory || 'users';
 const allowedPreferences = 5;
@@ -21,7 +22,6 @@ class SessionStore {
       users[i].residing = null;
       users[i].loggedIn = false;
       users[i].log = [];
-      users[i].cache = [];
     }
     return users;
 
@@ -39,8 +39,8 @@ class SessionStore {
 
   // ===========================
   async refresh(req, fresh) {
-    if (process.ServerTracker.status === 0)
-      this.terminate(req);
+    // if (process.ServerTracker.status === 0)
+    //   this.terminate(req);
 
     //Most important. Any request passed through a handler will trigger this, restarting the session timeout that tracks the user status, and also logs whatever action they commited.
     let user = this.user(req);
@@ -56,7 +56,8 @@ class SessionStore {
 
     user.firstVisit = false;
     user.loggedIn = true;
-    user.operation = req.body.operation ? {type: req.body.operation, size: 0, location: user.residing} : false;
+    user.residing = req.session.user.residing;
+    user.operation = req.headers.operation ? {type: req.headers.operation, location: user.residing} : false;
 // ----------------------------------------------------------------------- Basically all message data provided by log is designed for front-end, so we need to clear the <spans> and <hrs> from it so log isn't ugly and confusing
     if (user.log) {
       message = log.replace(/,/g, '').replace(/<span.*?>/g, '').replace(/<\/span.*?>/g, '\r\n'); //Remove the span  elements, intended only for front-end display
@@ -86,17 +87,15 @@ class SessionStore {
   async terminate(req) {
 
     if (req.session && req.session.user) {
-      console.log('====== Terminated ======');
-      for (let key in process.memoryUsage()) {
-        console.log(`${key}: ${Math.round(process.memoryUsage()[key] / 1024 / 1024 * 100) / 100} MB`);
-      }
-      console.log ('======')
+      // for (let key in process.memoryUsage()) {
+      //   console.log(`${key}: ${Math.round(process.memoryUsage()[key] / 1024 / 1024 * 100) / 100} MB`);
+      // }
     //Whenever the timer expires, or user logs out
       let user = this.user(req);
 
-      user.loggedIn = false;
       user.operation = null;
       user.home = req.session.home;
+      user.loggedIn = false;
       req.session = null;
 
       let date = new Date(); //Just logging information to text file
@@ -126,11 +125,9 @@ class SessionStore {
         return false;
       }
     };
-
-    process.sessionTimers[req.session.user ? req.session.user.name : 'Anonymous'] = setTimeout( () => req.session = null, req.session.duration);
-    //Since the current session is stalled (blocked from logging in), set a 10 minute timeout before restoring it
   };
-};
+  // ===========================
+}; //End of Class
 // ==========================================================================
 const Sessions = new SessionStore(process.env.infodir, process.env.info_users);
 
@@ -141,21 +138,20 @@ module.exports = {
   VerifyUser: wrapAsync(async function (req, res, next) {
     try {
     //---------------------------------------------------------------- Limit signin attempts and log failed attempts
-    if (req.session.loginAttempts >= 2) {
+    if (req.session && req.session.loginAttempts >= 2) {
     //Technically it's 3, the first login attempt sets it to null (0) rather than 1 for some reason
       let date = new Date();
       req.session.loginAttempts ++;
 
       Sessions.lock(req, req.body.name);
       fs.appendFile(`${process.env.infodir}/log.txt`, `Suspicious log attempt with ${req.body.name} from ${req.location.ip} (${req.location.country}) on: ${date.toLocaleDateString()}/${date.toLocaleTimeString()}\r\n`);
-      return next( new Error("Login attempts exceeded. Get lost."));
+      return next( new Error("Login attempts exceeded. Seek life elsewhere."));
     }
     //---------------------------------------------------------------- Retrieve user database and merge current user preferences with body object
     const usersJSON = await fs.readFileSync(`${process.env.infodir}/${process.env.info_users}`, 'utf8');
     const users = await JSON.parse(usersJSON);
 
-    if (req.session.user) {
-      req.session.user.firstVisit = false;
+    if (req.session && req.session.user) {
       if (req.body.preferences) {
         let clientPrefs = await JSON.parse(req.body.preferences);
         req.session.preferences = clientPrefs;
@@ -171,13 +167,14 @@ module.exports = {
             user: Sessions.users[i].name,
             operation: Sessions.users[i].operation
           };
+
           // ------------------------------------------- This checks if another user is performing an operation within primary directory, and if so, rejects request with report of which is user is operating
           if (user.residing && user.residing.includes(req.clash.operation.location)
           || req.params.folder && req.params.folder.includes(req.clash.operation.location)) {
             return await module.exports.ReportData(req, res, false, {
-              content: [`${req.clash.user === user.name ? 'You are' : req.clash.user + ' is'} currently performing a ${req.clash.operation.type} operation with that directory`, 'operation payload'],
+              content: [`${req.clash.user === user.name ? 'You are' : req.clash.user + ' is'} currently performing a ${req.clash.operation.type} operation under the`, 'directory'],
               type: 'error',
-              items: [getFileSize(req.clash.operation.size)]
+              items: [`<span class="dimblue">${Sessions.users[i].residing || req.clash.operation.location}</span>`]
             });
           }
 
@@ -186,6 +183,7 @@ module.exports = {
         if (user.name === users[i].name) {
           if (!confirmed) {
             confirmed = await module.exports.CheckForUserFolder(req, res, next);
+            Sessions.user(req).operation = {type: req.headers.operation, location: req.params.folder};
           } else continue; //We need to make sure all logged-in users are passed in, so return response ('confirmed') later
         }
       //---------------------------------------------------------------- Refresh session and proceed to next route
@@ -195,7 +193,7 @@ module.exports = {
     } //End of If a user is currently logged in
     else { //If not logged in, and one of the fields is missing
       if (!req.body.name || !req.body.password) {
-        if (!req.session.user) return next(new Error("User information must be provided."));
+        if (!req.session || !req.session.user) return next(new Error("User information must be provided."));
         else return ReportData (req, res, false, {
           content: ['User information must be provided'],
           type: 'error'
@@ -248,12 +246,13 @@ module.exports = {
           }
           //Establish session with user info and essential info, update Sessions store, and return.
           req.session.user = users[i];
+          req.session.user.residing = Sessions.user(req).residing || null;
           delete(req.session.user.password);
           delete(req.session.user.log);
-          req.session.duration = process.env.session_time;
+
+          req.session.duration = parseInt(process.env.session_time);
           req.session.home = Sessions.user(req).home || partition;
-          req.session.user.firstVisit = false;
-          req.session.firstVisit = false;
+          // req.session.firstVisit = true;
             req.session.preferences = {
               outsideDir: false,
               emptyDir: false,
@@ -270,26 +269,6 @@ module.exports = {
 
     req.session.loginAttempts += 1;
     return next( new Error("User information incorrect, or user does not exist."));
-  },
-  /*======================================================*/
-
-  /*======================================================*/
-  CheckOperation: async function (req, res, next) {
-
-    if (req.body && process.ServerTracker.status === 0) {
-      const op = req.body.operation || 'None';
-
-      if (op === 'Upload' || op === 'Download') {
-
-        res.type('html'); //This was necessary since download requsts expect 'Blob' content type, but we're not returning a blob here
-        return module.exports.ReportData(req, res, false, {
-          content: [`Server shutdown imminent. Cannot initiate ${op} during this time.`],
-          type: 'error'
-        });
-      }
-
-      else return next();
-    } else return next();
   },
   /*======================================================*/
 
@@ -312,7 +291,6 @@ module.exports = {
       // Sessions.user(req).log.push(. replace(/<span.*?>/g, '').replace(/<\/span.*?>/g, '').replace('<hr>', ''));
       //Quite ugly. The messages and report fields need to be separated accordingly, and also need any HTML parsed before being logged. Removes all <span> and <hr> elements and everything in between their arrow brackets
 
-	  // req.body = null; req.files = null;
       if (process.ServerTracker.status === 0) {
         let currentTime = Math.floor(new Date().getTime() / 60000);
         report.warning = `<hr> <span style="color: red">Warning: </span> <h4 class="white">${process.ServerTracker.warning}: Occuring in ${Math.abs(currentTime - process.ServerTracker.countdown)} minutes</h4>`;

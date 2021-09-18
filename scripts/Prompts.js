@@ -1,11 +1,11 @@
 'use strict';
 const messageTips = [
 /* 0 */ {
-      text: `Welcome to Simulacrum, a browser-based GUI file systems manager. You may search, view and interact with items from your private directory <span class="dimblue">${UserSession.user.name}</span>, or the public directory <span class="dimblue">${Partition}</span> from here<hr>
-       Some rules of thumb: <br><span class="dimblue">1.</span> Do not upload any sensitive/confidential data that may expose your private info (like banking, home address, etc.)<br>
-       <span class="dimblue">2.</span> If the items are only relevant to you, upload them to your private directory instead of the public one <br>
-       <span class="dimblue">3.</span> Be reasonable. Avoid uploading 30-40 gigabyte programs, and if you have to upload massive files, please compress them to zip or rar file first.`,
-      element: '.header',
+    text: `Welcome to Simulacrum, a browser-based GUI file systems manager. You may search, view and interact with items from your private directory <span class="dimblue">${Username}</span>, or the public directory <span class="dimblue">${Partition}</span> from here<hr>
+     Some rules of thumb: <br><span class="dimblue">1.</span> Do not upload any sensitive/confidential data that may expose your private info (like banking, home address, etc.)<br>
+     <span class="dimblue">2.</span> If the items are only relevant to you, upload them to your private directory instead of the public one <br>
+     <span class="dimblue">3.</span> Be reasonable. Avoid uploading 30-40 gigabyte programs, and if you have to upload massive files, please compress them to zip or rar file first.`,
+    element: '.header',
     },
 /* 1 */  {
     text: `The Navbar portal, which you may click to return home, or hover to view advanced controls for the page. You may also drag/readjust its position if needed.`,
@@ -49,7 +49,7 @@ async function introductionTips(index) {
     event.stopPropagation();
   }
 
-  let target = messageTips[index];
+  let message = messageTips[index];
 
   $('.steady-glow').removeClass('steady-glow');
   $('.high-index').removeClass('high-index');
@@ -68,17 +68,17 @@ async function introductionTips(index) {
         $(messageTips[i].element).addClass('high-index').removeClass('invisible hide');
       // This finds all previous elements that were "introduced" (aside from the very first, which is <main> itself) and ensures they remain visible.
     };
-    $(target.element).addClass('steady-glow high-index').show().removeClass('invisible hide').prepend(`
+    $(message.element).addClass('steady-glow high-index').show().removeClass('invisible hide').prepend(`
     <div class="message-tip">
-      <p>${target.text}</p>
+      <p>${message.text}</p>
       <button class="my-button dark" style="color: #22a0f4" type="button" onclick="introductionTips(${index + 1})">Next</button>
       <button class="my-button dark" style="color: rgb(44, 166, 211)" type="button" onclick="introductionTips(${false})">Forget It</button>
     </div>`);
-    $(target.otherElements).addClass('steady-glow high-index');
-    // This stuff above creates the introduction messaage for target element and highlights it, makes it top-level z-index, and also highlights any related elements the message tip wants to reference
+    $(message.otherElements).addClass('steady-glow high-index');
+    // This stuff above creates the introduction messaage for message element and highlights it, makes it top-level z-index, and also highlights any related elements the message tip wants to reference
 
     $('html')[0].scrollTo({
-      top: $(target.element).position().top - 80,
+      top: $(message.element).position().top - 80,
       behavior: 'smooth'
     });
     //After all content established, scroll to it on the page
@@ -103,9 +103,6 @@ function displayDirectoryStats (evt) {
   clearTimeout(window.displayStats);
 
   if (evt.type === 'mouseleave') return false;
-
-
-
   //This code above is to mitigate the process-intensive scenario of the user rapidly hovering over different directories successively (2% extra CPU power on average). Limit the wait-time to about 500 ms, as both Timeouts combine for that duration.
 
 // ----------------------------------------------------------------
@@ -116,14 +113,13 @@ function displayDirectoryStats (evt) {
 
     for (let subfolder of PrimaryDirectories[i].folders) /*Get all sub-directories of the directory that was hovered over */  childFolderLinks.push(`<a href="${this.href}/${subfolder}" style="margin-left: 7px;">${subfolder}</a>`)
 
-
     $(directoryStats).removeClass('fadein').addClass('fadeout');
 // ----------------------------------------------------------------
     window.displayStats = setTimeout( () => {
 
       $(directoryStats).html(
        `<div class="d-flex" style="justify-content: space-between">
-           <a href="/${Partition + PrimaryDirectories[i].name}">${PrimaryDirectories[i].name}</a>
+           <a href="/${Partition + PrimaryDirectories[i].name}" style="font-size: 1.2rem;">${PrimaryDirectories[i].name}</a>
            <i class="fa fa-times"></i>
          </div>
         <hr>
@@ -145,7 +141,6 @@ function displayDirectoryStats (evt) {
     }, 200); //------------Second timeout
 
   }, 300); //------------First timeout
-
 };
 
 
@@ -156,7 +151,7 @@ function showOperation (op) {
   $(FS_Modal).show();
   $(FS_Modal).find('.progress').remove();
   $('.progress-op').text(op);
-  $('.progress').clone().insertAfter('.fs-modal-message');
+  $($('.progress')[0]).clone().insertAfter('.fs-modal-message'); //Only want a single progress element
     if (op === 'Delete') op = 'Delet'
     if (op === 'Transfer') op = op + 'r'
     //Good grammar is some priority right?
@@ -181,7 +176,7 @@ async function dialogPrompt (operation) {
     event.preventDefault();
     event.stopPropagation();
   }
-  //This box is created only for the intermission period before a request of some sort is executed. When either button is clicked, this element is destroyed by 'clearDialog' afterward
+  //This box is created only for the intermission period before a request of some sort is executed. When either button is clicked, this element SHOULD be destroyed by 'clearDialog' afterward
   $('.dialog-box').html(`
   <p>${warning}</p>
   <button class="my-button light" type="button" onclick="${proceedFunction}"></button>
@@ -224,24 +219,33 @@ function showFileInfo (evt) {
 
   $('.file-info').remove(); //Remove any previous displays
 
-  let fileRef = $(this).parents('.uploaded')[0] // <LI> or File Card
+  let fileRef = $(this).parents('.uploaded')[0] || $(this).parents('.queued')[0]// <LI> or File Card
   let file = {
     name: fileRef.id || fileRef.title,
-    path: $(fileRef).attr('path')
+    path: $(fileRef).attr('path') || 'TBD'
   } //Name and path attribute is all we need
-  let filedata = pathfinder(Directory.files, 'find', file).stats;
-  let creationDate = new Date(filedata.birthtimeMs);
+  let filedata;
+  let status;
+
+  if ($(fileRef).hasClass('uploaded')) { //Uploaded file
+    filedata = pathfinder(Directory.files, 'find', file).stats;
+    status = 'Uploaded';
+  } else { //Staged file
+    filedata = pathfinder(StagedFiles.count, 'find', file);
+    status = 'Last Modified';
+  }
+  let creationDate = new Date(filedata.birthtimeMs || filedata.lastModified); //Both depend on staged or uploaded type
 
   file.date = creationDate.toLocaleDateString();
-  file.creator = filedata.creator;
+  file.creator = filedata.creator || 'You'; //Both depend on staged or uploaded type
   file.size = getFileSize(filedata.size);
 
   $(fileRef).append(`
-    <ul class="folder-children fadein file-info" style="background: black; padding: 3px;">
+    <ul class="folder-children fadein file-info">
     <span>Path: </span>${file.path}<br>
     <span>Size: </span>${file.size}<br>
     <span>Created By: </span>${file.creator}<br>
-    <span>Uploaded: </span>${file.date}<br>
+    <span>${status}: </span>${file.date}<br>
     </ul>
   `);
 };

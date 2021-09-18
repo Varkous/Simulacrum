@@ -1,9 +1,4 @@
 'use strict';
-let Touch_Wait = 0;
-let touchStart = 0;
-let touchEnd = 0;
-let target;
-
 
 /*===============================================================
   Checks for all various events that should occur on certain keypresses, provided certain elements are in focus or active
@@ -11,7 +6,6 @@ let target;
 function keydownActions (evt) {
   if ($(FolderInput).is(':focus') && evt.keyCode === 40) folderSuggestions.firstChild.focus();
   else if (!$(FolderInput).is(':focus') && !$('a:focus')[0] || evt.keyCode === 27 || evt.keyCode === 13) $(folderSuggestions).empty();
-
 // If pressing down arrow, move to folder suggestions, while Backscape or ESC will close it
 // ---------------------------------------------------------------
 
@@ -38,7 +32,7 @@ function keydownActions (evt) {
 
     if (evt.shiftKey && !$('input, a').is(':focus') ) {
       $('.selected-count').text(`(All)`);
-      $(moreFiles).find('span').text(`Show All Files (${Directory.files.length || 0})`);
+      $(moreFiles).find('span').text(`Show All Files (${Directory.files ? Directory.files.length : 0})`);
     }
 
   return true;
@@ -48,29 +42,8 @@ function keydownActions (evt) {
 
 
 /*===============================================================
-  Selects all list items if double clicking/tapping on the same spot twice within half a second
-===============================================================*/
-function waitSelect(evt) {
-  if (event.target === target && Touch_Wait && new Date().getTime() - 500 < Touch_Wait) {
-    //Like a homegrown timeout, compares current Time in milliseconds to Touch_Wait, which was set on previous touch, and if not within 500 milliseconds, it will not count as "double-tap"
-    let items = AllFiles.count;
-    if ($(this).hasClass('staged-files')) {
-      items = StagedFiles.count;
-    } else if ($(this).hasClass('selected-files'))
-      items = SelectedFiles.count;
-
-    selectAll(items, mobile);
-  } else {
-    target = evt.target;
-    Touch_Wait = new Date().getTime();
-  }
-};
-
-
-/*===============================================================
   For the uploaded file listing anchors. When held down on touch or click, trigger download by creating a new download link and clicking to bypass the original download trigger (which was not working in some cases)
 ===============================================================*/
-
 function holdToDownload (evt) {
   if (evt.target.download) {
     window.waitTrigger = setTimeout( () => {
@@ -82,31 +55,6 @@ function holdToDownload (evt) {
   } else return false;
 };
 
-
-/*===============================================================
-  Compares the time being the user's touchstart and touchend and detects if their touch location has moved either 300 pixels left or right since first touch (in other words, swipe distance). If so, go to previous or next directory (if there is one)
-===============================================================*/
-function detectSwipe (evt) {
-  touchStart = Math.ceil(evt.changedTouches[0].pageX);
-  touchEnd = Math.ceil(evt.changedTouches[0].pageX);
-  clearTimeout(window.touchSwipe);
-  //Reset values and touch distance monitoring function to avoid repeats
-// ------------------------------------
-  window.touchSwipe = setTimeout( async (evt) => {
-
-    if (touchEnd - touchStart > 300 ) {
-      //If client swipped RIGHT more than 300 pixels, they're trying to backtrack directories, so we create a URL out of the Directory layers (minus the current folder name), and start a directory change
-      let link = await getPreviousDirectory();
-      return await changeDirectory(evt, link);
-    }
-    else if (touchStart > touchEnd + 300 ) {
-      //If client swipped LEFT more than 300 pixels, attempt to visit the input directory (doesn't necessarily mean "forward" though)
-      let link = document.createElement('a');
-      link.href = `${window.location.origin}/${Partition + $(FolderInput).val()}`;
-      return await changeDirectory(evt, link);
-    }
-  }, 200);
-};
 
 /* ----------------------------------------- */
 document.onkeydown = (evt) => keydownActions(evt); //Enforces the effects wanted on pressing CTRL/ SHIFT
@@ -125,15 +73,15 @@ document.onkeyup = (evt) => { //Checks if CTRL or SHIFT were "unpressed", and un
   if (evt.keyCode === 27) {
     $('.modal').is(':visible') ? closeModal() : SelectedFiles.unlist();
   }
-
-
   return true;
 };
 // ------------------------------------
+$('#myDir').click( (evt) => {
+//Special href redirect. If attempting to switch between Private/Public directory, bypass all the 'changeDirectory' crap and redirect (else route won't even trigger)
+    return window.location = `${home}/home/${Username}`;
+})
 $('body').on('mousedown', 'a', holdToDownload);
 $('body').on('mouseup', '*', () => clearTimeout(window.waitTrigger));
-$('body').on('touchstart', 'a', holdToDownload);
-$('body').on('touchend', '*', () => clearTimeout(window.waitTrigger));
 /* ----------------------------------------- */
 $('#overheadPanel').click(bringUpPanel); // Animations/CSS, brings up the overhead panel
 $('.hide-lists').click( function (evt) {
@@ -163,8 +111,8 @@ $('#inputQuestion').click( () => hideOrShow('#questionMessage')); // Resizes/dis
 // -------------------------------------------------------------------------------------
 $('*').on('input', 'a', function (evt) {$(this).closest('li, td').addClass('changed')}); //When an anchor has its text edited from within an li or td
 /* ----------------------------------------- */
-$(FolderInput).on('input', itemSearch); //Any change to folder input prompts suggestions of like-name folders. Change is also reflected by current directory within overhead panel
-$('div').on('input', '.file-search', itemSearch);
+$(FolderInput).on('input', startQuery); //Any change to folder input prompts suggestions of like-name folders. Change is also reflected by current directory within overhead panel
+$('div').on('input', '.file-search', startQuery);
 /* ----------------------------------------- */
 $('.selected-files, .all-files').on('click', '.fa-layer-group', () => selectAll(SelectedFiles.count)); //When clicking on layer icon in panel lists, selects/unselects all files in that list without needing to double-click
 /* ----------------------------------------- */
@@ -176,8 +124,7 @@ $('body').on('click touchstart', 'a', changeDirectory);
 /* ----------------------------------------- */
 $('body').on('click touchstart', '.fa-file-text', showFileInfo);
 /* ----------------------------------------- */
-$('body').on('touchstart', '.folder-link', displayDirectoryStats);
-$('body').on('mouseenter mouseleave', '.folder-link', displayDirectoryStats);
+$('body').on('mouseenter mouseleave touchstart', '.folder-link', displayDirectoryStats);
 /* ----------------------------------------- */
 $('body').click( function (evt) {
   !$(FolderInput).val() ? $(FolderInput).val(CurrentFolder) : null;
@@ -193,32 +140,6 @@ $('body').click( function (evt) {
 $('body').on('click', 'ol', shiftSelect);
 /* ----------------------------------------- */
 $('body').on('click', '.fa-folder', inputItemName); //Create this function after window load. Every time a folder icon is clicked, add its name to Folder Input. We use ".on" so any future icons will use this function.
-// ------------------------------------
-if (mobile) {
-  $('#FileTable, ol').on('touchstart', waitSelect);
-  // -------------------------------------------
-  $('.taphover').on('touchstart', function (evt) {
-
-      const link = $(this); //preselect the link
-      if (link.hasClass('hover')) {
-        return true;
-      } else {
-          link.addClass('hover');
-          $('.taphover').not(this).removeClass('hover');
-          evt.preventDefault();
-          return false; //extra, and to make sure the function has consistent return points
-      }
-  });
-// ------------------------------------
-  $('*').not('.taphover').on('mousedown', () => $('*').removeClass('glow-right shift-over hover'));
-  //Any elements clicked that are NOT hoverable/tappable will remove any hover effects from other elements, since they should not be active if not hovered obviously
-// ------------------------------------
-  window.addEventListener('touchstart', detectSwipe);
-// ------------------------------------
-  window.addEventListener('touchend', (evt) => touchEnd = Math.ceil(evt.changedTouches[0].pageX)); //And collects the end distance
-
-} // -- On mobile devices
-
 /* ----------------------------------------- */
 window.addEventListener('load', async () => {
 
@@ -236,3 +157,18 @@ window.addEventListener('load', async () => {
     },
   });
 });
+/* ----------------------------------------- */
+if (document.body.scrollHeight > window.innerHeight) { //If scrollbar is even visible
+  document.addEventListener('scroll', function (event) { //This just detects if the scrollbar reached bottom of page (or within 10 pixels), if so, pagenate and show more files
+    if (document.body.scrollHeight - ($('html').scrollTop() + window.innerHeight) <= 10) {
+      $(FileTable).children('.column')[0] ? $('#moreFiles').click() : false;
+    }
+  });
+}
+/* ----------------------------------------- */
+if (mobile) { //Creates <script> to load Mobile Functions from source if mobile device detected
+  let mobileScript = document.createElement('script');
+  $(mobileScript).attr('src', '/MobileScripts.js').attr('type', 'text/javascript');
+  $('html').prepend(mobileScript);
+  // $(mobileScript).remove();
+}

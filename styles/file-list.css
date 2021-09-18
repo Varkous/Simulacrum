@@ -59,6 +59,12 @@
 }
 .folder .fa-list-alt:hover + .folder-children, .folder-children:hover {
   transform: scale(1.0);
+} .file-info {
+  background: black;
+  border: 1px solid white;
+  z-index: 9;
+
+  padding: 3px;
 }
 /* --------------------- */
 .column {

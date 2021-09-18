@@ -8,8 +8,6 @@ const Website = new NEW();
 module.exports = {app, express, path, wrapAsync} = Website;
 const session = require('cookie-session');
 const fs = require('fs-extra');
-const FileUpload = require('express-fileupload');
-const formidableMiddleware = require('express-formidable');
 const compression = require('compression');
 
 /*======================================================*/
@@ -18,23 +16,33 @@ const {WriteLogFilter, CheckSessionAndURL, ClearTemp, ExitHandler, Compress} = r
 const {GetFolderSize} = require('./controllers/FolderProviders.js');
 /*======================================================*/
 'use strict';
-/*====== For uploading files (particularily images and videos) to a CDN or database =======*/
+
 let partition = process.env.partition || 'public';
 const UsersDirectory = process.env.UsersDirectory || 'users';
 process.sessionTimers = {};
-process.ServerTracker = {status: 1, countdown: null, warning: 'None'};
+process.ServerTracker = {status: 1, countdown: null, warning: 'None'}; //Default. Any major problems incur status of 0.
+const mobileTags = [ //Identifiers for mobile detection on request
+/Android/i,
+/webOS/i,
+/iPhone/i,
+/iPad/i,
+/iPod/i,
+/BlackBerry/i,
+/Windows Phone/i
+]
+
 // ============================================================
 const resourceFolders = [
-  session({
+  session({ //Establishing session prototype, adopted by every user session
       name: 'simulacrum_session',
       secret: process.env.secret,
       saveUninitialized: true,
       resave: true,
       httpOnly: false,
-      maxAge: process.env.session_time,
+      maxAge: parseInt(process.env.session_time),
       secure: true,
       loginAttempts: 1,
-      duration: process.env.session_time,
+      duration: parseInt(process.env.session_time),
     }),
   express.static(path.join(__dirname, 'base_images')),
   express.static(path.join(__dirname, 'styles')),
@@ -43,31 +51,21 @@ const resourceFolders = [
   express.static(path.join(__dirname, 'filetype_images')),
   express.static(path.join(__dirname, partition)),
   express.static(path.join(__dirname, UsersDirectory)),
-]
+] // Make all resources within these folders accessible from any url/directory without needing absolute path
 // ============================================================
-app.use(compression({ filter: Compress }))
+app.use(compression({ filter: Compress })); //Not really sure, but supposedly speeds up load time of pages
 app.set('', path.join('views'));
 app.set('view engine', 'ejs');
 app.use('/static', express.static(UsersDirectory));
 app.use('/static', express.static(partition));
 app.use(resourceFolders);
-// app.use(FileUpload({
-//   useTempFiles: true,
-//   tempFileDir: path.resolve('temp')
-// }));
-app.use(formidableMiddleware({
-  encoding: 'utf-8',
-  uploadDir: path.resolve('temp'),
-  multiples: true, // req.files to be arrays of files
-}));
-
 
 // =========================================================
 app.get('/stop/:code', wrapAsync( async (req, res, next) => {
 
   if (req.params.code === process.env.exit_code) {
     let reason = 'Server shutting down for more maintenance';
-    return CloseServer(reason, true);
+    return module.exports.CloseServer(reason);
   }
 
 }));
@@ -80,17 +78,22 @@ process.on('beforeExit', ExitHandler);
 ClearTemp (path.resolve('temp'));
 /*======================================================*/
 app.use('*', CheckSessionAndURL, wrapAsync( async (req, res, next) => {
+
 if (req.session) {
  if (process.ServerTracker.status === 0) {
     let currentTime = Math.floor(new Date().getTime() / 60000);
-    console.log (Math.abs(currentTime - process.ServerTracker.countdown), req.session.user.name)
+    console.log (Math.abs(currentTime - process.ServerTracker.countdown));
     Math.abs(currentTime - process.ServerTracker.countdown) < 2 ? Sessions.terminate(req) : null;
     //If server is shutting down in less than 2 minutes, terminate user's session
   }
-  res.locals.Server = process.ServerTracker;
-  res.locals.UserSession = req.session;
-  res.locals.UsersDirectory = UsersDirectory;
-  //User session and user directory info provided to browser
+  let userAgent = JSON.stringify(req.headers['user-agent']);
+  req.mobile = mobileTags.some( (match) => userAgent.match(match)) ? true : false;
+
+    // req.session.preferences.smoothTransition = req.mobile ? false : true;
+    res.locals.Server = process.ServerTracker;
+    res.locals.UserSession = req.session;
+    res.locals.UsersDirectory = UsersDirectory;
+    //User session and user directory info provided to browser
 }
   next();
 }));
@@ -99,11 +102,16 @@ if (req.session) {
 // ============================================================
 app.get('*', wrapAsync(async (req, res, next) => {
 
-  if (req.session.user) {
+  if (!req.session) {
+    return res.redirect('/signout');
+  }
+
+  if (req.session && req.session.user) {
 // -----------------------------------------------------------------
     req.session.home.includes(UsersDirectory) ?
     homedirectory = `${req.session.home}/${req.session.user.name}` :
     homedirectory = req.session.home;
+
     //Whenever the user is browsing their own directory, restrict access to only folders that belong to them. We include their name and only search directories under that user name.
 // -----------------------------------------------------------------
     let PrimaryDirectories = fs.readdirSync(homedirectory, {withFileTypes: true})
@@ -152,7 +160,6 @@ app.get('*', wrapAsync(async (req, res, next) => {
 
     // ------------------------------------------------ //
     req.session.home === partition ? res.locals.partition = req.session.home + '/' : res.locals.partition = homedirectory + '/'; //If the public partition is the home, use it with no additions. If home is the user's private directory, add their name (by using homedirectory, see if-else condition at the top), so we aren't browsing the USERS directory, and instead just finding contents of ONE folder within Users directory for THIS user.
-
     res.locals.PrimaryDirectories = await Promise.all(PrimaryDirectories);
     res.locals.rivals = Object.values(Sessions.users)
     .map( user => user.loggedIn && user.name !== req.session.user.name ? {
@@ -165,6 +172,7 @@ app.get('*', wrapAsync(async (req, res, next) => {
 
     if (req.originalUrl === '/')
       res.locals.directory = false;
+    req.session.user.firstVisit = false;
 
     next();
 //--------------------------------------------------
@@ -193,7 +201,7 @@ Website.routes.BaseHandlers = Website.makeBaseRoutes(process.env.PORT || 3001, '
 
      if (fs.statSync(`${process.env.infodir}/log.txt`).size < 100000) {
        //If the log file is less than 100 kilobytes, (or we aren't just reporting failed login attempts) continue to write errors to it.
-       WriteLogFilter(user, message)
+       WriteLogFilter(user, message + '\n\r' + stack)
      }
     return res.render('errorpage', {status, message, stack});
 }));
@@ -203,16 +211,16 @@ Website.routes.BaseHandlers = Website.makeBaseRoutes(process.env.PORT || 3001, '
   module.exports.CloseServer = async (reason = 'Felt like it', now) => {
 
     let shutdownTime = new Date().getTime() + parseInt(process.env.exit_time);
-    if (now)
-      shutdownTime = 1000;
+    if (now) shutdownTime = 1000;
 
     process.ServerTracker.status = 0;
-    process.ServerTracker.countdown = Math.floor( shutdownTime / 60000);
+    process.ServerTracker.countdown = Math.floor( shutdownTime / 60000); //Convert to minutes
     process.ServerTracker.warning = reason;
 
     process.shutdown = setTimeout( () => {
+      process.exit(0);
       Website.routes.BaseHandlers.server.close( () => console.log ('Server terminated'));
 
-    }, process.ServerTracker.countdown);
+    }, parseInt(process.env.exit_time));
   };
   // =========================================================

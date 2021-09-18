@@ -23,68 +23,64 @@ function getPreviousDirectory() {
 
 
 /*===============================================================
-  Collects and redirects any link/anchor location triggered by user to detect if its a "previous" or "next" page, and also turns redirect into a simple get request to retrieve data.
+  Collects and redirects any link/anchor location triggered by user to detect if its a "previous" or "next" page, and also turns redirect into a simple get request to retrieve data. This contains multiple exceptions/conditions that may be confusing. Basically, this function determines if it's a download link, empty href, redirect link, or just a data request href, and decides how the current Window will respond do it.
 ===============================================================*/
 async function changeDirectory (evt, link) { //Upon clicking any link (leaving the page), dismiss the entire page body, sending it left or right depending on whether the user is going "forwards" through directories (send it left), or "backwards" (send page right).
 try {
-
 
   if (this && this.download) return true;
   if (evt) {
     evt.preventDefault();
     evt.stopPropagation();
   }
-  let domain = window.location.origin;
-  let href = filterInput(this ? this.href || link: link || domain, -1); //If 'this' does not refer to anchor link, there must be a link passed in
+  let href = filterInput(this ? this.href || link : link || home, -1); //If 'this' does not refer to anchor link, there must be a link that was passed in. Removes end "/".
 
-  if (href && !href.replace(domain, '').includes('#') && !$(this).hasClass('search-result')) {
+  if (href && !href.replace(home, '').includes('#') && !$(this).hasClass('search-result')) {
   //If link is blank homepage (#) or search result anchor do not shift the page off screen
-
-    let thisPage = Directory.layers || ['/'];
-    let nextPage = getFolderLayers(href.replace(domain, ''));
-    //Check function above for info. This returns an array to show how many "folders deep" client is traversing, and determines if it is lower/higher than previous page
-
-    if (href === document.URL || thisPage.last() === nextPage.last()) window.moveMain = dismissElement('main', 'Y', 'down', '70%', 600, true); //Same page refresh, then start off below screen.
-    else if (nextPage.length > thisPage.length) {
-      window.moveMain = dismissElement('main', 'X', 'left', '50%', 700, true); // We're traversing directory, send left
-    } else if (thisPage.length > nextPage.length)
-      window.moveMain = dismissElement('main', 'X', 'right', '50%', 700, true); //Send it right, we're treading backwards in directory
+    let thisPage = Directory.layers || [];
+    let nextPage = getFolderLayers(href.replace(home, ''));
+// ------------------------------------------------------ // This block below is for aesthetic purposes only. Determines which direction to dismiss <main> element
+    if (UserSession.preferences.smoothTransition) {
+      if (href === document.URL || thisPage.last() === nextPage.last())
+        window.moveMain = dismissElement('main', 'Y', 'up', '70%', 600, true); //Same page refresh, then start off below screen.
+      else if (nextPage.length > thisPage.length)
+        window.moveMain = dismissElement('main', 'X', 'left', '50%', 700, true); // We're traversing directory, send left
+      else if (thisPage.length > nextPage.length)
+        window.moveMain = dismissElement('main', 'X', 'right', '50%', 700, true); //Send it right, we're treading backwards in directory
       else if (thisPage.length === nextPage.length)
-      window.moveMain = dismissElement('main', 'Y', 'up', '50%', 700, true); //Send it right, we're treading backwards in directory
-
+        window.moveMain = dismissElement('main', 'Y', 'down', '50%', 1200, true); //Send it down, directory at same depth level
+    }
     //Do this regardless
     dismissElement('.logo', 'Y', 'up', '60%');
     dismissElement('#panelHeader', 'Y', 'down', '60%');
-    // dismissElement('.directory-stats', 'Y', 'down', '80%');
-    dismissElement(MessageLog, 'Y', 'up', '60%');
+    dismissElement(MessageLog, 'Y', 'up', '60%', true);
+// ------------------------------------------------------ //More important stuff down here. This actually decides how request is handled.
+      if (Private && nextPage.join('/') === `${UsersDirectory}/${Username}` || nextPage.join('/') === Username) { //If in private directory, attempts to visit the user folder will go to homepage, since that is presented as the "home" directory
+        return setTimeout( () => window.location = home, 300);
+      }
 
-    if (UserSession.home === UsersDirectory && nextPage.join('/') === `${UsersDirectory}/${UserSession.user.name}` || nextPage.join('/') === UserSession.user.name) { //If in private directory, attempts to visit the user folder will go to homepage, since that is presented as the "home" directory
-      return setTimeout( () => window.location = domain, 300);
-    }
+      else if (href !== home && href !== `${home}/${UserSession.home}` && !document.URL.includes(UserSession.home) && redirect === false) { //If link is not domain homepage, link to partition, or user is not viewing folders through URLs, fetch new directory without redirecting (see retrieveDirectory function)
+        return await retrieveDirectory(href + '?fetch');
+      }
 
-    else if (href !== domain && !document.URL.includes(UserSession.home) && redirect === false) {
-      console.log ('1');
-      return await retrieveDirectory(href + '?fetch');
-    } else if (redirect || document.URL.includes(UserSession.home)) {
-      console.log ('2');
-      return setTimeout( () => window.location = href, 300);
-    } else {
-      console.log ('tee heck');
-      return setTimeout( () => window.location = domain, 300);
-    }
-  } else return false;
-  return window.location = domain;
-} catch (e) {
-  console.log ('err')
-  console.log (e)
-}
+      else if (redirect || document.URL.includes(UserSession.home)) {
+        return setTimeout( () => window.location = href, 300);
+      } //If redirect or if partition is in URL, redirect page entirely
+      else {
+        return setTimeout( () => window.location = home, 300);
+      }
+// ------------------------------------------------------
+    } else return false; //Then it was a blank link or search result, cancel
+  } catch (err) {
+    return false;
+  };
 };
 
 
 /*===============================================================
   Briefly and interminently creates an anchor link, sets url, clicks it then removes it for an artificial redirect or download.
 ===============================================================*/
-function triggerLink (url, download) {
+function triggerLink (url) {
   let link = document.createElement('a');
   link.href = url;
   link.click(); link.remove();
@@ -96,29 +92,29 @@ function triggerLink (url, download) {
 ===============================================================*/
 async function checkForServerError(res) {
   let req = res.request
-
-    if (req.response.size || typeof(req.response.size) === 'number') { //Then it's a blob download request, can't do anything with response
-      return false;
-    } else if (req.responseURL.includes('/login')) { //Then session expired and redirect attempt to login was made
-      setTimeout( () => triggerLink(req.responseURL), 28000);
+    if (req.responseURL.includes('/login')) { //Then session expired and redirect attempt to login was made
+      setTimeout( () => triggerLink(req.responseURL), 300);
       return true;
+    }
+    else if (req.response.size || typeof(req.response.size) === 'number') { //Then it's a blob download request, can't do anything with response
+      return false;
     }
     else if (typeof(res.response) === 'string' && req.response.includes('<!DOCTYPE html>')
     || typeof(res.data) === 'string' && res.data.includes('<head>')) { //Then redirect attempt to error page was made
 
-      console.log (res, req, req.responseURL);
       /* ----------------------------------------- */
-      let errorHTML = $(req.response || req.data); //Get error body
+      let errorHTML = $(req.response || res.data); //Get error body
       let errorBody;
       $(errorHTML).each( (i, ele) => {
         if ($(ele).hasClass('cover-background'))
           return errorBody = ele;
       });
-      if (!res.config.method.includes('get')) {
-        dismissElement('main', 'X', 'left', '60%', 600, true);
-      }
+
+      dismissElement('main', 'X', 'left', '60%', 600, true);
+      dismissElement('#MessageLog', 'Y', 'up', '100%', 700, true);
       $('.shadow-image').css('filter', 'hue-rotate(110deg)');
       $('.error-display').html($(errorBody));
+
       /* ----------------------------------------- */
       $('#reload').click(() => window.location = '/'); //Dismisses info messages (display directory stats and flash messages) on click
       return true;
@@ -129,6 +125,7 @@ async function checkForServerError(res) {
       $(FS_Modal).find('progress').remove();
       return false;
     }
+  $('.fixed').hide();
   return false;
 };
 
@@ -140,23 +137,21 @@ async function retrieveDirectory (link) {
   let res = await axios.get(link);
 
   if (await checkForServerError(res)) {
-    console.log ('falsey?');
     event.preventDefault();
     event.stopPropagation();
     return false;
   }
-  console.log (res);
+  $('.operation-status').show(); // In case user switches directory while operation in effect
+  $('#fetchFiles').hide(); // This should only show if no directory is being retrieved
   AllFiles.delete(AllFiles.count);
-  SelectedFiles.unlist();
-  StagedFiles.unlist();
   Directory = res.data.Directory;
   UserSession = res.data.Session;
   Server = res.data.Server;
   PrimaryDirectories = res.data.PrimaryDirectories;
   rivals = res.data.rivals;
 
-  revealNextDirectory(CurrentFolder || '/', Directory.name);
-  setupDirectory();
+  revealNextDirectory(CurrentFolder || '/', Directory.name); //Brings page into view, populates Primary Directory and "Current Directory" depth
+  setupDirectory(); //Establishes basic necessary info, flashes report, and then lists all contents of directory
 
   return res;
 };
@@ -172,11 +167,10 @@ async function revealNextDirectory (prev, next) {
     $('.dir-depth').removeClass('dir-depth'); //Any highlighted primary directory
     $('tr').empty(); //Remove all primary directory links
     let prevDirectory = Partition, partitionLink = Partition, topDirectory = Directory.layers.slice(0, 1);
-    if (UserSession.home === UsersDirectory) {
-      partitionLink = `${UsersDirectory}/${UserSession.user.name}/`;
+    if (Private) {
+      partitionLink = `${UsersDirectory}/${Username}/`;
       topDirectory = Directory.layers.slice(1, 2);
     }
-
     //Link must include user name (as user folder) if private directory
 
     for (let i = 0; i < PrimaryDirectories.length; i++) {
@@ -209,16 +203,21 @@ async function revealNextDirectory (prev, next) {
     $(parentDirectory).attr('data-before', directoryDepth);
 
     //-----------------------------------------------------
-    let thisPage = getFolderLayers(prev || '/');
-    let nextPage = getFolderLayers(next);
+    if (UserSession.preferences.smoothTransition) {
+      let thisPage = getFolderLayers(prev || '/');
+      let nextPage = getFolderLayers(next);
 
-    if (next === prev) dismissElement('main', 'Y', 'down', '50%', 100); //Same page refresh, then start off below screen.
-    else if (nextPage.length > thisPage.length) /**/ {
-      window.moveMain.then( () => dismissElement('main', 'X', 'right', '60%', 50)) // Enter screen from right-side.
-    } else if (nextPage.length === thisPage.length) /**/ {
-      window.moveMain.then( () => dismissElement('main', 'Y', 'down', '60%', 50)) // Enter screen from right-side.
-    } else window.moveMain.then( () => dismissElement('main', 'X', 'left', '60%', 50)) // Enter screen from right-side.
-   /* ----------------------------------------- */
+
+      if (window.moveMain) {
+        if (next === prev) window.moveMain.dismissElement('main', 'Y', 'down', '50%', 100); //Same page refresh, then start off below screen.
+        else if (nextPage.length > thisPage.length) /**/ {
+          window.moveMain.then( () => dismissElement('main', 'X', 'right', '60%', 50)) // Enter screen from right-side.
+        } else if (nextPage.length === thisPage.length) /**/ {
+          window.moveMain.then( () => dismissElement('main', 'Y', 'down', '60%', 50)) // Enter screen from right-side.
+        } else window.moveMain.then( () => dismissElement('main', 'X', 'left', '60%', 50)) // Enter screen from right-side.
+      }
+     /* ----------------------------------------- */
+    }
   }
 };
 
@@ -228,8 +227,10 @@ async function revealNextDirectory (prev, next) {
 ===============================================================*/
 async function setupDirectory() {
 
-  if (UserSession.home === UsersDirectory) {
-    $('td').attr('path', UserSession.user.name);
+  $('.fixed').hide();
+  if (Private) {
+    $('td').attr('path', Username);
+    !CurrentFolder ? CurrentFolder = Username : null;
   }
 
   Directory.index = 0;
@@ -248,14 +249,24 @@ async function setupDirectory() {
 
     $(FolderInput).val(CurrentFolder);
     $('.view-dir').attr('href', `/${Partition + CurrentFolder}` || '/');
+    $('#fetchFiles').hide(); // This should only show if no directory is being retrieved
 
-    // if (Directory.files.length >= maxfiles)
-      // Directory = divideDirectory(Directory);
-
+    if (Server.status === 0) {
+      //Just gets shut down timer of Server to warn user
+      let currentTime = Math.floor(new Date().getTime() / 60000);
+      setTimeout( () => {
+        Flash(`<hr> <span style="color: red">Warning: </span> <h1>${Server.warning}: Occuring in ${Math.abs(currentTime - Server.countdown)} minutes</h1>`, 'warning');
+      }, 1000);
+      //If hardly any time, just redirect them (which will basically log them out)
+      if (Math.abs(currentTime - Server.countdown) < 2)
+        return window.location = domain;
+    }
     listDirectoryContents(event);
   }
-  else if (UserSession.user.residing === '/' || UserSession.user.residing === null) {
-    // Directory.layers = ['/'];
+  // else if (UserSession.user.residing === '/' || !UserSession.user.residing || !CurrentFolder) {
+  else if (UserSession.user.residing === '/' || !UserSession.user.residing || !CurrentFolder
+  || Private && CurrentFolder === Username) {
+    //If we are at the home partition directory, find all files across all directories (up to max files anyway)
     findAllFiles(event);
   }
 

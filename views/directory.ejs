@@ -22,12 +22,17 @@
 
 <!-- ====================== Essential back-end data ======================== -->
   <script type="text/javascript">
+  //Core global objects and variables
     const UsersDirectory = <%-JSON.stringify(UsersDirectory)%>;
     let Server = <%-JSON.stringify(Server)%>;
     let UserSession = <%-JSON.stringify(UserSession)%>;
+    let Username = UserSession.user.name;
     let Partition = <%-JSON.stringify(partition)%>.replace(`/${UserSession.user.name}`, '');
-    let firstVisit = <%-JSON.stringify(firstVisit)%>;
+    let firstVisit = UserSession.user.firstVisit;
+    let mobile = false;
+    let Private = UserSession.home === UsersDirectory ? true : false;
     //When user has set private directory to be home directory, we remove user name from the partition (which is supposed to be there on the back-end, but creates bugs on the front end).
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent)) mobile = true;
   </script>
 
 <!-- ================================ CSS ================================== -->
@@ -61,7 +66,7 @@
 
   </div>
   <div class="operation-status fixed high-index hide">
-    <progress value="0" max="100">0%</progress>
+    <progress value="0" max="100" class="progress">0%</progress>
     <h3 class="progress-op"></h3>
   </div>
   <body ondrop="fileDragger(event)" ondragover="fileDragger(event)">
@@ -77,9 +82,9 @@
 
     <nav>
 
-      <% if (partition.includes(UserSession.user.name)) {%>
-      <button class="navlink">
-        <a href="/home/<%=UserSession.user.name%>">
+      <% if (UserSession && partition.includes(UserSession.user.name)) {%>
+      <button id="myDir" class="navlink">
+        <a href="#">
           <span>Public Directory</span>
           <img src="/public-folder.png" height="120px" width="140px" style="align-self: center">
         </a>
@@ -88,8 +93,8 @@
       <%} else {%>
       <button id="myDir" class="navlink">
         <i class="fa fa-house-user"></i>
-        <a href="/home/<%=UserSession.user.name%>">
-          Private Directory
+        <a href="#">
+          <span>Private Directory</span>
         </a>
       </button>
       <%}%>
@@ -99,9 +104,9 @@
         <a class="view-dir"href="/">View Target Folder</a>
       </button>
 
-      <button id="fetchFiles" class="navlink d-flex">
+      <button id="fetchFiles" class="navlink d-flex" hidden>
         <a href="#" id="prevAll" onclick="findAllFiles(event, Directory.index - 1)"><i class="fa fa-arrow-left"></i> Prev File Set</a>
-        <a href="#" id="nextAll" onclick="findAllFiles(event, Directory.index + 1)">Next File Set<span id="dirIndex">(1)</a>
+        <a href="#" id="nextAll" onclick="findAllFiles(event, Directory.index + 1)">Next File Set<i class="fa fa-arrow-right"></i></a>
       </button>
 
       <button id="openLog" class="navlink show-modal">
@@ -146,17 +151,21 @@
             After selecting items to upload, input a folder to create and/or upload to, hit SUBMIT, and the contents should be displayed down below shortly afterwards.<br>
           <% } %>
           <ul class="info-list">
+            <i class="fa fa-info-circle"></i>
             <li>Click folder icons <i class="fa fa-folder"></i> to add their name/path to the folder designation input</li>
             <hr>
             <li>Hold down left-click and drag the mouse (left to right) over items to select them</li>
             <hr>
-            <li>Similarly, you can hold down left-click on an item in the File Table to start dragging it</li>
+            <li>Within the File Table below, you can drag-and-drop items onto other folders to transfer them. Hold down left-click on an item to start dragging them.</li>
             <hr>
             <li>When transferring, Hold CTRL to copy any selected items, rather than moving them</li>
             <hr>
             <li>On clicking a panel button, hold down SHIFT if you wish to Download, Transfer, Delete, or Show all items in the current directory</li>
             <hr>
             <li>Double-clicking while holding down SHIFT will select/unselect all items in the given file View</li>
+            <hr>
+            <li>Hold left-click on uploaded files in the panel view to download them</li>
+
           </ul>
           <br>
         </h1>
@@ -179,13 +188,15 @@
           <i class="fa fa-edit" onclick="makeEdit($(this), $(this).prev('a'))"></i>
         </li>
 
-        <% for (let i = 0; i < PrimaryDirectories.length; i++) {%>
-          <!-- Otherwise list normally -->
-            <td title="<%=PrimaryDirectories[i].name%>">
-              <i class="fa fa-folder"></i>
-              <a id="directory<%=i%>" class="folder-link taphover" href="/<%=partition + PrimaryDirectories[i].name%>"><%=PrimaryDirectories[i].name%></a>
-            </td>
-        <%}%>
+        <% if (PrimaryDirectories) {%>
+          <% for (let i = 0; i < PrimaryDirectories.length; i++) {%>
+            <!-- Otherwise list normally -->
+              <td title="<%=PrimaryDirectories[i].name%>">
+                <i class="fa fa-folder"></i>
+                <a id="directory<%=i%>" class="folder-link taphover" href="/<%=partition + PrimaryDirectories[i].name%>"><%=PrimaryDirectories[i].name%></a>
+              </td>
+          <%}%>
+        <% } %>
 
       </table>
      </section>
@@ -213,7 +224,6 @@
 
           <div class="operation-status">
             <progress class="progress" value="0" max="100" height=30></progress>
-            <h3 class="progress-op"></h3>
             <span class="staged-count main-staged-count queued" title="Number of files staged for upload"></span>
     	    </div>
         </div>
@@ -375,7 +385,7 @@
             <input class="file-search" type="search" name="search" placeholder="File">
               <h3>
                 <i class="fa fa-eye" title="Expand file viewer" onclick="viewTextInModal(this.parentNode.parentNode)"></i>
-                <i class="fa fa-layer-group dimblue">
+                <i class="fa fa-layer-group dimblue" title="Double click or tap to select/unselect all items in the list">
                 </i>All Files/Folders: <span class="all-count"> 0 </span>
               </h3>
               <hr style="border: 1px solid #22a0f4;">
@@ -387,7 +397,7 @@
           <ol class="staged-files" style="box-shadow: 1px 1px 1px 2px gold;" ondblclick="selectAll(StagedFiles.count)">
             <h3>
               <i class="fa fa-eye" title="Expand file viewer" onclick="viewTextInModal(this.parentNode.parentNode)"></i>
-              <i class="fa fa-layer-group orange"></i>
+              <i class="fa fa-layer-group orange" title="Double click/tap to select/unselect all items in the list"></i>
               Staged Files: <span class="staged-count"></span>
             </h3>
             <hr style="border: 1px solid orange;">
@@ -399,7 +409,7 @@
           <ol class="selected-files" style="box-shadow: 1px 1px 1px 2px green;" ondblclick="selectAll(SelectedFiles.count)">
             <h3>
               <i class="fa fa-eye" title="Expand file viewer" onclick="viewTextInModal(this.parentNode.parentNode)"></i>
-              <i class="fa fa-layer-group green"></i>
+              <i class="fa fa-layer-group green" title="Double click/tap to select/unselect all items in the list"></i>
               Selected Files: <span class="selected-count"></span>
             </h3>
             <hr style="border: 1px solid green;">
@@ -426,12 +436,11 @@
 </html>
 
 <!-- ================ -->
+<script type="text/javascript" src="/Helpers.js"></script>
 <script type="text/javascript" src="/Core.js"></script>
 <script type="text/javascript" src="/DirectoryManipulation.js"></script>
 <!-- ================ -->
-<!-- ======================================================= -->
 <script text="text/javascript">
-
 let PrimaryDirectories = <%-JSON.stringify(PrimaryDirectories)%>; //Used only by 'displayDirectoryStats', contains info of all the PRIMARY directories listed at top of page.
 let Directory = <%-JSON.stringify(directory)%> || {};
 let CurrentFolder = ''; //Same as Directory.name
@@ -463,10 +472,6 @@ const directoryStats = document.getElementsByClassName('directory-stats');
 </script>
 
 <!-- ======================================================= -->
-<!-- <script type="text/javascript" src="/general-helpers.js"></script> -->
-<script type="module">
-  import {getFileSize} from 'C:/WebDevelopment/Simulacrum/scripts/general-helpers.mjs';
-</script>
 <script type="text/javascript" src="/ContentDisplay.js"></script>
 <script type="text/javascript" src="/StageAndUpload.js"></script>
 <script type="text/javascript" src="/Deletion.js"></script>

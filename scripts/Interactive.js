@@ -6,16 +6,15 @@ function inputItemName (anchor) {
 
   event.preventDefault();
   event.stopPropagation();
-  if ($(FolderInput)[0].disabled === true
+  if ($(FolderInput)[0].disabled === true || $('#mydirCheck').is(':checked')
   || $(this).hasClass('fa-house-user') && !$('#mydirCheck').is(':checked'))
-  //Do not add to input if disabled, or user is unchecking the "My Directory" option
+  //Do not add to input if disabled, if "My Directory" is checked, or user is unchecking the "My Directory" option
     return false;
 
   let clickedFolder = $(this).next('a').attr('href')  //Basic folder-icon-links
   || $(this).siblings('a').attr('href') || $(anchor).closest('a').attr('href');
 
-  clickedFolder ? clickedFolder = clickedFolder.replace(`/${Partition}`, '')
-  : clickedFolder = "";
+  clickedFolder = clickedFolder ? clickedFolder.replace(`/${Partition}`, '') : "";
   //Else every folder link begins with Partition name
 
   if ($(FolderInput)[0].value == clickedFolder && !$(this).closest('.current-directory')[0])
@@ -27,12 +26,12 @@ function inputItemName (anchor) {
 // -------------------------------------
     if ($(this).closest('td')[0]) {
       //Then it's clicking within primary directory listing, and more procedures are necessary, especially if we are within private directory
-      if (UserSession.home === UsersDirectory) {
-        clickedFolder = clickedFolder.slice(UserSession.user.name.length + 1);
+      if (Private) {
+        clickedFolder = clickedFolder.slice(Username.length + 1); //Name and "/" are not needed for prime input
         $('#editPrime').text(clickedFolder);
         $('#primeDirectoryInput').attr('title', clickedFolder);
-        $('#primeDirectoryInput').attr('path', UserSession.user.name);
-      }  else {
+        $('#primeDirectoryInput').attr('path', Username);
+      } else {
         $('#editPrime').text(clickedFolder);
         $('#primeDirectoryInput').attr('title', clickedFolder);
       }
@@ -46,7 +45,7 @@ function inputItemName (anchor) {
 /*===============================================================
 //Either we're searching through folder input, or in the file search. They both need a list to query through, and a view to display results on. File results are the file card elements, folder results are just anchor tags with the directory names.
 ===============================================================*/
-async function itemSearch (evt) {
+async function startQuery (evt) {
   evt.preventDefault();
   evt.stopPropagation();
   clearTimeout(window.input);
@@ -55,48 +54,52 @@ async function itemSearch (evt) {
   //Remove any bullshit "/" the user puts in folder input
 
   if (!query) {
-    console.log ('asd')
     //If it was a blank search, reset everything and don't run function
     $(FileTable).children('*').removeClass('fadeout');
     $('li').removeClass('hide').show();
     $('.folder').prependTo(FileTable);
     return false;
   }
-  let finds = [];
-  let view;
-  let list = $('.all-files').children('.uploaded'); //File table search by default
 // ---------------------------------------------------------------------------
     if (this && this.id === 'FolderInput') { //If we're searching folder input
       StagedFiles.unlist(StagedFiles.count, true);
       $(FolderInput).val(this.value);
+      let autoInput = Private ? Username : `${UsersDirectory}/${Username}`;
+      let queryCheck = this.value.slice(0, autoInput.length);
 
-      if (Partition === UsersDirectory + '/'
-      && this.value.slice(0, UserSession.user.name.length) !== UserSession.user.name) {
-        $(FolderInput).val(UserSession.user.name);
+      if (Private && queryCheck !== autoInput || $('#mydirCheck').is(':checked')
+      && queryCheck !== autoInput) {
+        $(FolderInput).val(autoInput);
       }
       $('.view-dir').attr('href', `/${Partition + this.value}` || '/');
 
-      view = $(folderSuggestions);
-      $(view).empty(); //Clears any previous folder link search results
-      let found;
+      $(folderSuggestions).empty(); //Clears any previous folder link search results
       window.input = await setTimeout( async () => { //Creates a small delay before posting, in case user is quickly typing input
-        found = await axios.post(`/all/${query}`, {query: query}); //Makes the request to get the folder data
-      if (await checkForServerError(found))
-        return false;
-
-      list = found.data || [];
-      }, 700);
+        await axios.post(`/all`, {search: query}).then( async (res) => { //Makes the request to get the folder data
+          if (await checkForServerError(res))
+            return false;
+          else return itemSearch(res.data || [], $(folderSuggestions), query, this);
+        });
+      }, 500);
     } else { //Then it's a file search, anything that's uploaded (and not selected) will be initially hidden
       $('.all-files li').not('.selected').hide();
       if (this.offsetParent === $('main')[0])
         $('.column, .folder').not('.selected').addClass('fadeout');
       //Hide all list items when searching, show matches later (or if input empty)
 
-      view = this.closest('ol') || FileTable;
-      list = $('.all-files').children('.uploaded');
-
+      const view = this.closest('ol') || FileTable;
+      const list = $('.all-files').children('.uploaded');
+      return itemSearch(list, view, query, this);
     }
-// ---------------------------------------------------------------------------
+}; //End of function
+
+
+/*===============================================================
+  Self-explanatory. Brings up the overhead footer panel upon clicking the button. Reverses and sends it back down if clicked again.
+===============================================================*/
+async function itemSearch(list, view, query, searchInput) {
+  let finds = [];
+  // ---------------------------------------------------------------------------
   if (list.length) {
     for (let item of list) {
       item.title ? name = item.title.replace(Partition + '/', '') : name = item.replace(Partition + '/', '');
@@ -104,9 +107,9 @@ async function itemSearch (evt) {
 
       if (name.toLowerCase().includes(query)) {
 
-        if (this.id === 'FolderInput') {
+        if (searchInput.id === 'FolderInput') {
           //Cleans up appearance of links before appension, that's all this is
-          let i = Directory.layers[Directory.layers.length - 1] || '/'; //This directory
+          let i = Directory.layers ? Directory.layers[Directory.layers.length - 1] : '/'; //This directory
           let styled_link = name.replace(Partition, '').replaceAll('/', '<span class="search-result">/</span>').replace(i, `<span>${i}</span>`); //Find all directories, replace Partition name (don't need it), add a <span> with a slash for folder division clarity, and make current directory white with span as well
           let result = `<a href="/${name}" class="search-result" onfocus="inputItemName(this)">${styled_link}</a>`;
 
@@ -117,7 +120,7 @@ async function itemSearch (evt) {
     }; //---End of For loop
 
 // ---------------------------------------------------------------------------
-      if (this.id === 'FolderInput') {
+      if (searchInput.id === 'FolderInput') {
         $(view).prepend([finds]);
         $(view).html($(view).html().replaceAll(',', ''));
         //Folder suggestions. The whole 'HTML' bit is abunch of links with "," in between, remove them
@@ -128,7 +131,7 @@ async function itemSearch (evt) {
           //5 milisecond timeout so re-population is smoother, instead of 1-2 second freeze before collective display of all elements
 
           setTimeout( () => {
-            if (this.offsetParent === $('main')[0])
+            if (searchInput.offsetParent === $('main')[0])
               $(`div[id="${ele.title}"]`).prependTo(FileTable).removeClass('fadeout');
 
               $(ele).show();
@@ -136,8 +139,8 @@ async function itemSearch (evt) {
         });
       }
     } else return false;
-// ---------------------------------------------------------------------------
-}; //End of function
+  // ---------------------------------------------------------------------------
+}
 
 
 /*===============================================================

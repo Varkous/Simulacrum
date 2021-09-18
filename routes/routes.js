@@ -1,11 +1,11 @@
 'use strict';
 const {app, path, wrapAsync} = require('../index.js');
-const {VerifyUser, ReportData, Sessions, CheckOperation} = require('../controllers/UserHandling.js');
-const {AccessDirectory, UploadFiles, Archiver, ChildExec, Rename, IterateDelete} = require('../controllers/FileControllers.js');
-const {Geodetect, CapArraySize} = require('../controllers/Utilities.js');
-const {GetDirectory, GetAllItems} = require('../controllers/FolderProviders.js');
-
 const fs = require('fs-extra');
+
+const {VerifyUser, ReportData, Sessions} = require('../controllers/UserHandling.js');
+const {AccessDirectory, Upload, ZipAndDownload, Rename, IterateDelete} = require('../controllers/FileControllers.js');
+const {Geodetect, CapArraySize, EntryToHTML, CheckSessionAndURL} = require('../controllers/Utilities.js');
+const {GetDirectory, GetAllItems} = require('../controllers/FolderProviders.js');
 const {Hash, Verify} = require('../controllers/Hasher.js');
 
 let partition = process.env.partition || 'uploads';
@@ -36,11 +36,13 @@ module.exports.Authentication = {
         req.session.loginAttempts ++;
 
         Sessions.lock(req, req.body.name);
-        return next( new Error("Login attempts exceeded. Get lost."));
+        return next( new Error("Login attempts exceeded. Seek life elsewhere."));
       }
-    }
+
     let LoginAttempts = {count: req.session.loginAttempts || 0, message: ''};
-    return res.render('login', {LoginAttempts});
+    let Server = process.ServerTracker;
+    return res.render('login', {LoginAttempts, Server});
+    }
   })),
 
   /* ====================================
@@ -103,35 +105,32 @@ module.exports.FileViewing = {
   /* ====================================
   Locates all folders/directories with the user ID passed in, and returns all the files in the response.
   ======================================= */
-  allFilesFolders: app.post('/all/:folder', wrapAsync( async (req, res, next) => {
+  allFilesFolders: app.post('/all', CheckSessionAndURL, wrapAsync( async (req, res, next) => {
 
-    const homedirectory = req.session.home === UsersDirectory
+    let homedirectory = req.session.home === UsersDirectory
     ? `${req.session.home}/${req.session.user.name}` : req.session.home;
-
-    if (req.params.folder !== 'undefined')
-      homedirectory = homedirectory + `/${req.params.folder}`;
-
 
       let items;
       req.session.index = 0;
 
-      if (req.body.query) {
-        items = await GetAllItems(homedirectory, [], req.body.query, req);
-        return res.send(items);
+      let maxfiles = req.mobile ? 100 : 500; //If mobile device is detected, limit max retrievable files to 100. Otherwise, 500 will do.
+
+      if (req.body.search) {
+        items = await GetAllItems(homedirectory, [], req.body.search, req);
+        return res.send(items); //Will be sending folder items directly as array
       }
       else items = await GetAllItems(homedirectory, [], false, req);
 
-      console.log (req.session.index);
       let globalDirectory = {
-        name: req.params.folder === 'undefined' ? undefined : req.params.folder,
+        name: '/',
         path: Sessions.user(req).residing,
         files: items,
         stats: fs.statSync(homedirectory),
-        maxindex: Math.floor(req.session.index / 500),
+        maxindex: Math.floor(req.session.index / maxfiles),
         index: req.body.index
       };
-      Sessions.user(req).cache = globalDirectory;
       req.session.index = 0;
+      req.session.user.residing = req.session.home === UsersDirectory ? req.session.user.name : '/';
       return res.send(globalDirectory);
 
   })),
@@ -144,21 +143,21 @@ module.exports.FileViewing = {
     req.session.home = req.session.home.includes(UsersDirectory) ? partition : UsersDirectory; //Get directory
     Sessions.user(req).residing = req.session.user.name;
     req.session.user.residing = Sessions.user(req).residing;
-    res.redirect('/');
+    return res.redirect('/');
 
   })),
 
   /* ====================================
-  Most utilized route. Sends the user to the next (or previous) nested folder. Gathers up all directories, their files and stats related to the given folder, and stores all of it within the "directory" object and sends it in the response.
+  Most utilized route. Sends the user to the next (or previous) nested folder. Gathers up all directories, their files and stats related to the given folder, and stores all of it within the "directory" object before shipping it to the response.
   ======================================= */
   viewFolder: app.get(`/:partition/:folder*`, VerifyUser, wrapAsync( async (req, res, next) => {
+
     const folder = req.params.folder + req.params[0]; //Get directory
-    // const folder = `${req.params.partition}/${req.params.folder}`;
     if (!fs.statSync(path.resolve(req.params.partition, folder)).isDirectory())
       return false;
 
     if (!req.originalUrl.includes(req.session.home)) return ReportData(req, res, false, {
-      content: [`Partition or directory not found`, 'not found'],
+      content: [`Partition or directory`, 'not found'],
       type: 'error',
       items: [folder]
     });
@@ -174,17 +173,15 @@ module.exports.FileViewing = {
       Sessions.user(req).residing = directory.name;
       req.session.user.residing = Sessions.user(req).residing; //What directory user is currently within
       // -------------------
-      directory.maxindex = Math.floor(req.session.index / 500);
-      directory.index = 0;
-      if (Object.values(req.query).length) { //Very sneaky but important. If user simply clicked link a query will be sent within URL, and tell server to maintain "single-page-app" functionality by sending all the data needed for a new directory, and replace the page with that data ...
+      if (Object.values(req.query).length) { //Very sneaky but important. If user simply clicked link, a query will be sent within URL, and tell server to maintain "single-page-app" functionality by sending all the data needed for a new directory, and replace the page with that data ...
         return res.send({
           Directory: directory, //The directory found
           Server: process.ServerTracker, //Server status information in case of shut down
-          Session: res.locals.UserSession, //UserSession uses SessionStore Class, not the actually request session
+          Session: res.locals.UserSession, //UserSession uses SessionStore Class, not the actual request session
           PrimaryDirectories: res.locals.PrimaryDirectories, //All directories retrieved from 'app.use(*)' route handler
-          rivals: res.locals.rivals //Very minor, just to warn users of neighboring users' location in case of conflict
+          rivals: res.locals.rivals //Very minor, just to warn client of neighboring users' location in case of conflict
         });
-        //BUT if they manually typed in URL, load a new page with that data, this time with the URL containing directory input and not just the homepage, serving as a "new" page
+        //BUT if they manually typed in URL, load a new page with that data, this time with the URL containing directory input and not just the homepage, serving as a "new" page. Call this a "redirect".
       } else return res.render('directory', {directory});
 
     }).catch( (error) => {
@@ -206,8 +203,7 @@ module.exports.FileManagement = {
       const temp = path.resolve('temp'); //Temp directory where all files staged for download go
       const userDir = `${temp}/${req.session.user.name}`; //The user directory that holds THEIR staged files for download, don't want them mixed up with other user's download files
       fs.existsSync(userDir) ? 0 : fs.mkdirSync(userDir); //If user staging directory does not exist, create it
-      // return await Archiver(req, res, files, userDir);
-      return await ChildExec(req, res, files, userDir);
+      return await ZipAndDownload(req, res, files, userDir);
       // ------------------------------------------------------------
     } catch (err) { //This is for development, to catch command line errors
       next(err);
@@ -239,7 +235,7 @@ module.exports.FileManagement = {
       return await ReportData(req, res, false, {
         content: ["You do not have permission to alter that item. It belongs to:"],
         type: 'error',
-        items: [`<span style="color: green">${Sessions.user(req).name}</span>`]
+        items: [`<span style="color: green">${Sessions.users[`User${stats.uid}`].name || 'The Director'}</span>`]
       });
 
     else if (fs.existsSync(newpath)) //Name already in use
@@ -257,7 +253,7 @@ module.exports.FileManagement = {
   /* ====================================
   If user authentication was granted, and directory access was granted from posting to "/upload", this is the NEXT request, which uploads the files to the folder information stored in req.params.
   ======================================= */
-  specificUpload: app.post(`/:partition/:folder*`, CheckOperation, VerifyUser, AccessDirectory, UploadFiles, wrapAsync( async (req, res, next) => {
+  specificUpload: app.post(`/:partition/:folder*`, VerifyUser, Upload, wrapAsync( async (req, res, next) => {
 
     let newfolders = req.body.newfolders ? Array.from(req.body.newfolders) : '';
     //Turns into set, which automatically removes duplicates, but Spreads it, so it converts back into an array
@@ -296,26 +292,28 @@ module.exports.FileManagement = {
   deleteFiles: app.delete(`/delete/:folder*`, VerifyUser, wrapAsync( async (req, res, next) => {
 
 // ------------------------------------------------------------------------------
-  let [succeeded, failed] = await IterateDelete(req, res, req.body.files);
+    let results = await IterateDelete(req, res, req.body.files);
+    let items = {deleted: [], failed: [], notFound: [], noPermission: []};
+    let type = 'success';
 
-    let failedMessage = `<hr>Either they do not exist, or you have no permission to remove them.`;
-    if (failed && failed.length === 1) //Single item, just to seem less robotic
-      failedMessage = `<hr>Either it does not exist, or you have no permission to delete it.`
+    for (let result of results)
+      items[result.status].push(EntryToHTML(result, 'white')); //Each result will have a property that matches one of the four arrays above, so clever little trick. Convert each item to a span element with a representative color.
 
-    if (!succeeded.length) /*----*/ return ReportData(req, res, false, {
-      content: [`Could not remove`, failedMessage],
-      type: 'error',
-      items: failed
-    });
-    else if (failed.length && succeeded.length) /*----*/ return ReportData(req, res, false, {
-      content: [`${succeeded} deleted successfully.<hr>`, failedMessage],
-      type: 'warning',
-      items: failed
-    });
-    else /*----*/ return ReportData(req, res, false, {
-      content: [`Deleted:`, ''],
-      type: 'success',
-      items: succeeded
+    if (items.failed.length || items.notFound.length || items.noPermission.length)
+      type = !items.deleted.length ? 'error' : 'warning' //Determine what theme of message to send
+
+// ------------------------------------------------------------------------------
+    let conditionalMessage = `
+    ${items.deleted.length ? 'Items successfully deleted: ' + items.deleted.join('<br>') : ''}
+    ${items.noPermission.length ? '<hr>No permission to remove: <br>' + items.noPermission.join('<br>') : ''}
+    ${items.notFound.length ? '<hr>Moved/do not exist : <br>' + items.notFound.join('<br>') : ''}
+    ${items.failed.length ? '<hr>Still in use so could not delete: <br>' + items.failed.join('<br>') : ''}
+    ` // Not necessary for functionality. The above is just to provide clarity to user of what went wrong on deletion failiures/problems.
+
+    return ReportData(req, res, false, {
+      content: [conditionalMessage],
+      type: type,
+      items: []
     });
 
 // ------------------------------------------------------------------------------

@@ -11,30 +11,37 @@ async function deleteMultiple(condition) {
   const uploadedFiles = SelectedFiles.count.filter( file => !pathfinder(StagedFiles.count, 'find', file));
   //Before sending it to back-end for deletion, remove any Staged Files from the submission. Can't "Delete" those obviously, as they are not uploaded. But the user still wants them removed from front-end, so leave them in Selected Files.
 
-
     if (uploadedFiles.length) {
-      [canDelete, failedFiles] = await sendDeleteRequest(uploadedFiles)
+      [canDelete, failedFiles] = await sendDeleteRequest(uploadedFiles);
     } else if (event.shiftKey || condition === 'ALL') {
         SelectedFiles.count = [];
         await selectAll(AllFiles.count, true);
         [canDelete, failedFiles] = await sendDeleteRequest(AllFiles.count);
     } else canDelete = true;
 
-
 // --------------------------------------------------------------------------------
   if (canDelete === false) /*Then*/ return false;
 
-    for (let file of SelectedFiles.count) {
-      if (failedFiles && failedFiles.includes(file.name)) /*If some files were not deleted in database, don't remove their cards on page (skip over them)*/ continue;
+      if (SelectedFiles.count.length >= 100 && !$('progress').val()) {
+        return window.location.reload(); //No reason to overload page with mass file deletion, just reload directory, unless operation is in progress
+      }
 
-      let fileCardToRemove = getFileCard(file);
-      $(fileCardToRemove).addClass('fadeout');
+      SelectedFiles.count.map ( async (file, i, arr) => {
+        let fileCardToRemove;
+          if (failedFiles && failedFiles.includes(file.name))
+           return false; /*If some files were not deleted in database, don't remove their cards on page (skip over them)*/
 
-      setTimeout( () => {
-        AllFiles.delete(file, canDelete);
-        checkForEmpty(canDelete, fileCardToRemove);
-      }, 1000);
-    };
+        if (arr.length < 50) { //Don't do all these aesthetics if large amount of files are affected
+          fileCardToRemove = getFileCard(file);
+          $(fileCardToRemove).addClass('fadeout');
+          setTimeout( () => AllFiles.delete(file, canDelete), 800);
+        } else AllFiles.delete(file, canDelete);
+
+        if (i === arr.length - 1)  //At the end of iteration, check if directory empty and if its a staged file
+          checkForEmpty(canDelete, fileCardToRemove);
+
+        return true;
+      });
 // --------------------------------------------------------------------
 }; //End of file deletion function
 
@@ -100,7 +107,6 @@ if (!Array.isArray(filesToDelete))
   const data = {
     files: filesToDelete,
     preferences: JSON.stringify(UserSession.preferences),
-    operation: operation,
   }
 
   showOperation(operation);
@@ -111,6 +117,9 @@ if (!Array.isArray(filesToDelete))
     method: 'DELETE',
     url: `/delete/${CurrentFolder || Partition}`,
     data: data,
+    headers: {
+      operation: operation,
+    },
   })
   .then( async (res) => {
     $('.input').removeAttr('disabled');
@@ -153,7 +162,10 @@ $('#deleteBtn').click( () => {
     if (totalSize >= 50000000) { // No need to keep counting if already past warning threshold
       break;
     } else if (pathfinder(StagedFiles.count, 'find', file)) continue;
-    else totalSize += pathfinder(AllFiles.count, 'find', file).size || 0;
+    else {
+      let found = pathfinder(AllFiles.count, 'find', file);
+      totalSize += found ? found.size : 0;
+    }
   };
 
   if (UserSession.preferences.deleteCheck && totalSize >= 50000000) {

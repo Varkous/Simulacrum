@@ -1,4 +1,5 @@
 'use strict';
+
 // ===========================================================
   document.onreadystatechange = async function (evt) { //Page starts loading
     /* ----------------------------------------- */
@@ -11,7 +12,7 @@
           CurrentFolder = UserSession.user.residing;
           let dirPath = '/' + Partition + CurrentFolder;
           dismissElement('main', 'Y', 'down', '50%', 600, true);
-          await retrieveDirectory(event, window.location.origin + dirPath + '?fetch');
+          await retrieveDirectory(window.location.origin + dirPath + '?fetch');
         }
       }
     }; //If interactive available
@@ -23,6 +24,7 @@
   This affects the element that is passed in with a transform relocation. Moving it up, down, left or right in the given direction specified by 'axis' and 'direction'. If 'hide' is true, don't rewind its position.
 ===============================================================*/
 function dismissElement (element, axis, direction, duration = '60%', wait = 600, hide) {
+
   return new Promise ( (resolve, reject) => {
   duration = Math.abs(parseInt(duration) / 100);
   //Turns duration (which is a string of a number percentage) into an integer, divided into a 1.0 digit float number. The lower the percentage (and the number), the less or "quicker" the duration
@@ -52,18 +54,14 @@ function dismissElement (element, axis, direction, duration = '60%', wait = 600,
 // ---------------------------------------------------------------------------------------
 let dragItem;
 let dropItem;
-let mobile = false;
 // ======================================================================================
-if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent)) mobile = true;
-
 if (mobile) {
   $('.background-logo').attr('src', '/staticglobe.gif');
   $('.info-list').empty();
   $('.info-list').prepend(`
   <li>Tap folder icons <i class="fa fa-folder"></i> to add their name/path to the folder designation input</li>  <hr>
   <li>Hold-touch on uploaded files within the panel listing to download them</li><hr>
-  <li>Double-tap Transfer button to copy selected item(s), rather than moving</li><hr>
-  <li>And once more, holding touch/tap will select/unselect any items in the given file View</li>`);
+  <li>Double-tap the file table or a panel listing to select/unselect any items within</li><hr>`);
   //Replacing the default desktop-oriented control tips in the header with mobile-use tips
 } else {
 

@@ -1,18 +1,48 @@
 'use strict';
+const {pathfinder, namefinder, getFileSize, checkModeType, parseHTML} = helpers;
 const allExtensions =  [
   '.bat','.apk','.com','.jpg','.jpeg','.exe','.doc','.docx','.docm','.rpp','.html','.z','.pkg','.jar','.py','.aif','.cda','.iff','.mid','.mp3','.flac','.wav','.wpl','.avi','.flv','.h264','.m4v','.mkv','.mov','.mp4','.mpg','.rm','.swf','.vob','.wmv','.3g2','.3gp','.doc','.odt','.msg','.pdf','.tex','.txt','.wpd','.ods','.xlr','.xls','.xls','.key','.odp','.pps','.ppt','.pptx','.accdb','.csv','.dat','.db','.log','.mdbdatabase','.pdb','.sql','.tar','.bak','.cabile','.cfg','.cpl','.cur','.dll','.dmp','.drve','.icns','.ico','.inile','.ini','.info','.lnk','.msi','.sys','.tmp','.cer','.ogg','.cfm','.cgi','.css','.htm','.js','.jsp','.part','.odb','.php','.rss','.xhtml','.ai','.bmp','.gif','.jpeg','.max','.obj','.png','.ps','.psd','.svg','.tif','.3ds','.3dm','.cpp','.h','.c','.C','.cs','.zip','.rar','.7z'
 ];
 let alphabet = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz'.split('');
-const maxfiles = mobile ? 100 : 500;
-let redirect = false; //If false, this will "fetch" the directories and integrate/replace the page with their contents, by adding a query string onto the url. If true, the entire page will redirect and repopulate the page with new directory contents. Slower this way, but often less error prone and sometimes inevitable.
+// -------------------------------------------------------
 const imageFormats = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.ico', '.svg'];
 const audioFormats = ['.mp3', '.wav', '.ogg', '.flac'];
 const videoFormats = ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv'];
 const imageDocFormats = ['.pdf'];
 const textDocFormats = ['.txt', '.cfg', '.rtf', '.ini', '.info'];
 const compressedFormats = ['.7z', '.zip', '.rar', '.z', '.pkg'];
-const Outbound = {size: 0, staged: [], transfers: [], delete: [], selected: []}; //This is an "intermission" variable that temporarily holds any submission content during a dialog prompt. If the user confirms, the data is retrieved from here and sent on request.
+const Outbound = {size: 0, staged: [], transfers: [], delete: [], selected: []}; //This is an "intermission" variable that temporarily holds any submission content during a dialog prompt. If the user confirms, the data is retrieved from here and sent on request. If rejected, it is flushed.
 // ----------------------------------------------------------------------
+const home = window.location.origin;
+const maxfiles = mobile ? 100 : 500;
+let redirect = false; //If false, this will "fetch" the directories and integrate/replace the page with their contents, by adding a query string onto the url. If true, the entire page will redirect and repopulate the page with new directory contents. Slower this way, but often less error prone and sometimes inevitable.
+if (document.URL.includes(UserSession.home)) {
+  redirect = true;
+}
+// -------------------------------------------------------
+if (redirect && UserSession.preferences.smoothTransition) {
+  let prevDir = document.referrer.replace(home, '').split('/').filter(Boolean).length;
+  let nextDir = document.URL.replace(home, '').split('/').filter(Boolean).length;
+  //Aesthetic purposes only. Checks how many 'folders in' a directory we are, to determine where main body will transition into screen (either from below, from the left, or from the right)
+  if (prevDir < nextDir) $('main').css('transform', 'translateX(100%)');
+  else if (prevDir > nextDir) $('main').css('transform', 'translateX(-100%)');
+  else $('main').css('transform', 'translateY(100%)');
+}
+
+/*===============================================================
+  Removes the weird parse-coding that replaces 'Spacebar' characters, and restores the original spacebar whitespace.
+===============================================================*/
+String.prototype.getSpaceChars = function () {return this.replaceAll('%20', ' ')};
+
+/*===============================================================
+  Not very necessary, did it for readability since "!includes(thing) can take a few glances".
+===============================================================*/
+String.prototype.isNotIn = function (comparison) { return !comparison.includes(this)};
+
+/*===============================================================
+  Had to create own method for just simply getting last element of given array.
+===============================================================*/
+Array.prototype.last = function (index) {return index ? this.length - 1 : this[this.length - 1]};
 
 
 /*========================================================*/
@@ -39,10 +69,8 @@ class File_Status_Adjuster {
         continue; //Then the file is already added/selected, no need
 
       this.count.push(file);
-
       $(`[title="${file.name}"][path="${file.path}"]`).addClass(this.status);
-      $(this.listings).append(`<li title="${file.name}" path="${file.path}" class="${this.status}">
-      <span>${file.name}</span></li>`);
+      $(this.listings).append(`<li title="${file.name}" path="${file.path}" class="${this.status}"><span>${file.name}</span></li>`);
 
       let fileCard = getFileCard(file);
       $(fileCard).addClass(this.status);
@@ -81,7 +109,7 @@ class File_Status_Adjuster {
   /*========================================================*/
   async unlist(files, nodisplay) {
 
-    !files ? files = this.count : files = files;
+    !files ? files = this.count : files = files; //If no argument passed in, assume all items
     if (!Array.isArray(files))
       files = [files];
 
@@ -122,31 +150,25 @@ class Uploaded_Status_Adjuster extends File_Status_Adjuster {
   /*========================================================*/
   async delete(files, reallyDelete) {
 
-
     if (!Array.isArray(files))
       files = [files];
+      const deleted = files.map ( async (file) => {
+        this.unlist(file);
+        let fileCard = getFileCard(file);
+        fileCard ? $(fileCard).remove() : null;
 
-    for (let file of files) {
-      this.unlist(file);
-      let fileCard = getFileCard(file);
-      fileCard ? $(fileCard).remove() : null;
+        if (reallyDelete === true) {
+          //If true. We actually remove the file from the directory listing altogether, as this means the user wanted it deleted from the database, not just the page.
+          let fileToDelete = pathfinder(Directory.files, 'find', file);
+          fileToDelete ? Directory.files.splice(Directory.files.indexOf(fileToDelete), 1) : null;
 
-      if (reallyDelete === true) {
-        //If  true. We actually remove the file from the directory listing altogether, as this means the user wanted it deleted from the database, not just the page.
-        let fileToDelete = pathfinder(Directory.files, 'find', file);
-        fileToDelete ? Directory.files.splice(Directory.files.indexOf(fileToDelete), 1) : null;
-        if (Directory.packs && Directory.packs[Directory.index].length < 1) {
-          Directory.packs.splice(Directory.index, 1);
-          findAllFiles(event, Directory.packs.length - 1 || 0);
+          StagedFiles.unlist(file);
+          SelectedFiles.unlist(file);
+          $('.all-count').text(Directory.files ? Directory.files.length : 0);
         }
-        //Then the pack is empty, do not use it any more, may cause errors
-
-        StagedFiles.unlist(file);
-        SelectedFiles.unlist(file);
-        $('.all-count').text(Directory.files.length);
-      }
-      if (StagedFiles.count.length < 1) FolderInput.disabled = false;
-    }
+        if (StagedFiles.count.length < 1) FolderInput.disabled = false;
+        return true;
+      });
   };
 
 
@@ -167,14 +189,11 @@ class Uploaded_Status_Adjuster extends File_Status_Adjuster {
       let fileCard = getFileCard(file);
       $(fileCard).attr('id', file.new);
 
-      // if (Directory === false) {
-        //If it's the homepage, all files shown an h1-anchor within the file card designating its path, so need to adjust that
-        let anchor = $(fileCard).find('a')[0]; //Download link of file card
-        anchor.href === anchor.href.getSpaceChars().replace(regExp, file.new);
-        anchor.download === anchor.download.getSpaceChars().replace(regExp, file.new);
-      // }
+      let anchor = $(fileCard).find('a')[0]; //Download link of file card
+      anchor.href === anchor.href.getSpaceChars().replace(regExp, file.new);
+      anchor.download === anchor.download.getSpaceChars().replace(regExp, file.new);
 
-      // --------- Now the li, just the title, no big deal
+      // --------- Now the li ref, just the title, no big deal
       $(`[title="${file.old}"][path="${file.path}"]`).attr('title', file.new);
 
       // --------- Big one, all anchor tag references, need to be adjusted for sure, these arbitrarily have a title with the path/name combined, so that every single anchor tag doesn't have to use a "path" attribute
@@ -188,13 +207,11 @@ class Uploaded_Status_Adjuster extends File_Status_Adjuster {
           ref.href = ref.href.getSpaceChars().replace(regExp, file.new);
           ref.title.replace(regExp, file.new);
         }
-
-      };
+      }; //End of loop
 
       // --------- Not very necessary, but may cause bugs if we don't fix the browser file references
       if (file.directory === false)
-      pathfinder(Directory.files, 'find', file).name = file.new;
-      pathfinder(this.count, 'find', file).name = file.new;
+      pathfinder([Directory.files, this.count], 'find', file).name = file.new;
     } catch (error) {
       Flash(error.message, 'error', [file.name]);
     }
@@ -204,25 +221,19 @@ class Uploaded_Status_Adjuster extends File_Status_Adjuster {
 
 
 /*===============================================================
-  Removes the weird parse-coding that replaces 'Spacebar' characters, and restores the original spacebar whitespace.
-===============================================================*/
-String.prototype.getSpaceChars = function () {return this.replaceAll('%20', ' ')};
-Array.prototype.last = function (index) {return index ? this.length - 1 : this[this.length - 1]};
-
-
-/*===============================================================
   Projects a nice little fadein/fadeout message box proceeding any interaction with the back-end. 'content' is the message itself, 'type' is either success/warning/error (green/yellow/red respectively), and 'items' are optional additions to emphasize the data of the message content (i.e file names, folder names etc.).
 ===============================================================*/
 function Flash(content, type = 'warning', items, excess) {
 
   $(FS_Modal).hide();
-  $('progress').val('0'); //Reset progress bar
+  $('.progress').val('0'); //Reset progress bar
   $('.progress-op').text('') //And remove progress bar operation name
   // CSSVariables.setProperty('--operation', ''); //And remove progress bar operation name
   clearTimeout(window.messageLog); //Any log on delay arrival will be erased
   if (typeof (content) === 'string') content = [content];
   if (typeof (items) === 'string') items = [items];
   //Turn into array so we don't have to stir in more conditional code below
+  // if (content[0] === '<' && items[0] === 'D') return false //These are the two chars that show when an error page is returned as the report. Don't bother reporting it.
 
     let h1 = `
     <h1>${content[0]}
@@ -230,9 +241,6 @@ function Flash(content, type = 'warning', items, excess) {
     <br>
     ${content[1] || ''}
     </h1>`;
-    // if (excess) {
-    //   h1 = h1 + `<hr><span style="color: red">Warning: </span> <h3>${excess}</h3>`;
-    // }
 
     $(MessageLog).removeClass('success-box warning-box error-box fadeout hide')
     .addClass(`${type + '-box'}`).html(h1);
@@ -278,8 +286,8 @@ async function downloadFiles (fileCard) {
 
   let operation = 'Download';
   $('.fs-modal-message').text('Zipping files for download...');
-  let data = {operation: operation};
   showOperation(operation);
+  let data = {};
 
   if (SelectedFiles.count.length && event.shiftKey === false) { //Some but not all
     data.files = SelectedFiles.count || [];
@@ -294,13 +302,17 @@ if (mobile) {
     method: 'post',
     url: `/download`,
     data: data,
+    headers: {
+      operation: operation,
+    },
     onDownloadProgress: progressEvent => {
       let approximateLength = progressEvent.srcElement.getResponseHeader('Bullshit'); //On downloading zip, archive size cannot be determined accurately, thus had to conceieve a bullshit fake "content-length" header based on collective pre-zip file size for approximation
       let percentCompleted = (progressEvent.loaded / approximateLength) * 100;
-      $('progress').val(`${percentCompleted}`);
+      percentCompleted !== Infinity ? $('progress').val(`${percentCompleted}`) : $('progress').val(0);
     },
     responseType: 'blob', //Receiving zip file, which qualifies as arraybuffer or blob
-  }).then( makeDownloadLinks).catch( (error) => Flash(error.message, 'error', error.stack));
+  }).then( makeDownloadLinks);
+  // }).then( makeDownloadLinks).catch( (error) => Flash(error.message, 'error', error.stack));
 };
 
 
@@ -318,9 +330,8 @@ async function makeDownloadLinks (res, data) {
   	if (await checkForServerError(res))
       return false;
 
-      console.log (res);
     const type = res.data.type;
-    if (type.includes('json') || type.includes('html') || type.includes('plain')) { // Then the 'blob' is actually a report message
+    if (type.includes('json') || type.includes('plain')) { // Then the 'blob' is actually a report message
       res.data = JSON.parse(await res.data.text()); // We find the text within the response data and parse it
       return Flash(...Object.values(res.data)); //This way we avoid any bogus download attempts
     }
@@ -373,12 +384,6 @@ window.addEventListener('load', async () => {
     $('svg, .header > h1').hide();
     return false;
   }
-  setTimeout( () => {
-    if (Server.status === 0) {
-      let currentTime = Math.floor(new Date().getTime() / 60000);
-      Flash(`<hr> <span style="color: red">Warning: </span> <h1>${Server.warning}: Occuring in ${Math.abs(currentTime - Server.countdown)} minutes</h1>`, 'warning');
-    }
-  }, 100);
 
   await setupDirectory();
   revealNextDirectory(CurrentFolder, CurrentFolder);
@@ -396,7 +401,8 @@ window.addEventListener('pageshow', (evt) => {
       'transform': 'translate(0)',
       'transition': 'all 1.3s ease-in-out',
     });
-  } else $('main').css({
+  }
+  else $('main').css({
           'transform': 'translate(0)',
           'transition': 'all 0.7s ease-in-out',
         });

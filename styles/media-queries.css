@@ -27,7 +27,7 @@
   	  /*animation: steady-glow 2.5s forwards infinite;*/
   	}
   /* ------------------------------------ */
-  #MessageLog {     left: 0;    }
+  #MessageLog {     left: 20%;    }
   /* ------------------------------------ */
   nav:hover {    max-width: 300px;    }
   /* ------------------------------------ */

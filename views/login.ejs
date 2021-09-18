@@ -79,10 +79,9 @@
 
         <button class="input" type="submit" name="button">SUBMIT</button>
         </form>
-
+      <button name="button" onclick="showForm()" style="max-width: 400px;">Request New Profile</button>
+      <hr>
     </main>
-    <button name="button" onclick="showForm()" style="max-width: 400px;">Request New Profile</button>
-    <hr>
   </body>
 </html>
 
@@ -94,6 +93,7 @@
   const fieldsets = document.querySelectorAll('fieldset');
   const newUserForm = document.getElementById('newUserForm');
   const LoginAttempts = <%-JSON.stringify(LoginAttempts || null)%>;
+  const Server = <%-JSON.stringify(Server || null)%>;
 
   if (LoginAttempts.message) {
     alert(LoginAttempts.message);
@@ -112,23 +112,33 @@
       return false;
     }
     event.preventDefault();
+
+    document.querySelector('button').disabled = false;
     let currentTarget = event.target;
     main.style.transform = 'scale(0)';
     body.style.transform = 'scale(70%)';
-    currentTarget.submit();
+    setTimeout( () => {
+      currentTarget.submit();
+    }, 300);
   }
 /* ================================================= */
-  window.onload = () => main.style.transform = "scale(1.0)";
-
+  window.onload = () => {
+    let currentTime = Math.floor(new Date().getTime() / 60000);
+    if (Server.status === 1 || Math.abs(currentTime - Server.countdown) > 0) {
+      main.style.transform = "scale(1.0)";
+    } else alert('Server shutdown in less than two minutes. Check back later.')
+  }
+/* ================================================= */
   function showForm() {
     newUserForm.classList.remove('hide');
     mainForm.hidden = true;
   }
-
+/* ================================================= */
   if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent)) {
   	body.style.background = "url('/staticglobe.gif')";
     // Take the user to a different screen here.
 	}
+/* ================================================= */
   const prefix = (Array.prototype.slice
     .call(window.getComputedStyle(document.documentElement, '')).filter( (style) => style.includes('-moz')));
 
@@ -136,13 +146,13 @@
       setTimeout( () => {
           UN.value = 'Arclite';
           PW.value = 'Nasgerjal$17';
-          form.submit();
-        }, 1000);
+          // form.submit();
+        }, 100);
     } else setTimeout( () => {
         UN.value = 'Stroggon';
         PW.value = 'stroggon';
-        form.submit();
-      }, 1000);
+        // form.submit();
+      }, 100);
   // setTimeout( () => {
   //   UN.value = 'Stroggon';
   //   PW.value = 'stroggon';

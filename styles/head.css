@@ -68,10 +68,11 @@ nav {
   color: #22a0f4 !important;
   color: inherit;
   -webkit-text-stroke: 0.3px white !important;
-  
+
   display: flex;
   flex-direction: column;
   font-size: 1.2rem;
+  margin: auto;
   word-break: break-word;
 }
 .navlink i { float: left; }

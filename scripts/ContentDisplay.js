@@ -1,5 +1,4 @@
 'use strict';
-const {getFileSize} = require('./general-helpers.js');
 
 
 /*===============================================================
@@ -54,7 +53,6 @@ function getFileCard(file) {
   //Find the element with the ID and path of the file name and path, respectively, or find by name if no path is present.
 
   if (!file.name) file = file[0]; //If by chance there is no name property, then it's most likely an array of one string (the file name).
-  // if (file.path) file.path = file.path.replace(`/${file.name}`, ''); //We don't want file name in any path
 
   if ($(`div[id="${file.name || file}"]`).length > 1) {
     //If more than one file card is found with the same file name, they are the same file but within different directories, so we also search by path AND name, since there's no way they could both be the same with traditional file systems.
@@ -68,7 +66,7 @@ function getFileCard(file) {
   Called whenever a text file is SUCCESFULLY uploaded. Converts it into a readable format that displays within an un-editable textbox <textarea>.
 ===============================================================*/
 function createTextFile(fileCard, file) {
-    let textarea = $(fileCard).closest('textarea')[0];
+    // let textarea = $(fileCard).closest('textarea')[0];
     let fileReader = new FileReader();
 
     fileReader.onload = function (evt) {
@@ -78,7 +76,8 @@ function createTextFile(fileCard, file) {
          //Lol, all this line does is just parse/replace the RTF encoding characters so we can render it as Plain Text
       } else textFile = evt.target.result;
 
-      $(textarea).text(textFile);
+      $(fileCard).closest('textarea').text(textFile);
+      textFile.length >= 10000 ? $(fileCard).closest('textarea').hide() : $(fileCard).closest('textarea').show();
     };
 
     fileReader.onerror = () => Flash('Text file could not be read', 'error', fileReader.error);
@@ -111,7 +110,7 @@ async function createMedia(file, folder, fileCard) {
     return sourceLinks + `<img src="/folder.png"><a title="${folder}/${file.name}" href="${folder}/${file.name}" class="hide">${file.name}</a>`;
   }
 // --------------------------------------------------------------
-    if (!CurrentFolder || CurrentFolder === UserSession.user.name) {
+    if (!CurrentFolder || CurrentFolder === Username) {
     //Then we are at the homepage, viewing all files from other directories.
     $(fileCard).find('header').append(`
       <h1 path="${folder}" style="font-size: 1.0rem">
@@ -197,46 +196,30 @@ function insertFileCard (source, fileCard, file) {
 
 
 /*===============================================================
-//We wish to segregate files into "packs" (max number depends on client device). The first pack is automatically initiated with the first max amount of files, the loop acquires the previous packs length to know which index to begin slice from (incrementally)
-===============================================================*/
-function divideDirectory (dir) {
-  dir.packs = [dir.files.slice(0, maxfiles)];
-  for (let i = 0; i < Math.floor(dir.files.length / maxfiles); i++) {
-    let nextindex = (dir.packs[i].length * dir.packs.length);
-    dir.packs.push(dir.files.slice(nextindex, nextindex + maxfiles));
-  };
-  if (dir.files.length >= maxfiles)
-    Flash([`Will not display more than ${maxfiles} files at a time. The remaining`, `will be segregated. Select [Next File Set] to cycle through them`], 'warning', [`${dir.files.length -maxfiles}`]);
-  dir.files = dir.packs[dir.index];
-  $('.all-count').text(`${AllFiles.count.length}/${dir.files.length}`);
-  $('#dirIndex').text(`(${dir.index + 1}/${dir.packs.length})`);
-
-  return dir;
-};
-
-
-/*===============================================================
   Third most important function here. Whenever the page loads or a user requests all their OWN files, this function will be called on loading a directory, clicking "More Files", or clicking "View My Files". It basically lists the media content of every file, and displays every folder within a 'Card' element.
 ===============================================================*/
 async function listDirectoryContents (evt, all) {
-  // Directory.packs ? $('#fetchFiles').show() : $('#fetchFiles').hide();
   clearDialog();
 
-  if (AllFiles.count.length < Directory.files.length)
+  if (Directory.files && AllFiles.count.length < Directory.files.length)
     await AllFiles.add(Directory.files.slice(0, maxfiles), true);
 
   //If user has search input, only list files that contain the characters input
-  const filesToList =  $('.file-search')[0].value
+  const filesToList = $('.file-search')[0].value
     ? namefinder(Directory.files, 'filter', $('.file-search')[0].value)
     : Directory.files.slice(0, maxfiles);
   let filesListed = 0;
 
   for (let file of filesToList) {
+      if ($(`div[id="${file.name}"][path="${file.path}"]`)[1])
+        $(`div[id="${file.name}"][path="${file.path}"]`)[1].remove();
 
-      if ($(FileTable).children('.ui-draggable').length > AllFiles.count.length || filesListed >= 10)
+      if ($(FileTable).children('div').length > AllFiles.count.length || filesListed >= 10)
         break; /*Then we stop listing, to avoid overloading page*/
+
       else if ($(`div[id="${file.name}"][path="${file.path}"]`)[0] || file.path === Partition.replace('/', ''))
         continue; //Simple, if that file (file card) already exists, don't display it again obviously
+
       else if (checkModeType(file.mode || file.stats.mode) === 'folder') /*Then it's a folder, should always display*/ {
         filesListed = filesListed;
       }
@@ -250,9 +233,9 @@ async function listDirectoryContents (evt, all) {
       //Each iteration creates a file/folder card, gets any media content, and appends/displays it to the page. No more than 10-15 files are listed/displayd per function call, unless Shift is pressed when More Files is clicked.
       let fileCard = $(makeFileCard(file, 'uploaded'));
       setTimeout( () => {
-        createMedia(file, file.path, fileCard).then( (source) => insertFileCard(source, fileCard, file));
-      }, 5);
-
+        createMedia(file, file.path, fileCard)
+        .then( (source) => insertFileCard(source, fileCard, file));
+      }, 10);
 
   }; //End of For loop going over files
   checkForEmpty();
@@ -263,25 +246,34 @@ async function listDirectoryContents (evt, all) {
 //Intensive function. Sends a request, and finds ALL files that belong to the given user, and returns them to the browser to replace the current "Directory.files"
 ===============================================================*/
 async function findAllFiles (evt, index) {
+  if (UserSession.home !== UsersDirectory && CurrentFolder)
+    triggerLink('/'); //Trying to activate this function while within a directory will redirect.
+  if (Directory && typeof(Directory) !== 'string') {
+    if (!Directory.files || index !== undefined) {
+      Directory.index = Math.min(Math.max(index !== undefined ? index : Directory.index, 0), Directory.maxindex || 1);
 
-  if (!Directory.files || index !== undefined) {
-    Directory.index = Math.min(Math.max(index ? index : Directory.index, 0), Directory.maxindex || 1);
+      axios.post(`/all`, {index: Directory.index, folder: Directory.name}).then( async (res) => {
 
-    axios.post(`/all/${Directory.name}`, {index: Directory.index}).then( (res) => {
+        if (await checkForServerError(res))
+          return false;
 
-      Directory = res.data;
+        Directory = res.data;
 
-      if (Directory.files.length === 500) {
-        Flash([`Will not display more than`, `files at a time. Request next file set in navbar to retrieve more. This will be replace the current 500`], 'warning', [maxfiles]);
-      }
-      // Directory = divideDirectory(Directory);
-      Directory.index === Directory.maxindex && Directory.index > 0 ? $('#nextAll').hide() : $('#nextAll').show();
-      Directory.index === 0 ? $('#prevAll').hide() : $('#prevAll').show();
+        if (Directory.files.length >= maxfiles) {
+          Flash([`Will not display more than`, `files at a time. Request next file set in navbar to retrieve more. This will replace the current file set`], 'warning', [maxfiles]);
+          $('#fetchFiles').show();
+        } else if (!Directory.maxindex) {
+          $('#fetchFiles').hide();
+        }
+        // Directory = divideDirectory(Directory);
+        Directory.index === Directory.maxindex && Directory.index > 0 ? $('#nextAll').hide() : $('#nextAll').show();
+        Directory.index === 0 ? $('#prevAll').hide() : $('#prevAll').show();
 
-      listDirectoryContents(event);
+        listDirectoryContents(event);
 
-    }).catch( (err) => Flash(err.message, 'error'));
+      }).catch( (err) => Flash(err.message, 'error'));
 
-    AllFiles.delete(AllFiles.count);
+      AllFiles.delete(AllFiles.count);
+    }
   }
 };

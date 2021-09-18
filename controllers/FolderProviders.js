@@ -2,19 +2,7 @@
 const fs = require('fs-extra');
 const {Sessions} = require('./UserHandling.js')
 const child_process = require('child_process');
-function pathfinder (arrays, method, file) {
- if (!Array.isArray(arrays[1]))
-   arrays = [arrays];
-   //This is so we can pass TWO arrays that can be run through
 
- for (let array of arrays) {
-   const found = array[`${method}`]( listfile => (listfile.name === file.name && listfile.path === file.path)) || null;
-   //Example: "this.files.find(>>THE FUNCTION YOU SEE ABOVE<<)"
-   if (found)
-     return found;
-   else continue;
- };
-};
 module.exports = {
 
   /*===============================================================*/
@@ -77,33 +65,34 @@ module.exports = {
       const foundItems = items.map( (item, i, arr) => { //If the item was a directory, map through all its children
         // -------------------------------------------------------
 
-        let path = `${directory}/${item}`;
+        let dirPath = `${directory}/${item}`;
         return new Promise( (resolve, reject) => { //Ultimate promise, for every directory resolution
           //VERY important
-          if (fs.statSync(path).isDirectory()) {
+          if (fs.statSync(dirPath).isDirectory()) {
             //If it's a directory, we will build on the previous directory and call this function again. All the way until (depending on parameters), we find a folder (searchfolder param), or we get an actual file (file search)
-            if (path[0] === '@' || path[0] === '$' || path[0] === '#')
+            if (dirPath[0] === '@' || dirPath[0] === '$' || dirPath[0] === '#')
               return resolve(false); //Then it's a hidden/reserved/special folder
 
             if (searchfolder) {
               //If searchfolder is true, we're querying for folders, and don't want files
-              if (path.toLowerCase().includes(searchfolder.toLowerCase()))
+              if (dirPath.toLowerCase().includes(searchfolder.toLowerCase()))
               //Lower case it, no need to be uptight here
-                moreItems.push(path);
+                moreItems.push(dirPath);
 
-              resolve(module.exports.GetAllItems(path, moreItems, searchfolder, req));
-            } else resolve(module.exports.GetAllItems(path, moreItems, false, req)); //Both these resolves mean a new directory was found and needs to be iterated, so the promise returns ANOTHER promise, all the way until it gets the items its looking for
-          } else if (searchfolder) return resolve(false); //If not a directory and we're searching, continue, we don't want files
+              resolve(module.exports.GetAllItems(dirPath, moreItems, searchfolder, req));
+            } else resolve(module.exports.GetAllItems(dirPath, moreItems, false, req)); //Both these resolves mean a new directory was found and needs to be iterated, so the promise returns ANOTHER promise, all the way until it gets the items it's looking for
+          } else if (searchfolder) resolve(false); //If not a directory and we're searching, continue, we don't want files
           // -------------------------------------------------------
           else { //If not a directory and we're not searching/querying folders, we're looking for files
+            let maxfiles = req.mobile ? 100 : 500;
             req.session.index += 1; //Every file iterated increments this
-            if (req.body.index && req.session.index < req.body.index * 500 || moreItems.length === 500) {
+            if (req.body.index && req.session.index < req.body.index * maxfiles || moreItems.length === maxfiles) {
               return resolve(moreItems);
             } //The indexing is to locate which "bunch/set" of files to query. Each body index represents a new set of 500 files. 0 = the first 500, 1 = ignores first 500 uses next 500, 2 = ignores first 1000, etc.
             let file = {
               name: item,
               path: directory.replace(partition + '/', ''), //When its stored, partition path no longer needed
-              stats: fs.statSync(path)
+              stats: fs.statSync(dirPath)
             };
             file.stats.creator = Sessions.users[`User${file.stats.uid}`].name || 'Admin';
 
@@ -142,13 +131,13 @@ module.exports = {
   /*===============================================================*/
 
   /*===============================================================*/
-  GetChildren: function (path) {
-    if (fs.statSync(path).isDirectory()) {
+  GetChildren: function (dirPath) {
+    if (fs.statSync(dirPath).isDirectory()) {
       const items = {files: [], folders: []};
       return new Promise( (resolve, reject) => {
-        fs.readdir(path, (error, children) => {
+        fs.readdir(dirPath, (error, children) => {
           for (let child of children) {
-            fs.statSync(`${path}/${child}`).isDirectory()
+            fs.statSync(`${dirPath}/${child}`).isDirectory()
             ? items.folders.push(child)
             : items.files.push(child);
           }

@@ -1,4 +1,8 @@
 'use strict';
+/*===============================================================
+  Had to create own method for just simply getting last element of given array.
+===============================================================*/
+Array.prototype.last = function (index) {return index ? this.length - 1 : this[this.length - 1]};
 const {ReportData, Sessions} = require('./UserHandling.js');
 const {CloseServer} = require('../index.js');
 const axios = require('axios');
@@ -74,51 +78,26 @@ module.exports = {
   /*===============================================================*/
 
   /*===============================================================*/
-  EntryToHTML: function (item) {
-    return `<span style="color: ${item.color}">${item.name}</span>`;
-  },
+    EntryToHTML: function (item, color) {
+      return `<span style="color: ${item.color || color}">${item.name || item}</span>`;
+    },
   /*===============================================================*/
 
   /*===============================================================*/
-  Compress: function (req, res) {
-    if (req.headers['x-no-compression']) return false
-    else return compression.filter(req, res)
-  },
-  /*===============================================================*/
-
-  /*===============================================================*/
-    CheckIfUpload: async function (req, res, targetDir) {
-    //This function ensures all uploaded file paths (new directories) are stored in array to be iterated and created beforehand to prevent access errors
-
-    if (req.body.paths && req.files) {
-    //If there aren't, it means no files were uploaded. Not used by any other directory access calls.
-
-      if (!req.files.files || !req.files.files[1]) {
-      //If only one file was uploaded, turn them into arrays
-
-        req.files.files = [req.files.files];
-        req.body.paths = [req.body.paths];
-      }
-      for (let i = 0; i < req.files.files.length; i++) //We store the file paths, as they will be referenced within the official "Upload" function next up
-        req.files.files[i].path = req.body.paths[i];
-
-      req.body.paths.unshift(targetDir); //Make sure the posted directory path is there as well
-
-      return req.body.paths.filter( (value, index) => req.body.paths.indexOf(value) === index);
-      //Upon multi-folder uploads, there are often several files with the same folder paths. As we don't need 10-20 iteration attempts at creating one directory path, we filter any duplicates out.
-
-    } else return [targetDir];
-  },
+    Compress: function (req, res) {
+      if (req.headers['x-no-compression']) return false
+      else return compression.filter(req, res)
+    },
   /*===============================================================*/
 
   /*===============================================================*/
     CheckIfTransfer: async function (req, res, directory) {
 
-      let path = directory.split('/')[0] + '/' + directory.split('/')[1];
+      let target = directory.split('/')[0] + '/' + directory.split('/')[1];
 
       //First element should be Users Directory, second should be user's private directory/name
       let userpath = `${UsersDirectory}/${req.session.user.name}`;
-      if (req.body.mydirectory && path !== userpath) {
+      if (req.body.mydirectory && target !== userpath) {
         //If mydirectory selected but input is not correct.
         ReportData(req, res, false, {
           content: [`Requested transfer to private directory:`, `But input not correct. Check spelling, or disable private directory target by unchecking "User Directory" icon.`],
@@ -127,14 +106,14 @@ module.exports = {
         });
         return false;
       }
-      else if (!req.body.transfer && req.body.mydirectory) {
+      else if (req.headers.operation !== 'Transfer' && req.body.mydirectory) {
         //Only transferring from public to private allowed, submission/uploading is not, because why not just do that within the private directory itself?
-           ReportData(req, res, false, {
-            content: ['Can only TRANSFER items from public to private directory'],
-            type: 'error'
-          });
-          return false;
-        } else if (req.body.mydirectory) return '.';
+         ReportData(req, res, false, {
+          content: ['Can only TRANSFER items from public to private directory'],
+          type: 'error'
+        });
+        return false;
+      } else if (req.body.mydirectory) return '.';
 
       return req.session.home || process.env.partition;
     },
@@ -147,17 +126,16 @@ module.exports = {
 
     clearTimeout(process.logWrite);
     process.logWrite = setTimeout( () => {
-       fs.appendFile(`${process.env.infodir}/log.txt`, `(${user}) -> ${message} ${date.toLocaleDateString()}/${date.toLocaleTimeString()}\r\n`);
+       fs.appendFile(`${process.env.infodir}/log.txt`, `(${user || 'Anonymous'}) -> ${message} ${date.toLocaleDateString()}/${date.toLocaleTimeString()}\r\n`);
     }, 5000);
   },
   /*===============================================================*/
 
   /*===============================================================*/
   ExitHandler: function (err) {
-    if (err) {
+    if (err)
       console.log((new Date).toUTCString() + ' uncaughtException:', err.message)
-      console.log(err.stack, 'Holy shit boss');
-    }
+
     for (let i in Sessions.users) {
       if (!Sessions.users[i].session_id) {
         Sessions.users[i].loggedIn = false;
@@ -192,7 +170,7 @@ module.exports = {
   /*===============================================================*/
   CheckSessionAndURL: async function (req, res, next) {
 
-    // req.session.user = {name: 'Stroggon', uid: 0, admin: true, residing: Sessions.user(req).residing};
+    // req.session.user = {name: 'Stroggon', uid: 0, admin: true, residing: 'Achelon'};
     // req.session.log = req.session.log || [];
     //   req.session.preferences = {
     //     outsideDir: false,
@@ -204,34 +182,27 @@ module.exports = {
     // req.session.firstVisit = false;
     // req.session.home = process.env.partition;
     // req.session.loginAttempts = 0;
-
-    const url = req.originalUrl;
-
+    const url = req.baseUrl;
+// ----------
     if (worthlessURLS.find( skip_url => url.includes(skip_url)))
-      return false;
-    //These are unnecessary requests made by browser, dismiss them unless we want the icons
-
-    if (url === '/login' || url === '/signout' || url === '/all/undefined')
       return next();
-
-    if (req.session.user && Sessions.user(req).loggedIn === false)
+    //These are unnecessary requests made by browser, dismiss them
+// ----------
+    if (url === '/login' || url === '/signout' || req.session && url === '/all/undefined' || req.session && url === '/all')
+      return next();
+// ----------
+    if (!req.session || req.session.user && Sessions.user(req).loggedIn === false) {
       return res.redirect('/signout');
-
+    }
     // -------------------------------------
+    const partition = req.session.home || process.env.partition
     if (req.session && req.session.user) {
       Sessions.user(req).loggedIn = true;
-      req.session.user.residing = Sessions.user(req).residing;
-      const partition = req.session.home || process.env.partition
-      if (url === '/' + partition)
-        return res.redirect('/');
-
-      //Homepage represents top-level partition, so redirect there if partition us input as url
-      if (req.session.log && req.session.log.length >= 50) {
-       //Log size must be limited else it will be excessive data to keep track of
-       do req.session.log.shift();
-       while (req.session.log.length >= 50);
-     }
-     next();
+      if (url === `/${partition}` || url === `/${partition}/${req.session.user.name}`) {
+        req.session.user.residing = partition === UsersDirectory ? req.session.user.name : '/';
+        //Homepage represents top-level partition, so redirect there if partition was input as url
+      }
+     return next();
     } else return res.redirect('/login');
 
   },
