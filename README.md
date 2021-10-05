@@ -12,7 +12,7 @@ The "Controllers" folder contains the back-end script files:
   Hasher is simply the crypto-hasher functionality for creating/comparing password info
 "routes" folder simply holds routes.js, the file responsible for all non-general route handlers 
 
-"views" contains the html/ejs display templates. Directory.ejs is the workbench for all file browsing that takes place, providing the application the core global variables, 
+"views" contains the html/ejs display templates. "directory" is the workbench for all file browsing that takes place, providing the application the core global variables, 
 and allowing the "single-page-application" capability.
 "styles" folder contains all the CSS style-sheets, divided up throughout several files to segregate portions of the page
 "scripts" folder contains 90% of all javascript functionality on the browser side. They are loaded in order of importance (with the exception of Aesthetics.js) 
