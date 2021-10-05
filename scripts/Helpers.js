@@ -1,6 +1,53 @@
-
 ( function(exports) {
-
+  /*===============================================================
+    Removes the weird parse-coding that replaces 'Spacebar' characters, and restores the original spacebar whitespace.
+  ===============================================================*/
+  String.prototype.getSpaceChars = function () {return this.replaceAll('%20', ' ')};
+  
+  /*===============================================================
+    Not very necessary, did it for readability since "!includes(thing) can take a few glances".
+  ===============================================================*/
+  String.prototype.isNotIn = function (comparison) { return !comparison.includes(this)};
+  
+  /*===============================================================
+    Compares a given string to any amount of string parameters for exact match, if a parameter is an array, loop over that as well.
+  ===============================================================*/
+  String.prototype.matchesAny = function () { 
+  	for (let str of arguments) {
+  	  if (Array.isArray(str)) {
+  	    for (let s of str) {
+  	      if (this == s) return true;
+  	    }
+  	  } else if (this == str) return true;
+    }
+  } 
+  
+  /*===============================================================
+    Compares a given string to any amount of string parameters for rough match, if a parameter is an array, loop over that as well.
+  ===============================================================*/
+  String.prototype.includesAny = function () { 
+  	for (let str of arguments) {
+  	  if (Array.isArray(str)) {
+  	    for (let s of str) if (this.includes(str)) return true;
+  	  } else if (this.includes(str)) return true;
+    }
+  }
+  
+  /*===============================================================
+    Had to create own method for simply getting last element of given array without mutating.
+  ===============================================================*/
+  Array.prototype.last = function (index) {return index ? this.length - 1 : this[this.length - 1]}; 
+  
+  /*===============================================================
+    For retrieving the exact element within array (short-hand for array[array.indexOf(<whatever>)].
+  ===============================================================*/
+  Array.prototype.get = function (element) {
+  	if (typeof(element) === 'number')
+  	  return this[element];
+  	else return element ? this[this.indexOf(element)] : false;
+  };
+  
+  // ----------------------------------------------------------------------
   exports.pathfinder = function (arrays, method, file) {
       if (!Array.isArray(arrays[1]))
         arrays = [arrays];
@@ -19,7 +66,18 @@
       file = file.toLowerCase();
       return array[`${method}`]( (listfile) => listfile.name.toLowerCase() === file || listfile.name.toLowerCase().includes(file)) || null;
       //Example: "this.files.find(>>THE FUNCTION YOU SEE ABOVE<<)"
-    };
+    };  
+    
+    /*===============================================================
+    Another little helper used to scan through array of files that have a "size" property, combine them all into one number, and return it.
+    ===============================================================*/
+	exports.accumulateSize = function (n, p) {
+	  if (p && p.stats) p.size = p.stats.size || p.size || p;
+	  if (n && n.stats) n.size = n.stats.size || n.size || n;
+	  const prevSize = p && p.size ? p.size : p || 0;
+	  const nextSize = n && n.size ? n.size : n || 0;
+	  return parseInt(prevSize) + parseInt(nextSize);
+	}
 
     /*===============================================================
       Given file size is usually in bytes, which is a bloated number to read. This function uses Math to parse it into kilobytes/megabytes/gigabytes depending on amount of bytes of file.
@@ -55,7 +113,9 @@
   // ----------------------------------------------------------------------
     exports.parseHTML = function  (text) {
       // return text.replace(/<span.*?>/g, '').replace(/<\/span.*?>/g, '').replace('<hr>', '');
-      return text.replace(/<span.*?>/g, '').replace(/<\/span.*?>/g, '').replace('<br>', ', ').replace('<hr>', '');
+      //return text.replace(/<span.*?>/g, '').replace(/<\/span.*?>/g, '').replace(/<br>/g, ' <> ').replace(/<hr>/g, '').replace(/[[object Object]]/g, '');
+      return text.replace(/<span.*?>/g, '').replace(/<\/span.*?>/g, '').replace(/<br>/g, ', ').replace(/<hr>/g, '').replace(/object Object/g, '').replace(/\[]/g, '').replace(/,/g, '');
+      //Replace <spans> and <brs> and <hrs>, and any '[object Object' crap
     }
 
 }(typeof exports === 'undefined' ? this.helpers = {} : exports));

@@ -2,20 +2,85 @@
 const fs = require('fs-extra');
 const {Sessions} = require('./UserHandling.js')
 const child_process = require('child_process');
+const {checkModeType} = require('../scripts/Helpers.js');
 
 module.exports = {
+	
+  /*===============================================================*/
+  GetPrimaryDirectories: async function (req, home) {
+	
+	const PrimaryDirectories = fs.readdirSync(home, {withFileTypes: true})
+	.filter( dir => dir.isDirectory())
+	.map(dir => dir.name).map( async (directory) => {
+	  return new Promise( function (resolve, reject) {
+	
+	    if (directory[0] === '@' || directory[0] === '$' || directory[0] === '#')
+	      return resolve (false);
+	    //Then it's a hidden/reserved/special folder
+		const dirstats = fs.statSync(`${home}/${directory}`);
+	    let subfolders = [];
+	    //Grabbing sub-directories along with the stats and items within the given directory
 
+	    fs.readdir(`${home}/${directory}`, async (err, items) => {
+	      for (let i = 0; i < items.length; i++) { /*Check every item*/
+	
+	        const filestats = fs.statSync(`${home}/${directory}/${items[i]}`);
+	        dirstats.creator = Sessions.users[`User${dirstats.uid}`].name || 'admin';
+	        
+	        //Every item's stats are checked, and just their size is returned to be concatenated with the folderStats size (usually 0), so it will ultimately add up the sizes of all present items
+	        if (checkModeType(filestats.mode) === 'folder') {
+	 		  subfolders.push(items[i]); 
+	 		  items.splice(i, 1);
+	        } /*Then it can't BE a file, so --*/ 
+
+	      }; //End of second For Loop		
+	    // ------------------------------------------------ //
+	      dirstats.size = module.exports.GetFolderSize(req, `${home}/${directory}`, 0) || 1;
+	      return resolve({
+	        name: directory,
+	        stats: dirstats,
+	        size: dirstats.size,
+	        files: items,
+	        folders: subfolders,
+	      });
+	      // ------------------------------------------------ //
+	    }); //Read directory
+	  }); //Return promise
+	}); //Mapping cycle
+	return await Promise.all(PrimaryDirectories);
+  },
+  /*===============================================================*/	
+	
+  /*===============================================================*/
+  CreateItem: async function (req, item, folder, fullpath) {
+
+    item = { 
+     name: item,
+     path: folder,
+     stats: fs.statSync(`${fullpath}/${item}`),
+     children: await module.exports.GetChildren(`${fullpath}/${item}`), //Finding sub-files/folders
+    };
+    
+    item.stats.creator = Sessions.users[`User${item.stats.uid}`].name || 'Admin';
+    if (item.children) {
+      item.stats.size = await module.exports.GetFolderSize(req, `${fullpath}/${item.name}`, 0); // Continues inward cycle of iterations  
+      item.size = item.stats.size;
+      item.folder = 'true';
+    } else item.file = true;
+
+    return item;       
+  },
+  /*===============================================================*/
+  
   /*===============================================================*/
   GetDirectory: async function (folder, req, res) { //Collects the stats of the folder, its files, stores any child-folders/sub-directories within "layers" property, and stores the actual folder within the "name" property.
     let partition = req.session.home || process.env.partition;
-    let directory;
-    req.session.index = 0;
+	let maxfiles = req.mobile ? 100 : 500;
+    req.session.index = 0; // Iteration of files
 
-    if (!folder) {
-      partition = partition.split('/');
-      folder = partition.pop();
-      //It means the primary directory is likely mixed in with the partition name, at the end.
-    }
+    if (!folder)  //It means the primary directory is likely mixed in with the partition name, at the end. Should never happen really
+      folder = partition.split('/').last();
+    
 // ----------------------------------------------
     const fullpath = `${partition}/${folder}`;
     const stats = fs.statSync(`${fullpath}`); //Get stats from directory
@@ -25,17 +90,11 @@ module.exports = {
 // ----------------------------------------------------------------------------
         const dirItems = items.map( (item, i, arr) => { //Maps through each one
           return new Promise(async function (resolve, reject) { //Promise to wait for each item to be resolved
-            if (i === 500) {
+            if (i === maxfiles) {
               req.session.index = i;
               return resolve(false); //Don't collect any more than 500
-            } else item = {
-                name: item,
-                path: folder,
-                stats: fs.statSync(`${fullpath}/${item}`),
-                children: await module.exports.GetChildren(`${fullpath}/${item}`), //Finding sub-files/folders
-              };
-            item.stats.creator = Sessions.users[`User${item.stats.uid}`].name || 'Admin';
-            return resolve(item);
+            } 
+            return resolve(module.exports.CreateItem(req, item, folder, fullpath));
           });
         });
 // ----------------------------------------------------------------------------
@@ -73,10 +132,8 @@ module.exports = {
             if (dirPath[0] === '@' || dirPath[0] === '$' || dirPath[0] === '#')
               return resolve(false); //Then it's a hidden/reserved/special folder
 
-            if (searchfolder) {
-              //If searchfolder is true, we're querying for folders, and don't want files
-              if (dirPath.toLowerCase().includes(searchfolder.toLowerCase()))
-              //Lower case it, no need to be uptight here
+            if (searchfolder) { //If searchfolder is true, we're querying for folders, and don't want files
+              if (dirPath.toLowerCase().includes(searchfolder.toLowerCase()))//Lower case it, no need to be uptight here
                 moreItems.push(dirPath);
 
               resolve(module.exports.GetAllItems(dirPath, moreItems, searchfolder, req));

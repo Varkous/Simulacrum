@@ -55,12 +55,11 @@ $('#FileTable, ol').on('touchstart', waitSelect);
 $('.taphover').on('touchstart', function (evt) {
 
     const link = $(this); //preselect the link
-    if (link.hasClass('hover')) {
+    if (link.hasClass('hover') || link.hasClass('folder-link')) {
       return true;
     } else {
         link.addClass('hover');
         $('.taphover').not(this).removeClass('hover');
-        // evt.preventDefault();
         return false; //extra, and to make sure the function has consistent return points
     }
 });
@@ -73,3 +72,4 @@ window.addEventListener('touchstart', detectSwipe);
 window.addEventListener('touchend', (evt) => touchEnd = Math.ceil(evt.changedTouches[0].pageX)); //And collects the end distance
 $('body').on('touchstart', 'a', holdToDownload);
 $('body').on('touchend', '*', () => clearTimeout(window.waitTrigger));
+$('body').on('click touchstart', '.folder-link', inputItemName); //Tapping folder links adds their name to input.

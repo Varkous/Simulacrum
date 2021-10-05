@@ -4,7 +4,7 @@ const messageTips = [
     text: `Welcome to Simulacrum, a browser-based GUI file systems manager. You may search, view and interact with items from your private directory <span class="dimblue">${Username}</span>, or the public directory <span class="dimblue">${Partition}</span> from here<hr>
      Some rules of thumb: <br><span class="dimblue">1.</span> Do not upload any sensitive/confidential data that may expose your private info (like banking, home address, etc.)<br>
      <span class="dimblue">2.</span> If the items are only relevant to you, upload them to your private directory instead of the public one <br>
-     <span class="dimblue">3.</span> Be reasonable. Avoid uploading 30-40 gigabyte programs, and if you have to upload massive files, please compress them to zip or rar file first.`,
+     <span class="dimblue">3.</span> Be reasonable. Avoid uploading 30-40 gigabyte programs and such, and if you have to upload massive files, please compress them to zip or rar file first.`,
     element: '.header',
     },
 /* 1 */  {
@@ -37,7 +37,7 @@ const messageTips = [
   }
 ];
 if (mobile)
-  messageTips[2].text += ' Tap them to view their properties, double-tap to visit them.'
+  messageTips[2].text += ' Tap them to view their properties, where you may access their links.'
 
 
 /*===============================================================
@@ -111,24 +111,26 @@ function displayDirectoryStats (evt) {
 
     let childFolderLinks = [];
 
-    for (let subfolder of PrimaryDirectories[i].folders) /*Get all sub-directories of the directory that was hovered over */  childFolderLinks.push(`<a href="${this.href}/${subfolder}" style="margin-left: 7px;">${subfolder}</a>`)
+    for (let subfolder of PrimaryDirectories[i].folders) /*Get all sub-directories of the directory that was hovered over */
+      childFolderLinks.push(`<a href="${this.href}/${subfolder}" style="margin-left: 7px;">${subfolder}</a>`)
 
     $(directoryStats).removeClass('fadein').addClass('fadeout');
 // ----------------------------------------------------------------
     window.displayStats = setTimeout( () => {
 
+	  let dir = PrimaryDirectories[i];
       $(directoryStats).html(
        `<div class="d-flex" style="justify-content: space-between">
-           <a href="/${Partition + PrimaryDirectories[i].name}" style="font-size: 1.2rem;">${PrimaryDirectories[i].name}</a>
+           <a href="/${Private ? Partition + `${Username}/${dir.name}` : Partition + dir.name}" style="font-size: 1.4rem; margin: auto;">${dir.name}</a>
            <i class="fa fa-times"></i>
          </div>
         <hr>
         <p>
-          Created By: <span>${PrimaryDirectories[i].stats.creator}</span> <br>
-          Creation Date: <span>${PrimaryDirectories[i].stats.ctime}</span> <br>
-          Size: <span>${getFileSize(PrimaryDirectories[i].stats.size)}</span> <br>
-          Files: <span style="color: darkcyan; max-width: 300px; word-wrap: break-word;">
-          ${PrimaryDirectories[i].files.join('<span>,</span> ')}
+          Created By: <span>${dir.stats.creator || 'admin'}</span> <br>
+          Creation Date: <span>${new Date(PrimaryDirectories[0].stats.birthtimeMs).toLocaleString()}</span> <br>
+          Size: <span>${getFileSize(dir.stats.size)}</span> <br>
+          Files: <span style="color: white; max-width: 300px; word-wrap: break-word;">
+          <span class="dir-stat-file">${dir.files.join('</span><br><span class="dir-stat-file">')}
           </span>
         </p>
         <hr>
@@ -147,23 +149,50 @@ function displayDirectoryStats (evt) {
 /*===============================================================
   Called on upload, download, deletion or transfer requests, where the modal is displayed and progress bar tracks it.
 ===============================================================*/
-function showOperation (op) {
+function showOperation (op, operands = []) {
+ try {
+  const inEffect = []
+
+  if ($('.progress')[0] && $('.progress').hasClass(op)) {
+    Flash(`<span class="green">${op}</span> operation already in effect. Reload directory to cancel it`, 'error');
+    return false;
+  }
+
+  for (let file of operands)
+   if (pathfinder(SelectedFiles.count, 'find', file) && pathfinder(SelectedFiles.count, 'find', file).status)
+      inEffect.push(file.name);
+
+  if (inEffect.length) {
+    Flash(['Halted. Targeted files: ', 'Are currently under effect of another operation, please wait'], 'warning', inEffect);
+    return false;
+  }
+// ----------------------------------------------------------------
+  operands.forEach( async (file, i, arr) => pathfinder(SelectedFiles.count, 'find', file) ? pathfinder(SelectedFiles.count, 'find', file).status = op : false);
+
   $(FS_Modal).show();
-  $(FS_Modal).find('.progress').remove();
-  $('.progress-op').text(op);
-  $($('.progress')[0]).clone().insertAfter('.fs-modal-message'); //Only want a single progress element
-    if (op === 'Delete') op = 'Delet'
-    if (op === 'Transfer') op = op + 'r'
+  let progressElements = $('.fixed').find('.progress').length;
+  let gerund = op;
+
+  let newProgress = `<progress class="progress ${op}" value="0" max="100" height=30></progress>`;
+
+  $('.operation-status').prepend(newProgress);
+    if (op === 'Delete') gerund = 'Delet'
+    if (op === 'Transfer') gerund = op + 'r'
     //Good grammar is some priority right?
-  $('.fs-modal-message').text(`${op}ing files...`);
+   $('.fs-modal-message').append(newProgress + `<div class="${op}"><br>${gerund}ing files...<hr></div>`);
+   $(`.progress.${op}`).attr('data-before', op);
+   return true;
+ } catch (err) {console.log(err) };
 };
 
 
-/*===============================================================
+/*=====================================
+==========================
   Activates when the user session has precautionary preferences set, and they make a request which sets it off (i.e, deleting or uploading large amount of files).
   With the object variables passed in, the function creates the dialog box, shows it to user, and blocks all actions until they click one of the two buttons (which equate to True or False).
 ===============================================================*/
-async function dialogPrompt (operation) {
+function dialogPrompt (operation) {
+  document.body.style.overflow = 'hidden';
   const {
     warning, //  A warning message.
     responseType, // A type of response allowed to the user.
@@ -179,26 +208,28 @@ async function dialogPrompt (operation) {
   //This box is created only for the intermission period before a request of some sort is executed. When either button is clicked, this element SHOULD be destroyed by 'clearDialog' afterward
   $('.dialog-box').html(`
   <p>${warning}</p>
-  <button class="my-button light" type="button" onclick="${proceedFunction}"></button>
-  <button class="my-button light" type="button" onclick="clearDialog('${storageType}')"></button>
+  <button id="confirm" class="my-button light" type="button" onclick="${proceedFunction}"></button>
+  <button id="cancel" class="my-button light" type="button" onclick="clearDialog('${storageType}')"></button>
   <hr>
   <div id="prefInput" style="font-family: Courier New; font-size: 1.0rem;">
     <label></label>
-    <input id="${preference}" class="checkbox" type="checkbox">
   </div>
   `);
 
-  let pref = $('.dialog-box').find('input')[0] || null;
-  if (pref && pref.id !== 'none') {
-    pref.checked = UserSession.preferences[`${pref.id}`];
-    //Whatever the original preference was (true or false), set the checkbox condition equal to the same value
-    if (pref.checked) $('#prefInput').children('label').text("Show this message again?");
-    //If checked (TRUE), checkbox is filled showing the message again is encouraged
-    else $('#prefInput').children('label').text("Don't remind me");
-    //If unchecked (FALSE), checkbox is un-filled with option to choose no more reminders
-  }
-
+	if (preference) {
+	  $('#prefInput').append(`<input id="${preference}" class="checkbox" type="checkbox">`);
+	  let pref = $('.dialog-box').find('input')[0] || null;
+	  if (pref && pref.id !== 'none') {
+	    pref.checked = UserSession.preferences[`${pref.id}`];
+	    //Whatever the original preference was (true or false), set the checkbox condition equal to the same value
+	    if (pref.checked) $('#prefInput').children('label').text("Show this message again?");
+	    //If checked (TRUE), checkbox is filled showing the message again is encouraged
+	    else $('#prefInput').children('label').text("Don't remind me");
+	    //If unchecked (FALSE), checkbox is un-filled with option to choose no more reminders
+	  }
+	}
   $('.dialog-cover').show();
+
 
   if (responseType === 'boolean') {
     $('.dialog-box').children('button')[0].innerText = 'Yes';
@@ -212,40 +243,57 @@ async function dialogPrompt (operation) {
 };
 
 
+/* ----------------------------------------- */
+$(form).submit( (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  if (StagedFiles.count.length) {
+	const uploadSize = StagedFiles.count.length > 1 ? StagedFiles.count.reduce(accumulateSize) : StagedFiles.count[0].size;
+    if ($(FolderInput).val() !== Directory.name && UserSession.preferences.outsideDir === false && document.URL.includes(Partition)) {
+      //If target folder is not current directory, user has not set preference, and we are not on the homepage
+        dialogPrompt({
+          warning: `You are currently submitting all staged files to a folder (<span class="dimblue">${$(FolderInput).val()}</span>) outside this directory (<span class="dimblue">${Directory.name || CurrentFolder}</span>).`,
+          responseType: 'confirm',
+          proceedFunction: "submitFiles(event)",
+          preference: 'outsideDir'
+        });
+    } else if (Private && (uploadSize + totalsize) > UserSession.maxsize)
+        return Flash(['Upload would exceed maximum capacity of your private folder:', 'Remove files to free up space'], 'error', getFileSize(UserSession.maxsize)); //Guest has file size limit, verify it does not exceed max
+    else submitFiles(event);
+  } else submitFiles(event);
+}); //Whenever the user clicks Submit, attempt to upload files
+/* ----------------------------------------- */
+
+
 /*===============================================================
-  Any time file-icon is clicked, its parent will always be uploaded file card or LI. Find the given directory file with the name and path of that element, collect its essential stats, and place those into hover-display element for user
+  Determines if user wants to delete selected files, or all of them (if shift key pressed). Calculates size and sends warning for user to confirm deletion.
 ===============================================================*/
-function showFileInfo (evt) {
+function verifyDeletion() {
+ try {
+  const targetFiles = event.shiftKey && !SelectedFiles.count.length ? AllFiles.count : SelectedFiles.count;
 
-  $('.file-info').remove(); //Remove any previous displays
+  if (!targetFiles.length)
+    return Flash('No files selected for deletion', 'warning');
 
-  let fileRef = $(this).parents('.uploaded')[0] || $(this).parents('.queued')[0]// <LI> or File Card
-  let file = {
-    name: fileRef.id || fileRef.title,
-    path: $(fileRef).attr('path') || 'TBD'
-  } //Name and path attribute is all we need
-  let filedata;
-  let status;
+  let size = 0;
+  for (let file of targetFiles) {
+    if (size >= 50000000) { // No need to keep counting if already past warning threshold
+      break;
+    } else if (pathfinder(StagedFiles.count, 'find', file)) continue;
+    else size += parseInt(file.size);
+  };
 
-  if ($(fileRef).hasClass('uploaded')) { //Uploaded file
-    filedata = pathfinder(Directory.files, 'find', file).stats;
-    status = 'Uploaded';
-  } else { //Staged file
-    filedata = pathfinder(StagedFiles.count, 'find', file);
-    status = 'Last Modified';
-  }
-  let creationDate = new Date(filedata.birthtimeMs || filedata.lastModified); //Both depend on staged or uploaded type
+  if (UserSession.preferences.deleteCheck && size >= 50000000) {
+    // If size is more than 50 MBs send a warning before deletion
+    dialogPrompt({
+      warning: `Delete <span class="dimblue">${targetFiles.length}</span> files (<span class="dimblue">${getFileSize(size)}</span>)? This cannot be undone. (All staged files will be removed as well)`,
+      responseType: 'boolean',
+      proceedFunction: `deleteMultiple('${targetFiles === AllFiles.count ? 'ALL' : false}')`,
+      preference: 'deleteCheck'
+    });
 
-  file.date = creationDate.toLocaleDateString();
-  file.creator = filedata.creator || 'You'; //Both depend on staged or uploaded type
-  file.size = getFileSize(filedata.size);
-
-  $(fileRef).append(`
-    <ul class="folder-children fadein file-info">
-    <span>Path: </span>${file.path}<br>
-    <span>Size: </span>${file.size}<br>
-    <span>Created By: </span>${file.creator}<br>
-    <span>${status}: </span>${file.date}<br>
-    </ul>
-  `);
+  } else deleteMultiple();
+} catch (err) {
+   console.log(err);
+ }
 };

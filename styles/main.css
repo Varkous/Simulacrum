@@ -74,13 +74,26 @@ td {
   top: 5px;
   padding: 8px;
   max-width: 50%;
-  text-wrap: break-word;
+  word-break: break-word;
+  overflow: scroll;
+  max-height: 100%;
   font-size: 1.2rem;
 }
 .directory-stats span {
   text-align: center;
   color: #29a0f8;
   font-size: 1.3rem;
+} .directory-stats span.dir-stat-file {	
+  color: darkcyan !important; 
+  border: 2px solid black !important;
+}
+.oversize-message {
+  background: rgba(0,0,0,0.8);
+  border: 1px double orange;
+    
+  align-self: baseline;
+  padding: 4px;
+  font-size: 1.2rem;	
 }
 #fileFolderInput {
   font-family: 'Alegreya Sans SC';
@@ -141,8 +154,15 @@ progress {
   border-radius: 15px;
   -webkit-appearance: none;
 
+  position: relative;
   min-height: 25px;
   min-width: 200px;
+  z-index: 1;
+}
+progress::-moz-progress-bar {
+  border-radius: 15px;
+  background: transparent;
+  box-shadow: inset 1px 1px 24px 1px green;
   z-index: 1;
 }
 progress::-webkit-progress-bar {
@@ -156,13 +176,18 @@ progress::-webkit-progress-value {
   border-radius: 25px;
   z-index: 1;
 }
-.progress-op {
+.progress:before {
+  content: attr(data-before);
   color: lightgrey;
-  z-index: 2;
-  top: -3px;
-  left: 32%;
+  font-family: 'Allerta Stencil';
+    
   position: absolute;
-  font-size: 1rem;
+  left: 30%;
+  top: -3px;
+  font-size: large;
+} .progress:hover {
+   box-shadow: 1px 4px 23px 2px white;
+   color: white;
 }
 .main-staged-count {
   background: black;

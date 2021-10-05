@@ -1,4 +1,3 @@
-
 if (process.env.NODE_ENV !== "production") {
   require('dotenv').config();
 }
@@ -7,20 +6,16 @@ const Website = new NEW();
 //NEW stands for "Node Express Website". Contains all the fundamental libraries that express generally uses
 module.exports = {app, express, path, wrapAsync} = Website;
 const session = require('cookie-session');
+const child_process = require('child_process');
 const fs = require('fs-extra');
 const compression = require('compression');
-
 /*======================================================*/
-const {Sessions} = require('./controllers/UserHandling.js');
-const {WriteLogFilter, CheckSessionAndURL, ClearTemp, ExitHandler, Compress} = require('./controllers/Utilities.js');
-const {GetFolderSize} = require('./controllers/FolderProviders.js');
-/*======================================================*/
-'use strict';
-
 let partition = process.env.partition || 'public';
 const UsersDirectory = process.env.UsersDirectory || 'users';
 process.sessionTimers = {};
 process.ServerTracker = {status: 1, countdown: null, warning: 'None'}; //Default. Any major problems incur status of 0.
+/*======================================================*/
+// Array.prototype.last = function (index) {return index ? this.length - 1 : this[this.length - 1]};
 const mobileTags = [ //Identifiers for mobile detection on request
 /Android/i,
 /webOS/i,
@@ -29,8 +24,19 @@ const mobileTags = [ //Identifiers for mobile detection on request
 /iPod/i,
 /BlackBerry/i,
 /Windows Phone/i
-]
+];
+const allExtensions =  [
+  '.bat','.apk','.com','.jpg','.jpeg','.exe','.doc','.docx','.docm','.ttf','woff2','.rpp', '.tar', '.html','.z','.pkg','.jar','.py','.aif','.cda','.iff','.mid','.mp3','.flac','.wav','.wpl','.avi','.flv','.h264','.m4v','.mkv','.mov','.mp4','.mpg','.rm','.swf','.vob','.wmv','.3g2','.3gp','.doc','.odt','.msg','.pdf','.tex','.txt','.wpd','.ods','.xlr','.xls','.xls','.key','.odp','.pps','.ppt','.pptx','.accdb','.csv','.dat','.db','.log','.mdbdatabase','.pdb','.sql','.tar','.bak','.cabile','.cfg','.cpl','.cur','.dll','.dmp','.drve','.icns','.ico','.inile','.ini','.info','.lnk','.msi','.sys','.tmp','.cer','.ogg','.cfm','.cgi','.css','.htm','.js','.jsp','.part','.odb','.php','.rss','.xhtml','.ai','.bmp','.gif','.jpeg','.max','.obj','.png','.ps','.psd','.svg','.tif','.3ds','.3dm','.cpp','.h','.c','.C','.cs','.zip','.rar','.7z'
+];
+module.exports.worthlessURLS = ['/fonts', '/favicon.ico', ...allExtensions];
 
+/*======================================================*/
+const {Sessions} = require('./controllers/UserHandling.js');
+const {WriteLogFilter, CheckSessionAndURL, ClearTemp, ExitHandler, Compress, CloseServer} = require('./controllers/Utilities.js');
+const {GetPrimaryDirectories} = require('./controllers/FolderProviders.js');
+const {accumulateSize, getFileSize} = require('./scripts/Helpers.js');
+/*======================================================*/
+    
 // ============================================================
 const resourceFolders = [
   session({ //Establishing session prototype, adopted by every user session
@@ -64,8 +70,9 @@ app.use(resourceFolders);
 app.get('/stop/:code', wrapAsync( async (req, res, next) => {
 
   if (req.params.code === process.env.exit_code) {
-    let reason = 'Server shutting down for more maintenance';
-    return module.exports.CloseServer(reason);
+    let reason = req.query.reason;
+    let time = req.query.time
+    return CloseServer(reason, time);
   }
 
 }));
@@ -80,20 +87,16 @@ ClearTemp (path.resolve('temp'));
 app.use('*', CheckSessionAndURL, wrapAsync( async (req, res, next) => {
 
 if (req.session) {
- if (process.ServerTracker.status === 0) {
-    let currentTime = Math.floor(new Date().getTime() / 60000);
-    console.log (Math.abs(currentTime - process.ServerTracker.countdown));
-    Math.abs(currentTime - process.ServerTracker.countdown) < 2 ? Sessions.terminate(req) : null;
-    //If server is shutting down in less than 2 minutes, terminate user's session
-  }
   let userAgent = JSON.stringify(req.headers['user-agent']);
+  let op = req.headers.operation;
   req.mobile = mobileTags.some( (match) => userAgent.match(match)) ? true : false;
+  req.session.mobile = true;  // Check if user is on mobile device
 
-    // req.session.preferences.smoothTransition = req.mobile ? false : true;
-    res.locals.Server = process.ServerTracker;
-    res.locals.UserSession = req.session;
-    res.locals.UsersDirectory = UsersDirectory;
-    //User session and user directory info provided to browser
+  res.locals.UserSession = req.session;
+  res.locals.UsersDirectory = UsersDirectory;	
+  //User session and user directory info provided to browser
+  res.locals.Server = process.ServerTracker;
+  
 }
   next();
 }));
@@ -101,80 +104,40 @@ if (req.session) {
 
 // ============================================================
 app.get('*', wrapAsync(async (req, res, next) => {
-
-  if (!req.session) {
+	
+  if (!req.session) 
     return res.redirect('/signout');
-  }
+  
+  const url = req.originalUrl;
+// ----------
+  if (url.includesAny(...module.exports.worthlessURLS))
+    return false;
 
   if (req.session && req.session.user) {
-// -----------------------------------------------------------------
-    req.session.home.includes(UsersDirectory) ?
-    homedirectory = `${req.session.home}/${req.session.user.name}` :
-    homedirectory = req.session.home;
 
-    //Whenever the user is browsing their own directory, restrict access to only folders that belong to them. We include their name and only search directories under that user name.
-// -----------------------------------------------------------------
-    let PrimaryDirectories = fs.readdirSync(homedirectory, {withFileTypes: true})
-    .filter( dir => dir.isDirectory())
-    .map(dir => dir.name).map( directory => {
-      return new Promise( function (resolve, reject) {
+    if (url.includes(req.session.home) || url === '/') {
+    	const homedirectory = req.session.home.includes(UsersDirectory) ? `${req.session.home}/${req.session.user.name}` : req.session.home;
+		//Whenever the user is browsing their own directory, restrict access to only folders that belong to them. We include their name and only search directories under that user name.
+		// -----------------------------------------------------------------
+		req.session.home === partition ? res.locals.partition = req.session.home + '/' : res.locals.partition = homedirectory + '/'; //If the public partition is the home, use it with no additions. If home is the user's private directory, add their name (by using homedirectory, see if-else condition at the top), so we aren't browsing the USERS directory, and instead just finding contents of ONE folder within Users directory for THIS user.
 
-        if (directory[0] === '@' || directory[0] === '$' || directory[0] === '#')
-          return resolve (false);
-        //Then it's a hidden/reserved/special folder
+		res.locals.rivals = Object.values(Sessions.users)
+		.map( user => user.loggedIn && user.name !== req.session.user.name ? {
+		  name: user.name,
+		  residing: user.residing,
+		  operating: user.operation
+		} : null).filter(Boolean) || [];
+		res.locals.firstVisit = req.session.user.firstVisit || false;
+		//The parameter true is for "search", means we are just searching for directory names, not files
 
-        let subfolders = [];
-        //Grabbing sub-directories along with the stats and items within the given directory
-        let dirstats = fs.statSync(`${homedirectory}/${directory}`);
-        fs.readdir(`${homedirectory}/${directory}`, async (err, items) => {
-          for (let item of items) { /*Check every item*/
+		if (req.originalUrl === '/') res.locals.directory = false;
 
-            filestats = fs.statSync(`${homedirectory}/${directory}/${item}`);
-            dirstats.size += filestats.size;
-            dirstats.creator = Sessions.users[`User${dirstats.uid}`].name || 'Admin';
-
-            //Every item's stats are checked, and just their size is returned to be concatenated with the folderStats size (usually 0), so it will ultimately add up the sizes of all present items
-            if (String(filestats.mode).slice(0, 2) === '16') /*Then it can't BE a file, so --*/ {
-              let folder = item;
-              subfolders.push(folder);
-            };
-
-          }; //End of second For Loop
-
-          for (let subfolder of subfolders) { /*Remove it from items array*/
-            items.splice(items.indexOf(subfolder), 1);
-            dirstats.size += await GetFolderSize(req, `${homedirectory}/${directory}/${subfolder}`, 0);
-          } //End of third For Loop
-
-        // ------------------------------------------------ //
-          return resolve({
-            name: directory,
-            stats: dirstats,
-            files: items,
-            folders: subfolders,
-          });
-          // ------------------------------------------------ //
-        }); //Read directory
-      }); //Return promise
-    }); //Mapping cycle
-
-    // ------------------------------------------------ //
-    req.session.home === partition ? res.locals.partition = req.session.home + '/' : res.locals.partition = homedirectory + '/'; //If the public partition is the home, use it with no additions. If home is the user's private directory, add their name (by using homedirectory, see if-else condition at the top), so we aren't browsing the USERS directory, and instead just finding contents of ONE folder within Users directory for THIS user.
-    res.locals.PrimaryDirectories = await Promise.all(PrimaryDirectories);
-    res.locals.rivals = Object.values(Sessions.users)
-    .map( user => user.loggedIn && user.name !== req.session.user.name ? {
-      name: user.name,
-      residing: user.residing,
-      operating: user.operation
-    } : null).filter(Boolean) || [];
-    res.locals.firstVisit = req.session.user.firstVisit || false;
-    //The parameter true is for "search", means we are just searching for directory names, not files
-
-    if (req.originalUrl === '/')
-      res.locals.directory = false;
-    req.session.user.firstVisit = false;
-
-    next();
+		GetPrimaryDirectories(req, homedirectory).then( (primes) => {
+		  res.locals.PrimaryDirectories = primes.filter(Boolean);	
+		  res.locals.totalsize = res.locals.PrimaryDirectories.length ? res.locals.PrimaryDirectories.reduce(accumulateSize) : 1;
+		  next();
+		});
+      } else next();
 //--------------------------------------------------
   } else next(); //If there was no user, go to next route
 }));
@@ -205,22 +168,3 @@ Website.routes.BaseHandlers = Website.makeBaseRoutes(process.env.PORT || 3001, '
      }
     return res.render('errorpage', {status, message, stack});
 }));
-
-
-  // =========================================================
-  module.exports.CloseServer = async (reason = 'Felt like it', now) => {
-
-    let shutdownTime = new Date().getTime() + parseInt(process.env.exit_time);
-    if (now) shutdownTime = 1000;
-
-    process.ServerTracker.status = 0;
-    process.ServerTracker.countdown = Math.floor( shutdownTime / 60000); //Convert to minutes
-    process.ServerTracker.warning = reason;
-
-    process.shutdown = setTimeout( () => {
-      process.exit(0);
-      Website.routes.BaseHandlers.server.close( () => console.log ('Server terminated'));
-
-    }, parseInt(process.env.exit_time));
-  };
-  // =========================================================

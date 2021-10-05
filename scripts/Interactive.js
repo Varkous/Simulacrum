@@ -4,15 +4,16 @@
 ===============================================================*/
 function inputItemName (anchor) {
 
-  event.preventDefault();
-  event.stopPropagation();
+  !mobile && event ? event.preventDefault() : false;
+  event ? event.stopPropagation() : false;
+  
   if ($(FolderInput)[0].disabled === true || $('#mydirCheck').is(':checked')
   || $(this).hasClass('fa-house-user') && !$('#mydirCheck').is(':checked'))
   //Do not add to input if disabled, if "My Directory" is checked, or user is unchecking the "My Directory" option
     return false;
 
   let clickedFolder = $(this).next('a').attr('href')  //Basic folder-icon-links
-  || $(this).siblings('a').attr('href') || $(anchor).closest('a').attr('href');
+  || $(this).siblings('a').attr('href') || $(anchor).closest('a').attr('href') || $(this).attr('href');
 
   clickedFolder = clickedFolder ? clickedFolder.replace(`/${Partition}`, '') : "";
   //Else every folder link begins with Partition name
@@ -39,6 +40,7 @@ function inputItemName (anchor) {
   }
 
   $('.view-dir').attr('href', `/${Partition + FolderInput[0].value}`);
+  return false;
 };
 
 
@@ -62,7 +64,8 @@ async function startQuery (evt) {
   }
 // ---------------------------------------------------------------------------
     if (this && this.id === 'FolderInput') { //If we're searching folder input
-      StagedFiles.unlist(StagedFiles.count, true);
+
+	  StagedFiles.unlist(StagedFiles.count.filter(file => !file.uploading), true);
       $(FolderInput).val(this.value);
       let autoInput = Private ? Username : `${UsersDirectory}/${Username}`;
       let queryCheck = this.value.slice(0, autoInput.length);
@@ -109,9 +112,9 @@ async function itemSearch(list, view, query, searchInput) {
 
         if (searchInput.id === 'FolderInput') {
           //Cleans up appearance of links before appension, that's all this is
-          let i = Directory.layers ? Directory.layers[Directory.layers.length - 1] : '/'; //This directory
+          let i = Directory.layers ? Directory.layers.last() : '/'; //This directory
           let styled_link = name.replace(Partition, '').replaceAll('/', '<span class="search-result">/</span>').replace(i, `<span>${i}</span>`); //Find all directories, replace Partition name (don't need it), add a <span> with a slash for folder division clarity, and make current directory white with span as well
-          let result = `<a href="/${name}" class="search-result" onfocus="inputItemName(this)">${styled_link}</a>`;
+          let result = `<a href="/${name}" class="search-result" onclick="inputItemName(this)" onfocus="inputItemName(this)">${styled_link}</a>`;
 
           finds.push(result);
           // ----------------------------------------------
@@ -173,38 +176,35 @@ async function bringUpPanel (evt) {
 };
 
 
-/*===============================================================
-  Self explanatory. Takes any given input value and resets it.
-===============================================================*/
-function clearInput(input) {
-  $('.input').removeAttr('disabled').val('');
-
-  if (StagedFiles.count)
-  for (let file of StagedFiles.count)
-    StagedFiles.unlist(file, true);
-}
-
-
-/*===============================================================
-  Triggers whenever a user CTRL+Mouse-Clicks a File Card. This inserts it into the "SelectedFiles.count" array (so that any time a user clicks Delete or DeleteAll or Transfer, any File Cards with the ID of that selected file will be removed/transferred). This function itself though, just adds some CSS to indicate a file card been selected.
+/*======================================================f=========
+  Triggers whenever a user clicks a File Card, Panel list item, or drag-selects over file Cards. This inserts it into the "SelectedFiles.count" array (so that any time a user clicks Delete or Transfer, any File Cards with the ID/Path of that selected file will be removed/transferred). This function itself though, just adds some CSS to indicate a file card been selected.
 ===============================================================*/
 async function selectFiles (evt, all) {
-
-  let target = evt.target || evt;
-  if (!all && evt) { //If 'all' is true, we're on mobile device, and doing multi-file select with double-tap
-    if (target.tagName === 'I' || $(target).hasClass('changed'))
-      return false; //If we're selecting icon within FileTable, downloading, or clicking anchor then no reason to select, could be annoying to user
+  //Target to be selected will either be the event target, evt itself, or THIS
+  
+  if (firefox) { //Same bullshit padding fix, so screen isn't jostling around every time an item is selected (is scaled)
+    $('main').css('padding', '1.1%');
+    setTimeout( () => $('main').css('padding', '1%'), 500);    	
   }
-  let name = this ? this.id || this.title : target.id || target.title;
-  let file = {name: name, path: $(this).attr('path') || $(target).attr('path')}; //Sometimes 'this' refers to the given link clicked, other times it must use the event.target or event itself to find the item selected
+
+  let target = evt.target ? evt.target : evt;
+  target = target.getAttribute('size') ? target : this; //"size" attribute will only be present on File items, the elements we want
+
+  if (!all && target) { //If 'all' is true, we're on mobile device, and doing multi-file select with double-tap
+    if (target.tagName === 'I' || $(target).closest('a').attr('contenteditable') || $('.file-info').is(':visible'))
+      return false; //If we're selecting icon within FileTable, downloading, clicking file-info, or clicking editable anchor then no reason to select, could be annoying to user
+  }
+
+  let name = target.id || target.title;
+  let file = {name: name, path: $(target).attr('path'), size: $(target).attr('size') || 0}; //Sometimes 'this' refers to the given link clicked, other times it must use the event.target or event itself to find the item selected
 
   if (!file) return false;
 
-    if (SelectedFiles.count.length && pathfinder(SelectedFiles.count, 'find', file))
+    if (SelectedFiles.count.length && pathfinder(SelectedFiles.count, 'find', file)) 
       await SelectedFiles.unlist(file);
-    //If the currently selected file was found, that means its already selected, which naturally means the user is attempting to UN-select it: So we remove its selection.
-
     else await SelectedFiles.add(file);
+    //If the currently selected file was found, that means its already selected, which naturally means the user is attempting to UN-select it: So we remove its selection.
+    
     $('.staged-count').text(`${StagedFiles.count.length || ''}`);
 
   return;
@@ -245,8 +245,9 @@ function shiftSelect(evt) {
 
     let lastSelected = SelectedFiles.count[SelectedFiles.count.length - 2]; // Basically only necessary when two files are selected, we need to get the first one before the one we just clicked
     let rootli = $(this).find(`li[title="${lastSelected.name}"]`)[0];
+
     if (evt.shiftKey) {
-      let nextSelected = evt.target;
+      let nextSelected = evt.target.tagName === 'LI' ? evt.target : $(evt.target).closest('li')[0];
 
       for (let li of $(rootli).nextAll('li')) { //Any list items <li> in between last and root select
         if (li === nextSelected)
@@ -259,6 +260,40 @@ function shiftSelect(evt) {
 
     }
   } else return false;
+};
+
+
+
+
+/*===============================================================
+  Any time file-icon is clicked, its parent will always be uploaded file card or LI. Find the given directory file with the name and path of that element, collect its essential stats, and place those into hover-display element for user
+===============================================================*/
+function showFileInfo (evt) {
+
+  evt.preventDefault();
+  evt.stopPropagation();
+
+  let fileCard = $(this).parents('.queued')[0] || $(this).parents('.uploaded')[0] || $(this).parents('.folder')[0] // <LI> or File Card
+  let status;
+  let item = {
+    name: fileCard.id || fileCard.title,
+    path: $(fileCard).attr('path') || 'TBD'
+  } //Name and path attribute is all we need
+  
+  if ($(`.file-info[title="${item.name}/${item.path}"]`)[0]) return $('.file-info').remove(); //Then info is already being displayed, close it (by returning and not continuing function)
+  $('.file-info').remove(); //Remove any previous displays
+// ---------------------------------------------------------- 
+  if ($(fileCard).hasClass('queued')) { //Staged file
+    item.stats = pathfinder(StagedFiles.count, 'find', item).stats;
+    status = 'Last Modified';
+  } else { // Uploaded file or folder
+    item.stats = pathfinder(Directory.files, 'find', item).stats;
+    item.children = pathfinder(AllFiles.count, 'find', item).children || null;
+    status = 'Uploaded';
+  }
+  $(fileCard).prepend(presentFileStats(item, item.stats, status))
+
+  return false;
 };
 
 
@@ -276,85 +311,4 @@ function resizeCards (zoom) {
     $('.media-content').removeClass('hide');
   }
   return false;
-};
-
-
-/*===============================================================
-  When clicking the edit icon, turns it to 'changed' and makes it editable. This does not change until the user clicks the icon again to "complete" the change, whereas we call 'renameItem' and submit the edit. This is the only function where "AllFiles.rename" is utilized, which updates all elements and media content where the old name was referenced.
-===============================================================*/
-async function makeEdit (icon, anchor) {
-  event.preventDefault();
-  event.stopPropagation();
-
-  let item = anchor; //Then it's a file card
-  let li = $(anchor).closest('li')[0] || $(anchor).closest('td')[0];
-// -------------------------------------------
-  if (item.id && item.tagName !== 'A') {
-
-    //If edit button is clicked in file card, pass task over to the list item in panel and replace elements accordingly (trick function into thinking li was clicked). Performing element mutation/editing within file card was too annoying.
-    li = $(`li[title="${item.id}"][path="${$(item).attr('path')}"]`)[0];
-    anchor = $(li).find('a')[0];
-    icon = $(anchor).next('.fa-edit');
-
-    if ($('#panelHeader').height() < 80)
-      $('#overheadPanel').click();
-      //If the panel is not already active, bring it up upon editing item
-  }
-
-// -------------------------------------------
-  if (!$(icon).hasClass('changed')) {
-    $(icon).addClass('changed');
-    $(anchor).attr('contenteditable', 'true').focus();
-    anchor.disabled = true;
-
-// ------------------------------------------
-  } else {
-    await renameItem (li).then( async (res) => {
-
-      if (!res) return false;
-	  await checkForServerError(res);
-      Flash(res.data.content, res.data.type, res.data.items);
-
-      if (res.data.type === 'error') return false;
-      if (li.id === 'primeDirectoryInput') return window.location.reload();
-      //Then the renaming was through Primary Directories input, too complicated to find all refs, so just reload page
-      else {
-        res.data.path.name = res.data.path.old;
-        //Need 'property' to satisfy file operation functions
-        SelectedFiles.unlist(res.data.path);
-        AllFiles.rename(res.data.path);
-      }
-// ------------------------------------------
-    }).catch( error => Flash(error.message, 'error'));
-    //And regardless...
-    $(icon).removeClass('changed');
-    $(li).removeClass('changed');
-    $(anchor).attr('contenteditable', 'false').text(li.title);
-    anchor.disabled = false;
-  }
-// ------------------------------------------
-};
-
-
-/*===============================================================
-  The post request which takes the input provided by the user, finds the li they edited, takes the old naming and new naming and sends them the info for the back-end to deal with before returning the response.
-===============================================================*/
-async function renameItem (li) {
-  event.preventDefault();
-  event.stopPropagation();
-
-  if (!$(li).attr('title'))
-    return Flash('No item selected to rename', 'error');
-
-  if ($(li).hasClass('changed')) {
-    let file = {
-      old: $(li).attr('title') || '',
-      new: $(li).children('a').text() || '',
-      path: $(li).attr('path') || '',
-    };
-
-    return await axios.post(`/rename`, file);
-
-  } else return false;
-
 };

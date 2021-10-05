@@ -85,7 +85,7 @@ input {
   font-size: 1.3rem;
 }
 button {
-  font-family: 'Jupiter';
+  font-family: 'Jupiter', 'Courier New';
   color: #22a0f4;
   background: rgba(0,0,0,0.7);
   box-shadow: 1px 2px 2px 3px #090f33;

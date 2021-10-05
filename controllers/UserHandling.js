@@ -1,12 +1,30 @@
 'use strict';
 const fs = require('fs-extra');
+const checkDiskSpace = require('check-disk-space').default
 const {Hash, Verify} = require('./Hasher.js');
 const {wrapAsync, sessionDuration} = require('../index.js');
 const {getFileSize, parseHTML} = require('../scripts/Helpers.js');
 let partition = process.env.partition;
 const UsersDirectory = process.env.UsersDirectory || 'users';
 const allowedPreferences = 5;
+  /*===============================================================*/
+  function GetFolderSize (req, directory, size) { //This function can call ITSELF and create a cascading call-return of whatever is passed in. It's used solely to get the size of all files in every directory and SUBDIRECTORY passed in, which can lead to calls upon calls upon calls.
+    try {
+      let directorySize = size || 0;
+      let dirFiles = fs.readdirSync(directory);
 
+      dirFiles.forEach( function (dirfile) {
+        if (fs.statSync(`${directory}/${dirfile}`).isDirectory()) {
+          //If one of the "files" of the directory is actually another directory, we just restart the process
+          directorySize = GetFolderSize(req, `${directory}/${dirfile}`, directorySize);
+        } else {
+          directorySize += fs.statSync(`${directory}/${dirfile}`).size;
+        }
+      });
+      return directorySize;
+    } catch (error) { throw error;}
+  }; //-------End of: Get folder size
+  /*===============================================================*/
 class SessionStore {
   constructor(store, users) {
   //Acquires all users from the "database", the store is the folder in which logs are kept
@@ -27,79 +45,80 @@ class SessionStore {
 
   };
   // ===========================
-  user(req) {
-    if (req.session) {
-      if (!req.session.user) {
+  user(req, ses) {
+  	const session = req.session ? req.session : ses //In case the session somehow expires during operation, we use the backup parameter
+    if (session) {
+      if (!session.user) {
         for (let i in this.users)
           if (this.users[i].name === req.body.name)
             return this.users[i];
-      } else return this.users[`User${req.session.user.uid}`];
+      } else return this.users[`User${session.user.uid}`];
     }
   };
 
   // ===========================
   async refresh(req, fresh) {
-    // if (process.ServerTracker.status === 0)
-    //   this.terminate(req);
 
     //Most important. Any request passed through a handler will trigger this, restarting the session timeout that tracks the user status, and also logs whatever action they commited.
     let user = this.user(req);
-      if (user.log && user.log.length > 50) {
+      if (user.log && user.log.length > 50 || user.log && user.log.join(' ').length > 5000) {
       //Log size must be limited else it will be excessive data to keep track of
         do user.log.shift();
-        while (user.log.length > 50);
+        while (user.log.length > 50 || user.log.join(' ').length > 5000);
       }
-    let log = user.log[user.log.length - 1] || ''; //Get the most recent log output
+    let log = user.log.length > 1 && user.log.last().isNotIn(user.log[user.log.length - 2]) ? user.log.last() : ''; //Get the most recent log output
     let date = new Date();
     let basicTime = [` on ${date.toLocaleDateString()}/${date.toLocaleTimeString()}\r\n`];
     let message;
 
     user.firstVisit = false;
-    user.loggedIn = true;
+    user.loggedIn = user.guest ? false : true;
     user.residing = req.session.user.residing;
-    user.operation = req.headers.operation ? {type: req.headers.operation, location: user.residing} : false;
-// ----------------------------------------------------------------------- Basically all message data provided by log is designed for front-end, so we need to clear the <spans> and <hrs> from it so log isn't ugly and confusing
-    if (user.log) {
-      message = log.replace(/,/g, '').replace(/<span.*?>/g, '').replace(/<\/span.*?>/g, '\r\n'); //Remove the span  elements, intended only for front-end display
-    }
-    else if (fresh === true)
-      message = 'Logged in:';
+    user.operation = req.headers.operation ? {type: req.headers.operation, location: user.residing} : false; //If any operations are in effect, store it.
+// ----------------------------------------------------------------------- Basically all message data provided by log is designed for front-end, so we need to clear the <spans> and <hrs> from it before writing (it would be quite ugly)
+    if (log)
+      message = log.replace(/,/g, ', ').replace(/<span.*?>/g, '').replace(/<\/span.*?>/g, ' ');
+
 // ----------------------------------------------------------------------- If users' text file inevtably surpasses 100 KBs, clear it and start from beginning
-    fs.stat(`${this.store}/${user.name}.txt`, (err, stats) => {
+    fs.stat(`${this.store}/${user.name}.txt`, (err, stats) => { //Just writing to user's log with the report data message
       if (err) throw err
-      else if (stats.size >= 100000) {
-        fs.writeFile(`${this.store}/${user.name}.txt`, message + basicTime, (err) => err ? console.log(err) : null);
-      } else fs.appendFile(`${this.store}/${user.name}.txt`, message + basicTime, (err) => err ? console.log(err) : null);
+      else if (stats.size >= 100000 && message) {
+        fs.writeFile(`${this.store}/${user.name}.txt`, message + basicTime, (err) => err ? console.log(err) : null);  //Add to log text file belonging to user
+      } else if (message) fs.appendFile(`${this.store}/${user.name}.txt`, message + basicTime, (err) => err ? console.log(err) : null);
+      //Just for readability after writing to log
     })
 
-    //Add to log text file belonging to user
-    this.countdown(req);
+    delete(req.session.log);
+    this.countdown(req, user);
   };
 
   // =========================== Every user's session has a timer associated with them that kills their session after the given period of time. It is reset when the user commits any operation.
-  countdown(req) {
+  countdown(req, user) {
   	//Each user request starts a unique timer for each session, alongside Express' natural session expiration timer
-    clearTimeout(process.sessionTimers[req.session.user.name]);
-    process.sessionTimers[req.session.user.name] = setTimeout( () => this.terminate(req), req.session.duration);
+    clearTimeout(process.sessionTimers[user.name]);
+    process.sessionTimers[user.name] = setTimeout( () => this.terminate(req, user), req.session.duration);
   };
 
   // ===========================
-  async terminate(req) {
+  async terminate(req, user) {
 
     if (req.session && req.session.user) {
-      // for (let key in process.memoryUsage()) {
-      //   console.log(`${key}: ${Math.round(process.memoryUsage()[key] / 1024 / 1024 * 100) / 100} MB`);
-      // }
+       for (let key in process.memoryUsage()) {
+         console.log(`${key}: ${Math.round(process.memoryUsage()[key] / 1024 / 1024 * 100) / 100} MB`);
+       }
     //Whenever the timer expires, or user logs out
-      let user = this.user(req);
+      user = user || this.user(req);
 
-      user.operation = null;
-      user.home = req.session.home;
+      user.operation = false;
       user.loggedIn = false;
+      user.firstVisit = false;
+      user.home = req.session.home;
+      user.preferences = req.session.preferences;
       req.session = null;
 
       let date = new Date(); //Just logging information to text file
       fs.appendFile(`${this.store}/${user.name}.txt`, `Logged out: ${date.toLocaleDateString()}/${date.toLocaleTimeString()}\r\n`, (err) => err ? console.log(err) : null);
+      fs.writeFileSync(path.resolve('@_Info/backupUsers.txt'), JSON.stringify(Sessions.users));
 
       //Clearing the users' temp directory
       fs.exists(path.resolve('temp', user.name), (err) => {
@@ -136,34 +155,22 @@ module.exports = {
 
   /*======================================================*/
   VerifyUser: wrapAsync(async function (req, res, next) {
-    try {
-    //---------------------------------------------------------------- Limit signin attempts and log failed attempts
-    if (req.session && req.session.loginAttempts >= 2) {
-    //Technically it's 3, the first login attempt sets it to null (0) rather than 1 for some reason
-      let date = new Date();
-      req.session.loginAttempts ++;
 
-      Sessions.lock(req, req.body.name);
-      fs.appendFile(`${process.env.infodir}/log.txt`, `Suspicious log attempt with ${req.body.name} from ${req.location.ip} (${req.location.country}) on: ${date.toLocaleDateString()}/${date.toLocaleTimeString()}\r\n`);
-      return next( new Error("Login attempts exceeded. Seek life elsewhere."));
-    }
-    //---------------------------------------------------------------- Retrieve user database and merge current user preferences with body object
+   try {
+      //---------------------------------------------------------------- Retrieve user database and merge current user preferences with body object
     const usersJSON = await fs.readFileSync(`${process.env.infodir}/${process.env.info_users}`, 'utf8');
     const users = await JSON.parse(usersJSON);
+;
+    if (req.session && req.session.user) { //Any preferences changed on front-end need to be reflected back-end
 
-    if (req.session && req.session.user) {
-      if (req.body.preferences) {
-        let clientPrefs = await JSON.parse(req.body.preferences);
-        req.session.preferences = clientPrefs;
-      };
+	  await module.exports.ProbeSessionDetails(req, res, next);
+      //---------------------------------------------------------------- Retrieve user database and merge current user preferences with body object
+      let confirmed = false; // Default response, this changes to "next()" if user is verified
 
-      //---------------------------------------------------------------- Begins loop and first checks if any other users are performing operation, reject request if so
-      let confirmed = false;
-
-      for (let i in users) {
+      for (let i in users) { // ----------------------------------- Begins loop and first checks if any other users are performing operation, reject request if so
         let user = req.session.user;
         if (Sessions.users[i].operation && req.method !== 'GET') {
-          req.clash = {
+          req.clash = { //If another user is performing an operation
             user: Sessions.users[i].name,
             operation: Sessions.users[i].operation
           };
@@ -189,6 +196,9 @@ module.exports = {
       //---------------------------------------------------------------- Refresh session and proceed to next route
       };
       Sessions.refresh(req);
+      res.locals.Log = Sessions.user(req, req.backup).log;
+      req.backup = req.session; //In case the session reaches expiration during a 60 minute+ operation
+
       return confirmed;
     } //End of If a user is currently logged in
     else { //If not logged in, and one of the fields is missing
@@ -200,14 +210,14 @@ module.exports = {
         });
 
       }
-    // ------------------------------------------------------------------------------
+
     //The big one that iterates over all users and compares data, if user found we proceed to next route.
-    await module.exports.CompareInfo(req, res, next, users);
+    module.exports.CompareInfo(req, res, next, users);
     };
-  } catch (error) {
-    console.error(error.message, error.stack);
+   } catch (err) {
+  	console.log(err);
     return false;
-  }
+   }
   }), //---------- VerifyUser function ends
   /*======================================================*/
 
@@ -239,32 +249,43 @@ module.exports = {
 
             let date = new Date();
             fs.appendFile(`${process.env.infodir}/${users[i].name}.txt`,
-            `Log in attempt failed: ${date.toLocaleDateString()}/${date.toLocaleTimeString()}.
-            IP: ${req.connection.remoteAddress}\r\n`, (err) => err ? console.log(err) : null);
-
+            `Log in attempt failed: ${date.toLocaleDateString()}/${date.toLocaleTimeString()} <> IP: ${req.connection.remoteAddress}\r\n`, (err) => err ? console.log(err) : null);
+            //This little chunk above is all just string data for readability when writing to the log
+			req.session.loginAttempts += 1;
             return next( new Error("User found, but is currently logged in, or locked out."));
-          }
-          //Establish session with user info and essential info, update Sessions store, and return.
-          req.session.user = users[i];
-          req.session.user.residing = Sessions.user(req).residing || null;
-          delete(req.session.user.password);
-          delete(req.session.user.log);
+          } else {
+	          //Establish session with user info and essential info, update Sessions store, and return.
+	          let user = Sessions.users[i];
+	          req.session.user = user;
+	          delete(req.session.user.password); // Confidential
 
-          req.session.duration = parseInt(process.env.session_time);
-          req.session.home = Sessions.user(req).home || partition;
-          // req.session.firstVisit = true;
-            req.session.preferences = {
-              outsideDir: false,
-              emptyDir: false,
-              smoothTransition: true,
-              deleteCheck: true,
-              uploadWarning: true
-            };
-
-          await Sessions.refresh(req, true);
-          return next();
-          break;
-        };
+	          req.session.duration = parseInt(process.env.session_time); //The time until the Session store triggers termination
+	          // --------------------------------------------------
+	          if (user.name === 'guest') {
+	            req.session.maxsize = 5 * 1000 * 1000 * 1000; //Gigabytes > Megabytes > Kilobytes > Bytes (5 Gigabytes) max upload size
+	            req.session.home = UsersDirectory; //Always and only private directory for guest
+	            req.session.guest = true; //Identifier
+	          } else {
+	            req.session.home = users[i].home || partition; // Last homedirectory they left off at
+	            req.session.maxsize = 100 * 1000 * 1000 * 1000; // This is only relevant inside private directory. 100 Gigabyte limit.
+	          }
+	          // --------------------------------------------------
+	          req.session.preferences = users.preferences || {
+	            outsideDir: false,
+	            emptyDir: false,
+	            smoothTransition: true,
+	            deleteCheck: true,
+	            uploadWarning: true,
+	            folderWarning: true
+	          };
+	          // --------------------------------------------------
+			  user.log.push('Logged in');
+	          await Sessions.refresh(req); //Refreshes session and writes any log data
+	          //delete(req.session.user.log); // Clogs up session data, and gets too big anyway
+	          return next(); //Continues on to next handler
+	          break;
+         }
+      };
     }; //End of For Loop over users
 
     req.session.loginAttempts += 1;
@@ -272,31 +293,90 @@ module.exports = {
   },
   /*======================================================*/
 
+  /*===============================================================*/
+  ProbeSessionDetails: async function (req, res, next) {
+  // -----------------------------------------------------
+  	if (req.session) {
+  	  let ses = req.session;
+  	  let op = req.headers.operation;
+	  if (process.ServerTracker.status === 0) {
+	    let currentTime = Math.floor(new Date().getTime() / 60000);
+
+	    res.locals.Server.remaining = Math.abs(currentTime - process.ServerTracker.countdown);
+	    if (op && op.matchesAny('Upload', 'Download') && res.locals.Server.remaining < 4) { // Too long to perform a lot of operations
+	      const report = {
+	         content: [`<span style="color: green">${op}</span> aborted`, `${res.locals.Server.remaining} minutes remain before shutdown, and operation could be compromised`],
+	         type: 'error',
+	       };
+	       if (op === 'Download') { // Download operation normally expects Blob response type, so need to adjust headers and response data
+	         res.setHeader('responseType', 'application/json');
+	         res.setHeader('content-type', 'application/json');
+	       }
+	      return res.send(report);
+	    }
+
+	    res.locals.Server.remaining < 2 ? Sessions.terminate(req) : null;
+	    //If server is shutting down in less than 2 minutes, terminate user's session
+	  }
+// -----------------------------------------------------
+    let payloadSize = parseInt(req.headers['content-size']) || parseInt(req.headers['content-length']) || 0;
+	  if (ses.home === UsersDirectory) { // More than 5 gigabytes
+	    let totalsize = await GetFolderSize(req, `${ses.home}/${ses.user.name}`, 0);
+	    if ((payloadSize + totalsize) >= ses.maxsize && op && op.matchesAny('Upload', 'Transfer')) {
+	      req.reject = true;
+	      const report = {
+	         content: [`<span style="color: green">${op}</span> aborted`, `Maximum upload capacity (${getFileSize(ses.maxsize)}) reached`],
+	         type: 'error',
+	       };
+	      return res.send(report); // Does not actually end request unfortunately
+	    }
+	  }
+    //---------------------------------------------------------------- Limit signin attempts and log failed attempts
+    if (req.session.loginAttempts >= 2) {
+    //Technically it's 3, the first login attempt sets it to null (0) rather than 1 for some reason
+      let date = new Date();
+      req.session.loginAttempts ++;
+
+      await Sessions.lock(req, req.body.name);
+      fs.appendFile(`${process.env.infodir}/log.txt`, `Suspicious log attempt with ${req.body.name} from ${req.location.ip} (${req.location.country}) on: ${date.toLocaleDateString()}/${date.toLocaleTimeString()}\r\n`);
+      return next( new Error("Login attempts exceeded. Seek life elsewhere."));
+    }
+    //---------------------------------------------------------------- Retrieve user database and merge current user preferences with body object
+      if (req.body.preferences) {
+        let clientPrefs = await JSON.parse(req.body.preferences);
+        req.session.preferences = clientPrefs;
+      };
+
+      return true;
+  	}
+  },
+  /*===============================================================*/
+
   /*======================================================*/
   ReportData: async function (req, res, error, report) {
 
-    Sessions.user(req).operation = false;
+    Sessions.user(req, req.backup || null).operation = false; //Other users will no longer be blocked from operation
 
     if (error) {
-      Sessions.user(req).log.push(error.message);
+      Sessions.user(req, req.backup || null).log.push(error.message);
 
       return res.send({
         content: [error.message],
         type: 'error',
         items: error.stack
       });
+    // --------------------------------------------------
     } else {
-      Sessions.user(req).log.push
+      Sessions.user(req, req.backup || null).log.push
       (parseHTML(`${report.content[0]} ${report.items ? [...report.items] : ''} ${report.content[1] || ''}`))
-      // Sessions.user(req).log.push(. replace(/<span.*?>/g, '').replace(/<\/span.*?>/g, '').replace('<hr>', ''));
       //Quite ugly. The messages and report fields need to be separated accordingly, and also need any HTML parsed before being logged. Removes all <span> and <hr> elements and everything in between their arrow brackets
 
-      if (process.ServerTracker.status === 0) {
+      if (process.ServerTracker.status === 0) { //If the server is about to shut down
         let currentTime = Math.floor(new Date().getTime() / 60000);
         report.warning = `<hr> <span style="color: red">Warning: </span> <h4 class="white">${process.ServerTracker.warning}: Occuring in ${Math.abs(currentTime - process.ServerTracker.countdown)} minutes</h4>`;
       }
       res.locals.UserSession = req.session;
-      res.locals.UserSession.log = Sessions.user(req).log;
+      //Refresh locals
 
       return res.send(report);
     }

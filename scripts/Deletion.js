@@ -14,33 +14,33 @@ async function deleteMultiple(condition) {
     if (uploadedFiles.length) {
       [canDelete, failedFiles] = await sendDeleteRequest(uploadedFiles);
     } else if (event.shiftKey || condition === 'ALL') {
-        SelectedFiles.count = [];
-        await selectAll(AllFiles.count, true);
+        SelectedFiles.unlist();
+        await selectAll([...StagedFiles.count, ...AllFiles.count], true);
         [canDelete, failedFiles] = await sendDeleteRequest(AllFiles.count);
     } else canDelete = true;
 
 // --------------------------------------------------------------------------------
   if (canDelete === false) /*Then*/ return false;
 
-      if (SelectedFiles.count.length >= 100 && !$('progress').val()) {
+      if (SelectedFiles.count.length >= 200 && !$('progress').val()) {
         return window.location.reload(); //No reason to overload page with mass file deletion, just reload directory, unless operation is in progress
       }
 
       SelectedFiles.count.map ( async (file, i, arr) => {
+
         let fileCardToRemove;
           if (failedFiles && failedFiles.includes(file.name))
            return false; /*If some files were not deleted in database, don't remove their cards on page (skip over them)*/
 
         if (arr.length < 50) { //Don't do all these aesthetics if large amount of files are affected
-          fileCardToRemove = getFileCard(file);
-          $(fileCardToRemove).addClass('fadeout');
+          fileCardToRemove = getFileCard(file) || null;
+          fileCardToRemove ? $(fileCardToRemove).addClass('fadeout') : false;
+
           setTimeout( () => AllFiles.delete(file, canDelete), 800);
         } else AllFiles.delete(file, canDelete);
 
         if (i === arr.length - 1)  //At the end of iteration, check if directory empty and if its a staged file
-          checkForEmpty(canDelete, fileCardToRemove);
-
-        return true;
+          checkForEmpty(canDelete);
       });
 // --------------------------------------------------------------------
 }; //End of file deletion function
@@ -88,7 +88,7 @@ async function deleteSingle(fileCard) {
     setTimeout( () => {
       AllFiles.delete(file, canDelete);
       $(FileTable).children('div').removeClass('move');
-      checkForEmpty(canDelete, fileCard);
+      checkForEmpty(canDelete);
     }, 1000);
 // --------------------------------------------------------------------------------
 };
@@ -104,12 +104,14 @@ if (!Array.isArray(filesToDelete))
   filesToDelete = [filesToDelete];
 
   const operation = 'Delete';
+  if (!showOperation(operation || ''))
+    return false;
+
   const data = {
     files: filesToDelete,
     preferences: JSON.stringify(UserSession.preferences),
   }
 
-  showOperation(operation);
   let failedFiles = [];
 // --------------------------------------------------------------------------------
   //Send user form information to verify permission for deleting the file(s) in question
@@ -124,11 +126,11 @@ if (!Array.isArray(filesToDelete))
   .then( async (res) => {
     $('.input').removeAttr('disabled');
 
-    if (await checkForServerError(res))
+    if (await checkForServerError(res, operation))
       return false;
 
 
-    Flash(...Object.values(res.data));
+    Flash(res.data.content, res.data.type, []);
     if (res.data.type === 'error')
       throw new Error(res.data.content);
 
@@ -138,45 +140,51 @@ if (!Array.isArray(filesToDelete))
       : failedFiles = res.data.items;
     } //Make sure it's an array
 
-    if (refresh) setTimeout( () => window.location = window.location, 300); //This is called when deleting a Primary Directory, not used for anything else
+    if (refresh) window.location = window.location; //This is called when deleting a Primary Directory, not used for anything else
     return [true, failedFiles]; //Needs to be an array in this order. The first element represents whether to actually delete the file card/file references from the page
 // --------------------------------------------------------------------------------
   })
   .catch( (error) => {
   	if (failedFiles.length)
       return [false, failedFiles];
-    else return window.location = '/login';
+    else {
+      checkError(error);
+      Flash(error.message, 'error');
+      return [false, []];
+    }
   });
 };
 
 
-// ------------------------------------------------------------------------------
-$('#deleteBtn').click( () => {
-  const targetFiles = SelectedFiles.count.length ? SelectedFiles.count : AllFiles.count;
+/*===============================================================
+  Determines if user wants to delete selected files, or all of them (if shift key pressed). Calculates size and sends warning for user to confirm deletion.
+===============================================================*/
+function verifyDeletion() {
+try {
+ const targetFiles = event.shiftKey && !SelectedFiles.count.length ? AllFiles.count : SelectedFiles.count;
 
-  if (targetFiles === AllFiles.count && !event.shiftKey)
-    return Flash('No files selected for deletion.', 'warning');
+  if (!targetFiles.length)
+    return Flash('No files selected for deletion', 'warning');
 
   let totalSize = 0;
   for (let file of targetFiles) {
     if (totalSize >= 50000000) { // No need to keep counting if already past warning threshold
       break;
     } else if (pathfinder(StagedFiles.count, 'find', file)) continue;
-    else {
-      let found = pathfinder(AllFiles.count, 'find', file);
-      totalSize += found ? found.size : 0;
-    }
+    else totalSize += parseInt(file.size);
   };
 
   if (UserSession.preferences.deleteCheck && totalSize >= 50000000) {
     // If size is more than 50 MBs send a warning before deletion
     dialogPrompt({
-      warning: `Delete <span class="dimblue">${targetFiles.length}</span> files (<span class="dimblue">${getFileSize(totalSize)}</span>)? This cannot be undone.`,
+      warning: `Delete <span class="dimblue">${targetFiles.length}</span> files (<span class="dimblue">${getFileSize(totalSize)}</span>)? This cannot be undone. (All staged files will be removed as well)`,
       responseType: 'boolean',
       proceedFunction: `deleteMultiple('${targetFiles === AllFiles.count ? 'ALL' : false}')`,
       preference: 'deleteCheck'
     });
 
   } else deleteMultiple();
-
-})
+} catch (err) {
+  console.log(err);
+}
+};

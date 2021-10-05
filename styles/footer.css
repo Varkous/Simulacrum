@@ -67,7 +67,7 @@ svg {
   content: 'Removes the selected items from the current folder, or removes all items if shift is held down upon click. This cannot be undone';
 }
 #moreFiles:hover::before {
-  content: 'Loads more files further down the list. Hold the SHIFT key to load all files/folders in the entire directory';
+  content: 'Loads all files in the Directory up to (100 or 500 depending on device)';
 }
 
 /* ----------------------------- */

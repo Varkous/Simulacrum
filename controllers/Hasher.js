@@ -1,4 +1,5 @@
 'use strict';
+// Did not create this on my own, taken from a Github post on custom crypto hashing
 const util = require('util');
 const crypto = require('crypto');
 

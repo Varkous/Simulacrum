@@ -27,7 +27,7 @@
   	  /*animation: steady-glow 2.5s forwards infinite;*/
   	}
   /* ------------------------------------ */
-  #MessageLog {     left: 20%;    }
+  #MessageLog {     left: 10%;    }
   /* ------------------------------------ */
   nav:hover {    max-width: 300px;    }
   /* ------------------------------------ */
@@ -40,16 +40,19 @@
     padding: 1%;
   }
   .directory-stats {
-    max-width: 100%;
+    max-width: 90%;
     z-index: 11;
     margin: 0px 5px 0px 5px;
   }
   .file-search, .resize {
-    position: relative;
   }
   .input-container {
     align-items: center;
     flex-direction: column;
+  }
+  .target-folder-div {
+	width: 90%;
+	display: contents;	
   }
   .column {
     min-width: 270px;

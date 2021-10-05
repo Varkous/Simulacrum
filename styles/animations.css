@@ -33,6 +33,7 @@
 .move { animation: moveAside 1s forwards; }
 .moveUp { animation: moveUpOrDown 1s normal; }
 .moveDown { animation: moveUpOrDown 1s reverse; }
+.start-download { animation: startDownload 1s normal; }
 /* -------------------- */
 @keyframes steady-glow {
   0% {
@@ -60,4 +61,16 @@
 @keyframes deleted {
   50% { transform: translateX(var(--cardPosition)); }
   100% { transform: translate(var(--cardPosition), 1000px); }
+}
+@keyframes startDownload {
+  10% {box-shadow: 1px 2px 5px 4px darkcyan;}
+  20% {box-shadow: 1px 2px 10px 4px darkcyan;}
+  30% {box-shadow: 1px 2px 15px 4px darkcyan;}
+  40% {box-shadow: 1px 2px 20px 4px darkcyan;} 
+  50% {box-shadow: 1px 2px 25px 4px darkcyan;}
+  60% {box-shadow: 1px 2px 30px 4px darkcyan;}
+  70% {box-shadow: 1px 2px 35px 4px darkcyan;}
+  80% {box-shadow: 1px 2px 40px 4px darkcyan;}
+  90% {box-shadow: 1px 2px 45px 4px darkcyan;}
+  100% {box-shadow: 1px 2px 50px 4px darkcyan;}
 }

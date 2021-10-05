@@ -1,0 +1,19 @@
+.fadeout {
+  transition: all 1s ease;
+  opacity: 0;
+}
+.fadein {
+  transition: all 1s ease;
+  opacity: 1.0;
+}
+.column.selected {
+  border: 2px double green;
+  color: green;
+
+  /* margin: 0px !important; */
+  padding: 0px;
+  transition: 0s;
+  /*transform: scale(0.7);*/
+}.column, .folder {
+  transition: 0s !important;
+}

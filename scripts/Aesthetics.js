@@ -12,7 +12,7 @@
           CurrentFolder = UserSession.user.residing;
           let dirPath = '/' + Partition + CurrentFolder;
           dismissElement('main', 'Y', 'down', '50%', 600, true);
-          await retrieveDirectory(window.location.origin + dirPath + '?fetch');
+          await retrieveDirectory(window.location.origin + dirPath + `?traverse=${dirPath}`);
         }
       }
     }; //If interactive available
@@ -24,7 +24,7 @@
   This affects the element that is passed in with a transform relocation. Moving it up, down, left or right in the given direction specified by 'axis' and 'direction'. If 'hide' is true, don't rewind its position.
 ===============================================================*/
 function dismissElement (element, axis, direction, duration = '60%', wait = 600, hide) {
-
+ try {
   return new Promise ( (resolve, reject) => {
   duration = Math.abs(parseInt(duration) / 100);
   //Turns duration (which is a string of a number percentage) into an integer, divided into a 1.0 digit float number. The lower the percentage (and the number), the less or "quicker" the duration
@@ -49,6 +49,7 @@ function dismissElement (element, axis, direction, duration = '60%', wait = 600,
     }
     // ----------------------------------------------
   }); //Return promise
+ } catch (err) {console.log(err)}; 
 };
 
 // ---------------------------------------------------------------------------------------
@@ -65,6 +66,7 @@ if (mobile) {
   //Replacing the default desktop-oriented control tips in the header with mobile-use tips
 } else {
 
+ if (totalsize < UserSession.maxsize || !UserSession.maxsize) {
   	/*===============================================================
   	  Allows files to be dragged in a "cool" fashion by adding/removing classes depending on whether it is being dragged, dropped or released. Added to every uploaded file. Holding control "clones" on dragging, without it the whole card is displaced
   	===============================================================*/
@@ -130,17 +132,17 @@ if (mobile) {
   	      const fileCardInstance = ui.helper;
   	      const fileCard = ui.draggable[0];
   	      //The ui.draggable is actually the element currently being dragged, which should always be a file of some sorts. Helper is the instance (item being dragged).
-  	      let file = {name: fileCard.id, path: $(fileCard).attr('path')};
+  	      let file = {name: fileCard.id, path: $(fileCard).attr('path'), size: $(fileCard).attr('size')};
   	      const destinationFolder = `${CurrentFolder}/${evt.target.id.getSpaceChars()}`;
 
-  	      await transferFiles([file], destinationFolder, fileCard.copy);
+  	      await initiateTransfer([file], destinationFolder, fileCard.copy);
 
   	    }, //-----------All of this crap above happens if you drop an item on the given folder card
   	};
-
-
+  }; //End of: If guest user file size capacity is not exceeded, allow these transferring/copying
+  
 	/*===============================================================
-	  This affects the element that is passed in with a transform relocation. Moving it up, down, left or right in the given direction specified by 'axis' and 'direction'. If 'hide' is true, don't rewind its position.
+	Detects and then reconfigures starting position of the 'dragbox'
 	===============================================================*/
 	function startDrag (evt) {
 
@@ -167,34 +169,34 @@ if (mobile) {
 
 
 	/*===============================================================
-	  This affects the element that is passed in with a transform relocation. Moving it up, down, left or right in the given direction specified by 'axis' and 'direction'. If 'hide' is true, don't rewind its position.
+	Triggered on EVERY mouse movement while a button is held down. Readjusts position of dragbox and only triggers within File Table
 	===============================================================*/
 	async function resizeDragbox() {
 
 	  if (event.buttons !== 1)
 	    return $(dragbox).hide();
 
-	  else {
 
+	  else if ($(dragbox).hasClass('is-dragging') && !$('.ui-draggable-dragging')[0]) {
 	    let dragboxTop = $(dragbox).position().top;
 	    let dragboxLeft = $(dragbox).position().left;
 	    let heightAdjust = (event.pageY - dragboxTop - FileTable.offsetTop - 5);
 	    let widthAdjust = (event.pageX - dragboxLeft - 25);
-	    // Now we use PAGE position of element (since dragbox actually is a direct child of the HTML body, rather than FileTable) after top/left used offset (inside FileTable) to start the drag positioning. We want the initial Y/X to always be 0 regardless of relative position for easier calculation.
+	    // Now we use PAGE position of element (since dragbox actually is a direct child of the HTML body, rather than FileTable) after top/left offset (inside FileTable) to start the drag positioning. We want the initial Y/X to always be 0 regardless of relative position for easier calculation.
 
 	    $(dragbox).css({
 	      height: `${heightAdjust}px`,
 	      width: `${widthAdjust}px`
 	    });
-	  }
+	  } else return false; 
+
 	};
 
 
 	/*===============================================================
-	  This is just for the drag-select-box. Determine current Dragbox position and size when the user lets up on the mouse
+	  This is just for the drag-select-box. Determines current Dragbox position and size when the user lets up on the mouse, detecting if it overlaps with a file card
 	===============================================================*/
-	$('html').on('mouseup', '*', function () {
-	  //Dragbox official parent is actually the HTML document, so mouseup function must be derived from that.
+	$('html').on('mouseup', '#FileTable div', function () {
 
 	  if ($(dragbox).is(':hidden'))
 	    return false;
@@ -226,7 +228,6 @@ if (mobile) {
 	      let item_height = parseInt($(div).css('height'));
 	      let item_Y = item_top + item_height;
 
-	      // let item_left = ($(div).position().left + parseInt($(div).css('margin-left')) + 30);
 	      let item_left = ($(div).position().left + parseInt($(div).css('margin-left')));
 	      let item_width = parseInt($(div).css('width'));
 	      let item_length = item_left + item_width;
@@ -248,8 +249,8 @@ if (mobile) {
 	window.addEventListener('load', async () => {
 	  $('#FileTable').on('mousedown', startDrag);
 	  $('html').on('mousemove', '#FileTable', resizeDragbox);
-	  /* ----------------------------------------- */
 	  $('#FileTable').on('mousemove', '.drag-select-box', resizeDragbox);
+	  /* ----------------------------------------- */
 	});
 };
 /* ======================================================= */

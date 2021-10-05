@@ -32,7 +32,6 @@ function keydownActions (evt) {
 
     if (evt.shiftKey && !$('input, a').is(':focus') ) {
       $('.selected-count').text(`(All)`);
-      $(moreFiles).find('span').text(`Show All Files (${Directory.files ? Directory.files.length : 0})`);
     }
 
   return true;
@@ -46,12 +45,8 @@ function keydownActions (evt) {
 ===============================================================*/
 function holdToDownload (evt) {
   if (evt.target.download) {
-    window.waitTrigger = setTimeout( () => {
-
-      let link = document.createElement('a');
-      $(link).attr({ href: $(evt.target).attr('href'), download: $(evt.target).text()});
-      link.click(); link.remove();
-    }, 700);
+  	$(evt.target).addClass('start-download');
+    window.waitTrigger = setTimeout( () => triggerLink(evt.target.href, evt.target.download), 700);
   } else return false;
 };
 
@@ -64,7 +59,6 @@ document.onkeyup = (evt) => { //Checks if CTRL or SHIFT were "unpressed", and un
 
   if (Directory && evt.ctrlKey === false || evt.shiftKey === false) {
     $('.transfer').find('span')[0].innerText = '';
-    $(moreFiles).children('span').text(`MORE FILES...`);
     $('.selected-count').text(`(${SelectedFiles.count.length})`);
   };
 
@@ -78,10 +72,8 @@ document.onkeyup = (evt) => { //Checks if CTRL or SHIFT were "unpressed", and un
 // ------------------------------------
 $('#myDir').click( (evt) => {
 //Special href redirect. If attempting to switch between Private/Public directory, bypass all the 'changeDirectory' crap and redirect (else route won't even trigger)
-    return window.location = `${home}/home/${Username}`;
-})
-$('body').on('mousedown', 'a', holdToDownload);
-$('body').on('mouseup', '*', () => clearTimeout(window.waitTrigger));
+    return $('.progress').val() ? confirmRedirect(`${home}/home/${Username}`) : window.location = `${home}/home/${Username}`;
+});
 /* ----------------------------------------- */
 $('#overheadPanel').click(bringUpPanel); // Animations/CSS, brings up the overhead panel
 $('.hide-lists').click( function (evt) {
@@ -100,7 +92,7 @@ $('.hide-lists').click( function (evt) {
 
 
 }); // Animations/CSS, folds/unfolds lists within the overhead panel
-$('#moreFiles').click(listDirectoryContents); //Creates and displays more file cards
+$('#moreFiles').click( () => listDirectoryContents(event, true)); //Creates and displays more file cards
 $('.show-modal').click( function () {
   if ($(this).next().is(':hidden')) $(this).next().show();
 }); // When the user clicks on the button, open the modal
@@ -114,32 +106,54 @@ $('*').on('input', 'a', function (evt) {$(this).closest('li, td').addClass('chan
 $(FolderInput).on('input', startQuery); //Any change to folder input prompts suggestions of like-name folders. Change is also reflected by current directory within overhead panel
 $('div').on('input', '.file-search', startQuery);
 /* ----------------------------------------- */
+$('.message').click( function (evt) {
+	window.messageLog = new Promise( (res, rej) => res());
+	$('.closemodal').click();
+	return $(this).removeClass('fadein').addClass('fadeout');
+}); //Dismisses info messages (display directory stats and flash messages) on click
+/* ----------------------------------------- */
 $('.selected-files, .all-files').on('click', '.fa-layer-group', () => selectAll(SelectedFiles.count)); //When clicking on layer icon in panel lists, selects/unselects all files in that list without needing to double-click
+// ------------------------------------
+$('#cancel').click( () => $('main').css({
+   'transform': 'translate(0)',
+   'transition': 'all 0.7s ease-in-out',
+  }));
+// ------------------------------------
+$('body').on('mousedown', 'a', holdToDownload);
+$('body').on('mouseup', '*', () => {
+  clearTimeout(window.waitTrigger);
+  $('.start-download').removeClass('start-download'); // The glow animation that was started on holding click on a download
+  !$(FolderInput).val() ? $(FolderInput).val(CurrentFolder) : null;
+  !$(event.target).hasClass('file-info') && event.target.tagName !== 'A' ? $('.file-info').remove() : null
+  //If we click anywhere that is not one of the icons, remove any file-infos that are on hover display
+  $(event.target).hasClass('search-result') ? event.preventDefault() : null;
+  $(folderSuggestions).empty(); //For clearing folder suggestion list
+});
+/* ----------------------------------------- */
+$('body').on('click', '#confirm', clearDialog);
 /* ----------------------------------------- */
 $('body').on('click', '.column, .folder, li', selectFiles);
 /* ----------------------------------------- */
-$('.message').click( function (evt) {return $(this).removeClass('fadein').addClass('fadeout')}); //Dismisses info messages (display directory stats and flash messages) on click
+$('body').on('click', 'a', changeDirectory);
 /* ----------------------------------------- */
-$('body').on('click touchstart', 'a', changeDirectory);
-/* ----------------------------------------- */
-$('body').on('click touchstart', '.fa-file-text', showFileInfo);
+$('body').on('click', '.fa-file-text, .fa-list-alt', showFileInfo);
 /* ----------------------------------------- */
 $('body').on('mouseenter mouseleave touchstart', '.folder-link', displayDirectoryStats);
-/* ----------------------------------------- */
-$('body').click( function (evt) {
-  !$(FolderInput).val() ? $(FolderInput).val(CurrentFolder) : null;
-  evt.target.tagName !== 'I' ? $('.file-info').remove() : null
-  //If we click anywhere that is not one of the icons, remove any file-infos that are on hover display
-  if (evt.target === folderSuggestions || $(evt.target).hasClass('search-result')) {
-    evt.stopPropagation();
-    evt.preventDefault();
-  } else $(folderSuggestions).empty();
-  //This is to prevent anchor redirect when clicking on anchors in folder suggestions, and clearing it also
-}); //For clearing folder suggestion list
 /* ----------------------------------------- */
 $('body').on('click', 'ol', shiftSelect);
 /* ----------------------------------------- */
 $('body').on('click', '.fa-folder', inputItemName); //Create this function after window load. Every time a folder icon is clicked, add its name to Folder Input. We use ".on" so any future icons will use this function.
+/* ----------------------------------------- */
+$('body').on('click', '.progress', function (evt) { //Whenever a progress bar is clicked, prompt user with option to abort the ongoing operation represented by that progress bar.
+  for (let op of Object.keys(Requests)) {
+    if ($(this).hasClass(op))
+      return dialogPrompt({
+            warning: `Cancel current ${op} operation?`,
+            responseType: 'boolean',
+            proceedFunction: `Requests.cancel('${op}')`,
+          });
+  }
+}); 
 /* ----------------------------------------- */
 window.addEventListener('load', async () => {
 
@@ -160,8 +174,10 @@ window.addEventListener('load', async () => {
 /* ----------------------------------------- */
 if (document.body.scrollHeight > window.innerHeight) { //If scrollbar is even visible
   document.addEventListener('scroll', function (event) { //This just detects if the scrollbar reached bottom of page (or within 10 pixels), if so, pagenate and show more files
-    if (document.body.scrollHeight - ($('html').scrollTop() + window.innerHeight) <= 10) {
-      $(FileTable).children('.column')[0] ? $('#moreFiles').click() : false;
+	clearTimeout(window.listFiles);
+    if (document.body.scrollHeight - ($('html').scrollTop() + window.innerHeight) <= 10  
+    && $(FileTable).children('.column')[0] && AllFiles.count.length > FileTable.children.length) { //This IF statement is making sure scrollbar is at bottom of screen, that there are any uploaded files below, and that there are more left to show
+      window.listFiles = setTimeout( async () => await listDirectoryContents(event), 100);
     }
   });
 }

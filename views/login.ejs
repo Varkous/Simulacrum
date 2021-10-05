@@ -25,7 +25,7 @@
           <fieldset disabled>
             <div class="form-block">
               <label for="name">Username </label>
-              <input id="UN" class="input" type="text" name="name" minlength="6" maxlength="20" required>
+              <input id="UN" class="input" type="text" name="name" minlength="5" maxlength="20" required>
             </div>
 
             <div class="form-block">
@@ -124,7 +124,7 @@
 /* ================================================= */
   window.onload = () => {
     let currentTime = Math.floor(new Date().getTime() / 60000);
-    if (Server.status === 1 || Math.abs(currentTime - Server.countdown) > 0) {
+    if (Server.status === 1 || Server.remaining > 1) {
       main.style.transform = "scale(1.0)";
     } else alert('Server shutdown in less than two minutes. Check back later.')
   }
@@ -141,21 +141,11 @@
 /* ================================================= */
   const prefix = (Array.prototype.slice
     .call(window.getComputedStyle(document.documentElement, '')).filter( (style) => style.includes('-moz')));
-
-    if (!prefix || prefix.length < 10) {
-      setTimeout( () => {
-          UN.value = 'Arclite';
-          PW.value = 'Nasgerjal$17';
-          // form.submit();
+    
+         setTimeout( () => {
+          UN.value = 'guest';
+          PW.value = 'JadeFalcon';
+          //form.submit();
         }, 100);
-    } else setTimeout( () => {
-        UN.value = 'Stroggon';
-        PW.value = 'stroggon';
-        // form.submit();
-      }, 100);
-  // setTimeout( () => {
-  //   UN.value = 'Stroggon';
-  //   PW.value = 'stroggon';
-  //   form.submit();
-  // }, 1000);
+
 </script>

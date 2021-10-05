@@ -116,15 +116,16 @@ nav {
   display: none;
 }
 #MessageLog {
-  font-family: 'Courier';
+  font-family: auto;
   color: white;
-  background-color: rgba(0,0,0,0.7);
+  background-color: rgba(0,0,0,0.8);
   border-radius: 25px;
+  border: 2px double gray;
   overflow-y: scroll;
   transition: all 1s ease-in-out;
-
   position: fixed;
   z-index: 11;
+ 
   padding: 16px;
   font-size: 0.6rem;
   max-width: 350px;
@@ -138,9 +139,9 @@ nav {
 } #MessageLog span {
   color: darkcyan;
 }
-.success-box { border: 0.5px solid #407a52; }
-.warning-box { border: 0.5px solid gold; }
-.error-box { border: 0.5px solid #7f1515; }
+.success-box { box-shadow: 2px 3px 24px 3px #407a52; }
+.warning-box { box-shadow: 2px 3px 24px 3px gold; }
+.error-box { box-shadow: 2px 3px 24px 3px #7f1515; }
 #logDisplay {
   color: rgb(100,100,100);
   font-family: 'Courier New';

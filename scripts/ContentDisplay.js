@@ -5,15 +5,16 @@
   Returns a new div element with various children, known as a File Card on here. The appearance of the card is based on the "item input", which is usually a file. File cards are interacted with frequently so reading what it's composed of will clarify the intentions of many other blocks.
 ===============================================================*/
 function makeFileCard(item, status) { //Important. Created upon staging/pre-loading a file, used as the bedrock for displaying media. The ID, "status" and title are used by the application to indentify the file's existence when deleting, transferring or downloading it.
+    //33206 is code for 'file'
+    if (!item.size && item.stats) //Size data is gathered from different properties depending on page load, or item upload
+      item.size = item.stats.size;
 
-    if (checkModeType(item.mode) === 'file' || checkModeType(item.stats.mode) === 'file')  {
-      //33206 is code for 'file'
-      if (!item.size && item.stats) //Size data is gathered from different properties depending on page load, or item upload
-        item.size = item.stats.size;
+    let filesize = getFileSize(item.size || 1);
+      
+    if (checkModeType(item.mode || item.stats.mode) === 'file')  {
 
-      let filesize = getFileSize(item.size || 1);
       return `
-       <div id="${item.name}" path="${item.path || ''}" class="column ${status}">
+       <div id="${item.name}" path="${item.path || ''}" size="${item.size}" class="column ${status}">
         <header class="filehead">
           <h1 title="${item.path}/${item.name}">
             <i class="fa fa-file-text"></i>${item.name}
@@ -23,26 +24,43 @@ function makeFileCard(item, status) { //Important. Created upon staging/pre-load
        </div>`;
     // ==========================================================
     } else { //Then it's a folder
-      let folderChildren = [];
-      if (item.children) {
-        for (let child of item.children.folders)
-          folderChildren.push(`<li class="dimblue">${child}</li>`);
-        for (let child of item.children.files)
-          folderChildren.push(`<li class="darkcyan">${child}</li>`);
-      }
-
       return `
-        <div id="${item.name}" path="${item.path || ''}" class="folder">
+        <div id="${item.name}" path="${item.path || ''}" size="${item.size}" class="folder">
           <header class="filehead">
             <i class="fa fa-folder"></i>
             <a href="/${Partition + CurrentFolder}/${item.name}" title="${CurrentFolder}/${item.name}">${item.name}</a>
             <i class="fa fa-list-alt"></i>
-            <ol class="folder-children">
-             ${folderChildren.join('')}
-            </ol>
           </header>
         </div>`;
     } //Path is the exact folder path it is within, title is the "full" path with folder name included, needed for access on back-end
+};
+
+
+/*===============================================================
+  Used within info tab of Files/Folder items on the page. Just HTML aesthetics, non-essential.
+===============================================================*/
+function presentFileStats(item, stats, status) {
+ 
+	let creationDate = new Date(stats.birthtimeMs || stats.lastModified || Date.now()); //Both depend on staged or uploaded type
+	let children = ['<hr>'];
+	item.date = creationDate.toLocaleDateString();
+	item.creator = stats.creator || 'You'; //Both depend on staged or uploaded type
+	item.size = getFileSize(stats.size);
+
+	if (item.children) { // Folder stats. If it has files/subdirectories (children), list them as anchor tags
+      for (let child of item.children.folders)
+        children.push(`<a href="/${item.path}/${item.name}/${child}" class="dimblue">${child}</a><br>`);
+      for (let child of item.children.files)
+        children.push(`<a href="/${item.path}/${item.name}/${child}" download="${child}" class="darkcyan">${child}</a><br>`);
+    };
+
+	return `
+	<div class="file-info folder-children fadein" style="word-break: break-word;" title="${item.name}/${item.path}">
+	<span>Path: </span>${item.path}<br>
+	<span>Size: </span>${item.size}<br>
+	<span>Created By: </span>${item.creator}<br>
+	<span>${status || 'Uploaded'}: </span>${item.date}<br>
+	${children.join('')}</div>`; //A little info tab 
 };
 
 
@@ -97,16 +115,16 @@ async function createMedia(file, folder, fileCard) {
     <a title="${folder}/${file.name}" href="/${folder}/${file.name}" download="${file.name}" style="align-self: center; display:inline-block;">
     <i class="fa fa-download" aria-hidden="true"></i></a>
     <i class="fa fa-trash-alt gray remove" onclick="deleteSingle(this.parentNode.parentNode)"></i>
-    <i onclick="makeEdit(this, $(this).parents('.column')[0])" class="fa fa-edit"></i>
+    <i onclick="makeEdit(this, $(this).parents('.column, .folder')[0])" class="fa fa-edit"></i>
   </div>`
 // --------------------------------------------------------------
 
-  mobile ? null : $(fileCard).draggable(dragItem);
+  mobile || oversize ? null : $(fileCard).draggable(dragItem);
   //Make the file-card draggable using the options defined within dragItem object-function. If mobile, don't use it at at all
 
   if (file.stats && checkModeType(file.stats.mode) === 'folder') {
     //Then it's a folder, and we're obviously in a directory so absolute path needed
-    mobile ? null : $(fileCard).droppable(dropItem); //If folder make droppable, unless using mobile device
+    mobile || oversize ? null : $(fileCard).droppable(dropItem); //If folder make droppable, unless using mobile device
     return sourceLinks + `<img src="/folder.png"><a title="${folder}/${file.name}" href="${folder}/${file.name}" class="hide">${file.name}</a>`;
   }
 // --------------------------------------------------------------
@@ -133,7 +151,9 @@ async function getMediaType (file, folder, fileCard, source) {
     return `${source}<i class="fa fa-eye" style="align-self: center;" onclick="viewImage(this.nextSibling)"></i><img class="media-content" id="source" src="/${folder}/${file.name}" alt="">`
 // --------------------------------------------------------------
   } else if (checkFileType(file, audioFormats) === true) { //Audio
-    const audio_image = mobile ? "/audio-icon.png" : "/audiocircle.gif"; //Don't use gifs on mobile
+    // const audio_image = mobile ? "/audio-icon.png" : "/audiocircle.gif"; //Don't use gifs on mobile
+    const audio_image = "/audio-icon 2.png"; //Don't use gifs on mobile
+
      return `${source}
      <i class="fa fa-volume-up" style="align-self:center;"></i>
      <img class="media-content audio-pic" src="${audio_image}" class="audio-pic">
@@ -170,8 +190,7 @@ async function getMediaType (file, folder, fileCard, source) {
 // --------------------------------------------------------------
   } else { //In this case it could be any of the 1000 other formats out there, and 90% of the time it can't be rendered on the page as media content, so we'll just pass in a placeholder image to represent the file type and call it good
     let thisFileExt = file.name.slice(file.name.lastIndexOf('.'));
-    let validExtension = allExtensions.filter( (ext) => ext === thisFileExt)
-    .join('').replace('.', '') || 'unknown';
+    let validExtension = allExtensions.filter( (ext) => ext === thisFileExt).join('').replace('.', '') || 'unknown';
 
     //We get the extension/format of the file, and compare it to all valid extensions the site uploading permits. If it passes, we use the given icon image that represents that file type, which will always be the name of the file extension itself (dll.png, mp3.png, exe.png, etc...), all stored in the back-end resources.
     return `${source}<img class="media-content" src="/${validExtension}.png" style="max-width: 80px !important; border: 0px solid black;"> `;
@@ -202,17 +221,24 @@ async function listDirectoryContents (evt, all) {
   clearDialog();
 
   if (Directory.files && AllFiles.count.length < Directory.files.length)
-    await AllFiles.add(Directory.files.slice(0, maxfiles), true);
+    // await AllFiles.add(Directory.files.slice(0, maxfiles), true);
+    await AllFiles.add(Directory.files, true);
+  if ($(FileTable).children('div').length > AllFiles.count.length)
+     return false; /*Then we stop listing, to avoid overloading page*/
+    
 
   //If user has search input, only list files that contain the characters input
   const filesToList = $('.file-search')[0].value
     ? namefinder(Directory.files, 'filter', $('.file-search')[0].value)
-    : Directory.files.slice(0, maxfiles);
+    : Directory.files;
   let filesListed = 0;
 
   for (let file of filesToList) {
-      if ($(`div[id="${file.name}"][path="${file.path}"]`)[1])
-        $(`div[id="${file.name}"][path="${file.path}"]`)[1].remove();
+      if ($(`div[id="${file.name}"][path="${file.path}"]`)[1]) {
+      	$(`div[id="${file.name}"][path="${file.path}"]`)[1].remove();
+      	continue;
+      }
+ 
 
       if ($(FileTable).children('div').length > AllFiles.count.length || filesListed >= 10)
         break; /*Then we stop listing, to avoid overloading page*/
@@ -238,6 +264,12 @@ async function listDirectoryContents (evt, all) {
       }, 10);
 
   }; //End of For loop going over files
+  
+  if (firefox) {
+    $('main').css('padding', '1.1%'); //Resets Main's padding. This is for Firefox, for whenever new items are shown, the Main padding gets all messed up.
+    setTimeout( () => $('main').css('padding', '1%'), 500);  	
+  }
+
   checkForEmpty();
 };
 
@@ -246,15 +278,29 @@ async function listDirectoryContents (evt, all) {
 //Intensive function. Sends a request, and finds ALL files that belong to the given user, and returns them to the browser to replace the current "Directory.files"
 ===============================================================*/
 async function findAllFiles (evt, index) {
+	
   if (UserSession.home !== UsersDirectory && CurrentFolder)
-    triggerLink('/'); //Trying to activate this function while within a directory will redirect.
+    return triggerLink('/'); //Trying to activate this function while within a directory will redirect.
+    
   if (Directory && typeof(Directory) !== 'string') {
-    if (!Directory.files || index !== undefined) {
-      Directory.index = Math.min(Math.max(index !== undefined ? index : Directory.index, 0), Directory.maxindex || 1);
-
-      axios.post(`/all`, {index: Directory.index, folder: Directory.name}).then( async (res) => {
-
-        if (await checkForServerError(res))
+    if (!Directory.files || index !== undefined) { //Then we are not in a directory
+    	
+      Directory.index = Math.min(Math.max(index !== undefined ? index : Directory.index, 0), Directory.maxindex || 1); //Directory index cannot go below 0, or surpass the maxindex
+	  $('#fetchFiles').hide();
+	  
+	  setTimeout( () => { //If request has not returned in 5 seconds (there would be files available), cancel the request altogether
+	    if (!Directory.files) 
+	      return Requests.cancel('General');	
+	  }, 5000); 
+	  // --------------------------------------------------------------------
+      axios({
+      	method: 'post',
+      	url: '/all',
+      	data: {index: Directory.index, folder: Directory.name},
+      	cancelToken: new CancelToken( (c) => Requests.General = c),
+      }).then( async (res) => {
+		$('#fetchFiles').show();
+        if (await checkForServerError(res) || Directory.creator) //If server error, or if user switched to a directory when response arrives
           return false;
 
         Directory = res.data;
@@ -265,13 +311,19 @@ async function findAllFiles (evt, index) {
         } else if (!Directory.maxindex) {
           $('#fetchFiles').hide();
         }
-        // Directory = divideDirectory(Directory);
-        Directory.index === Directory.maxindex && Directory.index > 0 ? $('#nextAll').hide() : $('#nextAll').show();
-        Directory.index === 0 ? $('#prevAll').hide() : $('#prevAll').show();
+ 
+        Directory.index === Directory.maxindex && Directory.index > 0 ? $('#nextAll').hide() : $('#nextAll').show(); //If current index (last file pack) matches last index
+        Directory.index === 0 ? $('#prevAll').hide() : $('#prevAll').show(); // If it's 0, there's no "previous" to go back to
 
         listDirectoryContents(event);
-
-      }).catch( (err) => Flash(err.message, 'error'));
+// --------------------------------------------------------------------
+      }).catch( (error) => {
+         Requests.cancel('General');
+         if (axios.isCancel(error)) 
+           Flash('Request timed out, all files not retrieved', 'warning');
+	     else Flash([error.message], 'error');
+           return false;
+      });
 
       AllFiles.delete(AllFiles.count);
     }

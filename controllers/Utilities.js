@@ -1,38 +1,56 @@
 'use strict';
-/*===============================================================
-  Had to create own method for just simply getting last element of given array.
-===============================================================*/
-Array.prototype.last = function (index) {return index ? this.length - 1 : this[this.length - 1]};
 const {ReportData, Sessions} = require('./UserHandling.js');
-const {CloseServer} = require('../index.js');
+const {getFileSize} = require('../scripts/Helpers.js');
+const {CloseServer, worthlessURLS} = require('../index.js');
+
 const axios = require('axios');
 const fs = require('fs-extra');
 const find_local = require('local-devices');
 const compression = require('compression');
+const checkDiskSpace = require('check-disk-space').default;
 
 const validRegions = ['Idaho', 'Utah', 'Washington', 'Oregon', 'North Carolina', 'Colorado', 'Montana', 'Ontario', 'Saskatchewan', 'Alberta', 'British Columbia', 'Québec'];
-const allExtensions =  [
-  '.bat','.apk','.com','.jpg','.jpeg','.exe','.doc','.docx','.docm','.rpp','.html','.z','.pkg','.jar','.py','.aif','.cda','.iff','.mid','.mp3','.flac','.wav','.wpl','.avi','.flv','.h264','.m4v','.mkv','.mov','.mp4','.mpg','.rm','.swf','.vob','.wmv','.3g2','.3gp','.doc','.odt','.msg','.pdf','.tex','.txt','.wpd','.ods','.xlr','.xls','.xls','.key','.odp','.pps','.ppt','.pptx','.accdb','.csv','.dat','.db','.log','.mdbdatabase','.pdb','.sql','.tar','.bak','.cabile','.cfg','.cpl','.cur','.dll','.dmp','.drve','.icns','.ico','.inile','.ini','.info','.lnk','.msi','.sys','.tmp','.cer','.ogg','.cfm','.cgi','.css','.htm','.js','.jsp','.part','.odb','.php','.rss','.xhtml','.ai','.bmp','.gif','.jpeg','.max','.obj','.png','.ps','.psd','.svg','.tif','.3ds','.3dm','.cpp','.h','.c','.C','.cs','.zip','.rar','.7z'
-];
 const UsersDirectory = process.env.UsersDirectory || 'users';
-const worthlessURLS = ['/fonts', '/favicon.ico', ...allExtensions];
-let LocalAddresses;
+const partition = process.env.partition;
+/*===============================================================*/
+let LocalAddresses = [];
 if (process.env.NODE_ENV === "production") {
   find_local().then( addresses => LocalAddresses = addresses);
 }
+/*===============================================================*/
+process.checkPartitions = setInterval( async function () {
+// Check disk space of Users and Public partitions and see if they have dropped to critical levels of space (50 gigabytes), trigger 1-minute-pending server shutdown if so
 
+  let publicPartition = checkDiskSpace(path.resolve(partition)).then( (space) => {
+    if (space.free < (200 * 1000 * 1000 * 1000)) { // Gigabytes
+      clearInterval(process.checkPartitions);
+      return module.exports.CloseServer('Public Partition reached critical levels of disk space, server shutting down for Director intervention', 180000);
+    }
+  });
+
+  let usersPartition = checkDiskSpace('/volume1').then( (space) => {
+    if (space.free < (50 * 1000 * 1000 * 1000)) { // Gigabytes
+      clearInterval(process.checkPartitions);
+      return module.exports.CloseServer('Users Partition reached critical levels of disk space, server shutting down for Director intervention', 60000);
+    }
+  });
+
+}, 10000);
+
+/*===============================================================*/
 module.exports = {
 
   /*===============================================================*/
   Geodetect: function (req, res, next) {
+  	let client = req.connection;
+    req.location = {ip: client.remoteAddress.replace(/[:f]/g, '')};
 
-    req.location = {ip: req.connection.remoteAddress.replace(/[:f]/g, '')};
-    if (req.session.user) return next();
+    if (req.session.user) return next(); //If already logged in
 
-    else if (req.connection.localAddress === req.connection.remoteAddress
-    || LocalAddresses.find( local => req.location.ip.includes(local.ip)))
-    //If already logged in, or client is of a local ip address
+    else if (client.localAddress === client.remoteAddress || req.location.ip.includesAny(...LocalAddresses)) {
+    // Or client is of a local ip address
       return next();
+    }
 // --------------------------------------------------------------
     const options = {
       method: 'GET',
@@ -47,14 +65,16 @@ module.exports = {
 // --------------------------------------------------------------
     axios.request(options).then( (location) => {
     //If successful, store the essential location data within the request object for later use
-      if (location.data.country === 'United States' || 'Canada'
-      && validRegions.find( (v_region) => v_region === location.data.region)) {
+
+      if (location.data.country.includesAny('United States', 'Canada') && location.data.region.includesAny(...validRegions)) {
         req.location.country = location.data.country;
         req.location.region = location.data.region;
         return next();
       } else throw new Error('Your region is not permitted access to Simulacrum.');
 
     }).catch( (error) => {
+      console.log(error)
+      //return next(error);
       return next(error);
     });
 // --------------------------------------------------------------
@@ -63,23 +83,21 @@ module.exports = {
 
   /*===============================================================*/
   CapArraySize: function () {
-    //Turns a large array (more that 25 entries) into an integer
-    const arrays = arguments[0];
-
-    for (let i = 0; i < arrays.length; i++) {
-      if (arrays[i].length > 25)
-        arrays[i] = `${arrays[i].length}`
-      else if (!arrays[i].length)
-        arrays[i] = '';
+    //The 'arguments' should always be arrays. Each iteration turns a large array (more that 25 entries) into an integer of its length. If only one array was passed, just return it instead of an array of arrays
+    let arrays = [];
+    for (let array of arguments) {
+      if (array.length > 25)
+        arrays.push(`${array.length}`);
+      else arrays.push(array.length ? array : '');
     }
 
-    return arrays;
+    return arrays.length > 1 ? arrays : arrays[0];
   },
   /*===============================================================*/
 
   /*===============================================================*/
-    EntryToHTML: function (item, color) {
-      return `<span style="color: ${item.color || color}">${item.name || item}</span>`;
+    EntryToHTML: function (item, color = 'lightblue', divider = '') {
+      return `<span style="color: ${item.color || color}">${item.name || item}</span>` + divider;
     },
   /*===============================================================*/
 
@@ -132,16 +150,16 @@ module.exports = {
   /*===============================================================*/
 
   /*===============================================================*/
-  ExitHandler: function (err) {
-    if (err)
-      console.log((new Date).toUTCString() + ' uncaughtException:', err.message)
+  ExitHandler: function (error) {
+    if (error)
+      console.log((new Date).toUTCString() + ' uncaughtException:', error)
 
     for (let i in Sessions.users) {
-      if (!Sessions.users[i].session_id) {
-        Sessions.users[i].loggedIn = false;
-        continue;
-      } else process.sessionTimers[Sessions.users[i].session_id]._onTimeout();
-    };
+      Sessions.users[i].loggedIn = false;
+      Sessions.users[i].locked = false;
+	  process.sessionTimers[Sessions.users[i].name] ? process.sessionTimers[Sessions.users[i].name]._onTimeout() : null;
+    }
+
     module.exports.ClearTemp (path.resolve('temp'));
     process.exit(0, 'SIGTERM');
     return CloseServer('Server shutting down', true);
@@ -170,41 +188,47 @@ module.exports = {
   /*===============================================================*/
   CheckSessionAndURL: async function (req, res, next) {
 
-    // req.session.user = {name: 'Stroggon', uid: 0, admin: true, residing: 'Achelon'};
-    // req.session.log = req.session.log || [];
-    //   req.session.preferences = {
-    //     outsideDir: false,
-    //     emptyDir: false,
-    //     smoothTransition: true,
-    //     deleteCheck: true,
-    //     uploadWarning: true,
-    //   };
-    // req.session.firstVisit = false;
-    // req.session.home = process.env.partition;
-    // req.session.loginAttempts = 0;
     const url = req.baseUrl;
 // ----------
-    if (worthlessURLS.find( skip_url => url.includes(skip_url)))
-      return next();
+    if (url.includesAny(worthlessURLS))
+      return false;
     //These are unnecessary requests made by browser, dismiss them
 // ----------
     if (url === '/login' || url === '/signout' || req.session && url === '/all/undefined' || req.session && url === '/all')
       return next();
 // ----------
-    if (!req.session || req.session.user && Sessions.user(req).loggedIn === false) {
+    if (!req.session)
       return res.redirect('/signout');
-    }
+
     // -------------------------------------
     const partition = req.session.home || process.env.partition
     if (req.session && req.session.user) {
-      Sessions.user(req).loggedIn = true;
-      if (url === `/${partition}` || url === `/${partition}/${req.session.user.name}`) {
-        req.session.user.residing = partition === UsersDirectory ? req.session.user.name : '/';
+    	const ses = req.session;
+      if (url === `/${partition}` || url === `/${partition}/${ses.user.name}`) {
+        ses.user.residing = partition === UsersDirectory ? ses.user.name : '/';
         //Homepage represents top-level partition, so redirect there if partition was input as url
       }
      return next();
     } else return res.redirect('/login');
 
+  },
+  /*===============================================================*/
+
+  /*===============================================================*/
+  CloseServer: async (reason = 'Felt like it', time = process.env.exit_time) => {
+    clearTimeout(process.shutdown);
+
+    let shutdownTime = new Date().getTime() + parseInt(time);
+    if (time === true) shutdownTime = 1000;
+
+    process.ServerTracker.status = 0;
+    process.ServerTracker.countdown = Math.floor( shutdownTime / 60000); //Convert to minutes
+    process.ServerTracker.warning = reason;
+
+    process.shutdown = setTimeout( () => {
+      process.exit(0, 'SIGTERM');
+      Website.routes.BaseHandlers.server.close( () => console.log ('Server terminated'));
+    }, parseInt(time));
   },
   /*===============================================================*/
 

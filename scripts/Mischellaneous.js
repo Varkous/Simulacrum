@@ -1,10 +1,31 @@
 'use strict';
-
+const CancelToken = axios.CancelToken;
+const Requests = {
+	cancel: function (op) {
+		if (this[op]) {
+		  this[op]();
+		  this[op] = false;
+		  $('.' + op) ? $('.' + op).remove() : false; // Any progress bar of that operation
+		  StagedFiles.unlist(StagedFiles.count, true);
+		} else if (op === 'All') { // Halt all request operations
+		    for (let op of Object.keys(this))
+		      op !== 'cancel' ? this.cancel(op) : null;
+		} else {
+		  this[op] = false;
+		  $('.' + op) ? $('.' + op).remove() : false; // Any progress bar of that operation
+		}
+	},
+	Download: false,
+	Upload: false,
+	Transfer: false,
+	Delete: false,
+	General: false
+};
 
 /*===============================================================
   Called on page load and every time a file is submitted or deleted, to see if there are any files listed. If not, hide the panel header and buttons since they serve no purpose in an empty directory. If a directory becomes empty, we automatically delete and re-direct out.
 ===============================================================*/
-async function checkForEmpty(canDelete, fileCard) {
+async function checkForEmpty(canDelete) {
 
   if (AllFiles.count.length || StagedFiles.count.length) {
     $(FileTable).children('p').text('');
@@ -13,7 +34,7 @@ async function checkForEmpty(canDelete, fileCard) {
     $(FileTable).children('p').text('No Files or Folders uploaded.');
     $('#panelHeader').hide();
 
-      if (canDelete && $(fileCard).hasClass('queued') === false) {
+      if (canDelete && !$('.progress')[0]) {
         //If there was a delete request (not the usual page load check), and the recently deleted file card was not a staged file (the user may still want the folder).
 
         const link = getPreviousDirectory();
@@ -34,13 +55,14 @@ async function checkForEmpty(canDelete, fileCard) {
 function filterInput (input, position) {
   //If 'href' is true, it means we are filtering url not Folder Input
 
-  if (position === 0 || position === -1) {
+  if (position === 0 || position === -1) { // Removes any "/" at the END of input string
     while (input.slice(-1) === '/') {
       $(FolderInput).val(input.slice(0, -1));
       input = input === input.slice(0, -1) ? '' : input.slice(0, -1);
     }
   }
-  if (position === 0 || position === 1) {
+// ----------------------------------  
+  if (position === 0 || position === 1) { // Removes any "/" at the START of input string
     while (input.slice(0, 1) === '/') {
       $(FolderInput).val(input.slice(1));
       input = input === input.slice(1) ? '' : input.slice(1);
@@ -58,9 +80,9 @@ function viewTextInModal (textElement) {
   event.stopPropagation();
   $(FS_Modal).find('progress').remove();
 
-  $('.modal-image').attr('src', '/upload.gif');
+  $('.modal-image').attr('src', '/upload.gif'); // Default
   $('.fs-modal-message').text('').removeClass('view-text view-listing');
-  let textcontent = textElement;
+  let textcontent = textElement; // Text element could be a textarea, panel listing, or the default upload pic + progress bar
 
   if (textElement.tagName === 'OL') {
     //Then the element is actually an entire panel listing
@@ -92,105 +114,16 @@ function checkFileType(file, formats) {
 	return false;
 };
 
-
 /*===============================================================
-  Triggered whenever the user either drags a selected file card over a folder card, or clicks the Transfer button in the Panel Overhead to move/copy any files currently Selected. Any affected File Cards are given aesthetic classes/animations for clairvoyance.
+  Determines if the error returned a 404, which means the request was rejected due to absence of Session (means it has expired, so we trigger login).
 ===============================================================*/
-async function transferFiles (items, destinationFolder, copy) {
-
-  if (!items) return Flash('Not a valid file', 'error');
-  let operation = 'Transfer';
-
-  const data = {
-    items: items,
-    destination: destinationFolder,
-    mydirectory: $('#mydirCheck').is(':checked'),
-    copy: copy, //Lets fs on back-end know the files being transferred should be copied
-    preferences: JSON.stringify(UserSession.preferences)
-  }
-  showOperation(operation);
-
-  return await axios({
-    method  : 'post',
-    url : `/${Partition + destinationFolder}`,
-    data : data,
-    headers: {
-      'Content-Type': 'application/json',
-      operation: operation,
-    },
-  }).then( async (res) => {
-  	await checkForServerError(res);
-    Flash(res.data.content, res.data.type, res.data.items);
-
-    for (let field in res.data) {
-      if (Array.isArray(res.data[field]))
-        for (let entry = 0; entry < res.data[field].length; entry++)
-          res.data[field][entry] = parseHTML(res.data[field][entry]);
-    }; //Normally isn't needed, but the transfer operations actually reference the reported items, so we can't have HTML like <span> elements in there or the items will be useless, so parse them after Flashing them
-
-    if (res.data.type === 'error' || res.data.items.includes('/') && res.data.items.length < 2)
-      SelectedFiles.unlist(items);  //If the items have a "/" in them and there is only one item within, it means it was a directory created pre-transfer
-
-    else {
-      for (let i = 0; i < res.data.items.length; i++) {
-        if (copy === false) {
-        //If not copied, we don't want the file (i.e File Card) on the page as it is not within the current folder anymore obviously
-        if (res.data.incomplete && namefinder(res.data.incomplete, 'find', res.data.items[i]))
-          continue;
-
-          let transfer = {name: res.data.items[i], path: res.data.paths[i]};
-
-          if (CurrentFolder) {
-            //If we are in a directory.
-            let fileCard = getFileCard(transfer);
-            !mobile ? $(fileCard).draggable( 'option', 'revert', false ) : null; //If mobile, drag-and-drop functionality does not exist, so don't bother
-            $(fileCard).addClass('fadeout');
-            AllFiles.delete(transfer, true);
-          } else if (!$('#mydirCheck').is(':checked')) await setTimeout( () => findAllFiles(event, 0), 100); //Otherwise we're at the homepage, and transfers should not signal the deletion of anything, and should just adjust paths (unless user is transferring from public to private)
-
-        } //End of If Copy
-        SelectedFiles.unlist();
-
-      }; //End of: For Loop
-    }; //If no errors
-
-    checkForEmpty();
-  })
-  .catch( (error) => {
-    Flash(error.message, 'error');
-    throw error;
-    return false;
-  });
-};
-
-
-/*===============================================================
-  Uses "transferFiles" to do the actual transfer, but this is only called when the user click the "Transfer" button and uses moves/copies the Selected Files. If there are no selected files or target folder specified, return error.
-===============================================================*/
-async function transferMultiple (evt) {
-  evt.preventDefault();
-  evt.stopPropagation();
-
-  if (!SelectedFiles.count.length && event.shiftKey) //Then user wishes to select everything
-    Directory.files ? await selectAll(Directory.files, true) : null;
-  else if (!SelectedFiles.count.length)
-    return Flash('No files selected for transfer', 'warning');
-
-  for (let file of SelectedFiles.count) {
-
-    if (pathfinder(StagedFiles.count, 'find', file))
-      return Flash(`${file.name} is not uploaded yet, and could not be transferred`, 'error');
-    else if (!FolderInput[0].value || FolderInput[0].value === CurrentFolder)
-      return Flash('No folder path specified, or current directory targeted', 'warning');
-
-    let fileCard = getFileCard(file);
-    if (!fileCard) continue;
-    else evt.ctrlKey ? fileCard.copy = true : fileCard.copy = mobile; //If using mobile, always copy
-  };
-
-  await transferFiles(SelectedFiles.count, FolderInput[0].value, mobile ? true : evt.ctrlKey);  //Every file uploaded -- Regardless of being in a Directory or on Main Page -- Will have a folder path attatched to it, and that's all we need back-end to acquire folder's current location.
-};
-
+function checkError(error) {
+ if (error && error.message && error.message.includes('404')) {
+   Requests.cancel('All');
+   return window.location = '/login';
+ }
+}
+  
 
 /*===============================================================
   Manipulates a preference according to the checkbox (the only input within the dialog box), and then removes all dialog elements and the temporary outbound data if any.
@@ -198,7 +131,7 @@ async function transferMultiple (evt) {
 function clearDialog(fileStorage) {
   $('.steady-glow').removeClass('steady-glow');
 
-  if (fileStorage) {
+  if (fileStorage) { // If any outbound data is currently stored, wipe it, will bloat up memory
     Outbound[`${fileStorage}`] = [];
     Outbound.size = 0;
   }
@@ -210,23 +143,37 @@ function clearDialog(fileStorage) {
 
   $('.dialog-cover').hide();
   $('.dialog-box').empty();
+  document.body.style.overflow = 'visible';
 };
+
+
+/*===============================================================
+  Self explanatory. Takes any given input value and resets it.
+===============================================================*/
+function clearInput(input) {
+  $('.input').removeAttr('disabled').val('');
+
+  if (StagedFiles.count)
+  for (let file of StagedFiles.count)
+    StagedFiles.unlist(file, true);
+}
 
 
 /*===============================================================
   Clears the modal, checks if user is viewing panel listing, and removes the text if the modal is being used to view a text file.
 ===============================================================*/
-function closeModal() {
+function closeModal(force) {
 
-  if (!event)
+  if (!event && !force)
     return false;
 
-  if ($('.progress').val()) {
+  if ($('.progress').val()) { //For showing the fixed overhead progress bar if modal is cleared
     $('.progress').show();
     $('.fixed').show();
   }
-
-  if ($(event.target).hasClass('closemodal') || $(event.target).hasClass('modal') || event.keyCode === 27) {
+  if (force && !event) return $('.modal').hide();
+  
+  if ($(event.target).hasClass('closemodal') || $(event.target).hasClass('modal') || event.keyCode === 27) { 
     $('.fs-modal-message').text('').removeClass('view-text');
     //Clear any previous text content, else it stacks up
     $('.modal-image').attr('src', '/upload.gif');
@@ -265,9 +212,10 @@ function closeIframe (evt) {
 // $(FileTable).on('mousedown', 'img', );
 
 function viewImage (img) {
-    $('#viewImage').empty().show().attr('src', img.src); //The iframe. Empty the contents, "show" it on page, and set url src to the image path on server
+    // $('#viewImage').empty().show().attr('src', img.src); //The iframe. Empty the contents, "show" it on page, and set url src to the image path on server
+    $('#viewImage').empty().show(); //The iframe. Empty the contents, "show" it on page, and set url src to the image path on server
 
-    let iFrameImageStyles = `
+    let iFrameImageStyles = ` 
       width: 100%;
       max-width: ${img.naturalWidth}px;
       max-height: ${img.naturalHeight}px;
@@ -281,6 +229,7 @@ function viewImage (img) {
       iframer.contentWindow.addEventListener('mouseup', closeIframe);
       iframer.contentWindow.addEventListener('keydown', closeIframe);
       iframer.contentWindow.addEventListener('touchend', closeIframe);
+      // All variations to close the Iframe, on some devices only one method works
     }, 100);
 
     $('#viewImage')[0].requestFullscreen();

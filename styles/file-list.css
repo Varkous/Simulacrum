@@ -39,22 +39,15 @@
   width: 100%;
 }
 .folder-children {
-  background: rgba(0,0,0,0.8);
-  font-family: 'Courier New';
   overflow-x: hidden;
-
+  border: 1px solid #22a0f4;
   transition: all 0.5s ease;
-  position: absolute;
   transform: scale(0);
-  transition: all 0.5s ease-in-out;
+
   z-index: 6;
   max-width: 300px;
   max-height: 300px;
-  border: 1px solid #22a0f4;
-  padding-left: 2px;
-  word-wrap: break-word;
-  flex-wrap: wrap;
-} .folder-children li {
+} .folder-children li, .folder-children a {
   font-size: 1.0rem;
 }
 .folder .fa-list-alt:hover + .folder-children, .folder-children:hover {
@@ -64,7 +57,10 @@
   border: 1px solid white;
   z-index: 9;
 
+  overflow-x: hidden;
+  position: absolute;
   padding: 3px;
+  width: max-content;
 }
 /* --------------------- */
 .column {
@@ -107,12 +103,13 @@
 .filehead {
   border-radius: 10px;
   font-family: 'Allerta Stencil', "Courier", "Lucida Grande";
+  word-break: break-all;
 
   width: auto;
   font-size: 0.9rem;
   padding: 5px;
 } .filehead h1:first-child {
-  color: white;
+  color: lightblue;
 
   font-size: 1.1rem;
   margin: 4px;
@@ -143,7 +140,6 @@
 .column button,
 .column textarea,
 .column object {
-  /* max-height: 500px; */
   border: 2px solid black;
   border-radius: 20px;
 
@@ -157,7 +153,7 @@
   width: 98%;
   padding: 8px;
 } .column .audio-pic {
-  max-width: 250px;
+  max-width: 100px;
 }
 /* -------------------- */
 .dragging {
@@ -188,16 +184,15 @@
   border: 2px double green;
   color: green;
 
-  /* margin: 0px !important; */
   padding: 0px;
   transform: scale(0.7);
 }
 .folder.selected {
-  border: 2px double green;
-  box-shadow: inset 41px 42px 43px 42px black,
-  inset 44px 46px 47px 48px rgb(10,10,10);
-
   transform: scale(0.7);
+} .folder.selected img {
+  filter: drop-shadow(1px 1px 5px green) drop-shadow(20px 10px 14px black);
+} .folder.selected .filehead {
+  border: 2px solid green;
 }
 .faulty {
   border: 1px dashed red;

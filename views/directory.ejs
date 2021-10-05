@@ -26,11 +26,14 @@
     const UsersDirectory = <%-JSON.stringify(UsersDirectory)%>;
     let Server = <%-JSON.stringify(Server)%>;
     let UserSession = <%-JSON.stringify(UserSession)%>;
-    let Username = UserSession.user.name;
+    const Username = UserSession.user.name;
     let Partition = <%-JSON.stringify(partition)%>.replace(`/${UserSession.user.name}`, '');
     let firstVisit = UserSession.user.firstVisit;
+    let totalsize = <%-JSON.stringify(totalsize)%>;
     let mobile = false;
-    let Private = UserSession.home === UsersDirectory ? true : false;
+    const Private = UserSession.home === UsersDirectory ? true : false;
+    let rivals = <%-JSON.stringify(rivals)%> || [];
+    let oversize = totalsize > UserSession.maxsize;
     //When user has set private directory to be home directory, we remove user name from the partition (which is supposed to be there on the back-end, but creates bugs on the front end).
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent)) mobile = true;
   </script>
@@ -48,6 +51,9 @@
 <link rel="stylesheet" type="text/css" href="/media-queries.css">
 <link rel="stylesheet" href="/body-logo.css">
 <link rel="stylesheet" href="/error-block.css">
+<% if (UserSession && UserSession.mobile) {%>
+  <link rel="stylesheet" href="/mobile.css">
+<% } %>
 <!-- ======================================================================= -->
 
 <title>Simulacrum</title>
@@ -65,12 +71,11 @@
   <div class="error-display">
 
   </div>
-  <div class="operation-status fixed high-index hide">
-    <progress value="0" max="100" class="progress">0%</progress>
-    <h3 class="progress-op"></h3>
-  </div>
+  
   <body ondrop="fileDragger(event)" ondragover="fileDragger(event)">
-
+  
+    <div class="operation-status fixed high-index hide">
+    </div>
 
     <div id="MessageLog" class="message fadeout hide">
       <i class="fa fa-times"></i>
@@ -82,7 +87,7 @@
 
     <nav>
 
-      <% if (UserSession && partition.includes(UserSession.user.name)) {%>
+      <% if (UserSession && partition.includes(UserSession.user.name) && !UserSession.guest) {%>
       <button id="myDir" class="navlink">
         <a href="#">
           <span>Public Directory</span>
@@ -90,7 +95,7 @@
         </a>
       </button>
 
-      <%} else {%>
+      <%} else if (!UserSession.guest) {%>
       <button id="myDir" class="navlink">
         <i class="fa fa-house-user"></i>
         <a href="#">
@@ -170,6 +175,7 @@
           <br>
         </h1>
     	</header>
+
     <hr>
     <br>
 <!-- ===================================================  -->
@@ -178,15 +184,15 @@
   	 <form id="fileForm" class="form" Method="POST" action="/<%=partition%>" enctype="multipart/form-data">
 
      <section id="directoryList">
-
-      <table id="tableOfDirectories">
-        <h1 title="Primary folders for all other sub-directories. Gotta start somewhere right? Generally, any new folders you create should ideally be a sub-directory from one of these, unless the content is unrelated to the names." style="cursor: help;">Base Folders/Primary Directories</h1>
-
-        <li id="primeDirectoryInput" class="d-flex" style="justify-content: center">
+     
+        <h1 id="primeDirectoryInput" class="d-flex" style="justify-content: center">
           <i class="fa fa-trash-alt" style="color: gray" onclick="sendDeleteRequest({name: this.parentNode.title, path: CurrentFolder}, true)"></i>
           <a id="editPrime" href="#" disabled="true" title="Drag a primary directory into the box, or click its folder icon to stage it for edit or deletion."></a>
-          <i class="fa fa-edit" onclick="makeEdit($(this), $(this).prev('a'))"></i>
-        </li>
+          <i class="fa fa-edit" onclick="makeEdit(this, $(this).prev('a')[0])"></i>
+        </h1>
+        
+      <table id="tableOfDirectories">
+        <h1 title="Primary folders for all other sub-directories. Gotta start somewhere right? Generally, any new folders you create should ideally be a sub-directory from one of these, unless the content is unrelated to the names." style="cursor: help;">Base Folders/Primary Directories</h1>
 
         <% if (PrimaryDirectories) {%>
           <% for (let i = 0; i < PrimaryDirectories.length; i++) {%>
@@ -200,13 +206,19 @@
 
       </table>
      </section>
-
+     
+    	<% if (totalsize > UserSession.maxsize) {%>
+    	<div class="oversize-message">
+    	  <h5>Upload capacity exceeded. Remove files/folders to free up space, or contact Director to request more space</h5>
+    	</div>
+    	<% } %>
+    	
       <div id="fileFolderInput">
 
       <div class="file-box">
         <label type="button" class="folder-label">
           <img src="/file-folder.png" width="180" draggable="false" style="filter: drop-shadow(6px 4px 6px black);">
-          <input type="file" name="files" hidden webkitdirectory directory multiple onchange="checkAndStageFiles(event.target.files)">
+          <input class="file-input" type="file" name="files" hidden webkitdirectory mozdirectory directory multiple onchange="checkAndStageFiles(event.target.files)">
         </label>
       </div>
 
@@ -223,7 +235,6 @@
           </label>
 
           <div class="operation-status">
-            <progress class="progress" value="0" max="100" height=30></progress>
             <span class="staged-count main-staged-count queued" title="Number of files staged for upload"></span>
     	    </div>
         </div>
@@ -268,7 +279,6 @@
 
                     <a href="<%=UsersDirectory%>/<%=UserSession.user.name%>"></a>
                   </div>
-
                 <%}%>
               <h4 style="margin: 0px;">Select folder destination:</h4>
 
@@ -287,8 +297,8 @@
               <button type="button" id="eraseInput" class="dark" onclick="clearInput($(this).prev()[0])"><i class="fa fa-times"></i>
               </button>
             </div>
-
-            <button id="submit" class="my-button blue">SUBMIT <span class="staged-count"></span></button>
+   
+              <button id="submit" class="my-button blue">SUBMIT <span class="staged-count"></span></button>
 
             <div id="folderSuggestions">
             </div>
@@ -341,20 +351,20 @@
           <i class="fa fa-download" style="color: #3caf00; opacity: 0.7;"></i>
            | DOWNLOAD <span class="selected-count"></span>
         </button>
-
-        <button id="transferBtn" class="my-button transfer" onclick="transferMultiple(event)">
+        
+    	<button id="transferBtn" class="my-button transfer" onclick="transferMultiple(event)">
           <i class="fa fa-angle-double-right" style="color: gold; opacity: 0.7;"></i>
            | TRANSFER <span></span><span class="selected-count"></span>
         </button>
 
-        <button id="deleteBtn" class="my-button">
+        <button id="deleteBtn" class="my-button" onclick="verifyDeletion()">
           <i class="fa fa-trash-alt" style="color: red; opacity: 0.7;"></i>
            | DELETE <span class="selected-count"></span>
         </button>
 
         <button id="moreFiles" class="my-button">
           <i class="fa fa-th" style="color: purple; opacity: 0.7;"></i>
-           | <span>MORE FILES...</span>
+           | LIST ALL (<span class="all-count"></span>)
         </button>
 
       </div>
@@ -426,8 +436,8 @@
     <div class="modal-content">
       <span class="closemodal"><i class="fa fa-times-circle closemodal"></i></span>
       <img id="uploadWait" class="modal-image" src="/upload.gif">
-      <div class="fs-modal-message">Uploading files...
-
+      <div class="fs-modal-message">
+      <!---->
       </div>
     </div>
   </div>
@@ -438,13 +448,12 @@
 <!-- ================ -->
 <script type="text/javascript" src="/Helpers.js"></script>
 <script type="text/javascript" src="/Core.js"></script>
-<script type="text/javascript" src="/DirectoryManipulation.js"></script>
+<script type="text/javascript" src="/DirectoryControl.js"></script>
 <!-- ================ -->
 <script text="text/javascript">
 let PrimaryDirectories = <%-JSON.stringify(PrimaryDirectories)%>; //Used only by 'displayDirectoryStats', contains info of all the PRIMARY directories listed at top of page.
 let Directory = <%-JSON.stringify(directory)%> || {};
 let CurrentFolder = ''; //Same as Directory.name
-let rivals = <%-JSON.stringify(rivals)%> || [];
 /* ----------------------------------------- */
 //The base partition that houses all directories. Needs to end with a "/" (example: "uploads/")
 const AllFiles = new Uploaded_Status_Adjuster('uploaded', $('.all-files')[0], []);
@@ -473,9 +482,12 @@ const directoryStats = document.getElementsByClassName('directory-stats');
 
 <!-- ======================================================= -->
 <script type="text/javascript" src="/ContentDisplay.js"></script>
+<% if (UserSession.home === UsersDirectory && totalsize >= UserSession.maxsize) { %>
+<% } else {%>
 <script type="text/javascript" src="/StageAndUpload.js"></script>
-<script type="text/javascript" src="/Deletion.js"></script>
+<%}%>
 <script type="text/javascript" src="/Interactive.js"></script>
 <script type="text/javascript" src="/Prompts.js"></script>
 <script type="text/javascript" src="/Mischellaneous.js"></script>
+<script type="text/javascript" src="/FileAlteration.js"></script>
 <script type="text/javascript" src="/KeyMouseTriggers.js"></script>
