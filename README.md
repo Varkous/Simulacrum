@@ -1,6 +1,6 @@
 # Simulacrum
 The purpose of this application is to supplement the given Cloud Drive's file systems manager with a more aesthetic user interface, and additional file manipulation options.
-This project was used primarily by the author to practice intermediate Javascript/JQuery/CSS methods.
+  This project was used primarily by the author to practice intermediate Javascript/JQuery/CSS methods.
 
 The index file holds the framework objects, core server functions, and along the checkpoint routers
 @NodeExpressAppFrame calls all the fundamental frameworks, and creates the server listener. It provides the Class which serves Express, and all the routes.
