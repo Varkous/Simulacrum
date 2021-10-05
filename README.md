@@ -5,7 +5,7 @@ This project was used primarily by the author to practice intermediate Javascrip
 # index 
 Holds the framework objects, core server functions, along with the checkpoint routers
 # @NodeExpressAppFrame 
-Calls all the fundamental frameworks, and creates the server listener. It provides the Class which serves Express, and all the routes.
+Calls all the fundamental frameworks, and creates the server listener. It provides the Class which serves Express along with the routes object.
 # "Controllers" 
 Contains the back-end script files:
   * UserHandling deals with authentication/authorization, session checking, updating Session "store", and reporting results of file operations (including errors) back to the client
