@@ -22,20 +22,21 @@ process.checkPartitions = setInterval( async function () {
 // Check disk space of Users and Public partitions and see if they have dropped to critical levels of space (50 gigabytes), trigger 1-minute-pending server shutdown if so
 
   let publicPartition = checkDiskSpace(path.resolve(partition)).then( (space) => {
-    if (space.free < (200 * 1000 * 1000 * 1000)) { // Gigabytes
+    if (space.free < (50 * 1000 * 1000 * 1000)) { // Gigabytes
       clearInterval(process.checkPartitions);
       return module.exports.CloseServer('Public Partition reached critical levels of disk space, server shutting down for Director intervention', 180000);
     }
   });
 
-  let usersPartition = checkDiskSpace('/volume1').then( (space) => {
+  let usersPartition = checkDiskSpace(path.resolve(UsersDirectory)).then( (space) => {
+
     if (space.free < (50 * 1000 * 1000 * 1000)) { // Gigabytes
       clearInterval(process.checkPartitions);
       return module.exports.CloseServer('Users Partition reached critical levels of disk space, server shutting down for Director intervention', 60000);
     }
   });
 
-}, 10000);
+}, 5000);
 
 /*===============================================================*/
 module.exports = {
@@ -194,8 +195,8 @@ module.exports = {
       return false;
     //These are unnecessary requests made by browser, dismiss them
 // ----------
-    if (url === '/login' || url === '/signout' || req.session && url === '/all/undefined' || req.session && url === '/all')
-      return next();
+    if (url.includesAny('/login', '/signout', '/new') || req.session && url.includesAny('/all', '/all/undefined'))
+      return next(); // These URLs do not use the data below, and need redirection to avoid sidetracking to login
 // ----------
     if (!req.session)
       return res.redirect('/signout');

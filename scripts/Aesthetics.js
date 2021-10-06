@@ -49,7 +49,7 @@ function dismissElement (element, axis, direction, duration = '60%', wait = 600,
     }
     // ----------------------------------------------
   }); //Return promise
- } catch (err) {console.log(err)}; 
+ } catch (err) {console.log(err)};
 };
 
 // ---------------------------------------------------------------------------------------
@@ -107,6 +107,7 @@ if (mobile) {
   	  delay: 200,
 
   	  drag: function(evt, ui) {
+
   	    //Firefox needed this to proceed to "stop"
   	    if (!event.buttons)
   	      return false;
@@ -140,7 +141,7 @@ if (mobile) {
   	    }, //-----------All of this crap above happens if you drop an item on the given folder card
   	};
   }; //End of: If guest user file size capacity is not exceeded, allow these transferring/copying
-  
+
 	/*===============================================================
 	Detects and then reconfigures starting position of the 'dragbox'
 	===============================================================*/
@@ -188,7 +189,7 @@ if (mobile) {
 	      height: `${heightAdjust}px`,
 	      width: `${widthAdjust}px`
 	    });
-	  } else return false; 
+	  } else return false;
 
 	};
 

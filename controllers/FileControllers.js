@@ -6,7 +6,7 @@ const {checkModeType, getFileSize, accumulateSize} = require('../scripts/Helpers
 const fs = require('fs-extra');
 const path = require('path');
 const child_process = require("child_process");
-const {IncomingForm} = require('formidable');	  
+const {IncomingForm} = require('formidable');
 let uploadOptions = {
 encoding: 'utf-8',
 uploadDir: path.resolve('temp'),
@@ -39,7 +39,7 @@ module.exports = {
         items: [user.name]
       });
     }
-    partition = await CheckIfTransfer(req, res, directory); 
+    partition = await CheckIfTransfer(req, res, directory);
     if (!partition) return false; //Checks if its a transfer, and if user is attempting transfer from public to private. If a conflict occured, partition will actually be "false", and therefore abort request
 // ------------------------------------------------------------------------------
       try {
@@ -51,10 +51,10 @@ module.exports = {
             fs.mkdir(`${partition}/${directory}`, {recursive: true}, (err, dir) => {
               if (err) return next(err);
 
-				
+
               let relativeFolder = directory.replace(user.residing, '').replace('/', '').split('/')[0];
     		  //Simple code, but deceptive concept. The goal is to find any new directories created that are DIRECT children of the current posting directory (the folder the user is residing in), anything deeper should  be displayed, as page will only show relative directories
-              // ------------------------------------------------------------------------------              
+              // ------------------------------------------------------------------------------
               if (!req.body.newfolders.has(relativeFolder))
                 req.body.newfolders.add(relativeFolder);
 
@@ -88,7 +88,10 @@ module.exports = {
                   type: 'error'});
 
               else if (!op) {
-                fs.readdir(`${partition}/${directory}`, (err, entries) => {
+                fs.readdir(`${partition}/${directory}`, {withFileTypes: true}, (err, entries) => {
+                  if (err) return ReportData(req, res, err);
+                  entries = entries.map( e => e.isDirectory() ? EntryToHTML(e.name, '#22a0f4', '<br>') : e.name);
+
                   return ReportData (req, res, false, {
                     content: [`Directory already exists. ${entries.length ? 'Items within:' : 'Empty.'}`],
                     type: 'warning',
@@ -111,7 +114,7 @@ module.exports = {
   Upload: async function (req, res, next) {
     //Every operational post request (Upload, Transfer, New Directory) goes through this route. We do basic check below to determine how to route operation
     let user = req.session.user; //Ease of access
-    let ses = req.session; //Ease of access	  
+    let ses = req.session; //Ease of access
     let op = req.headers.operation || false;
 
     if (!op || op === 'Transfer') {
@@ -119,61 +122,65 @@ module.exports = {
     }
 // ---------------------------------------------------------------------------- If operation is an Upload, everything below is activated
       await module.exports.AccessDirectory(req, res, next); //To perform initial check of main directory permission
-      
-      const filesToWrite = [];  
+
+      const filesToWrite = [];
       const Uploader = new IncomingForm(uploadOptions); // Options for handling form-data payload
 
       Uploader.parse(req, async (error) => { // This actually occurs before anything else, but the functionality within does not trigger until every file has been acquired from the upload stream
-      	
+
        if (!error) {
         req.files = await Promise.all(filesToWrite); //After all file uploads have finished piping (or returned error)
         if (!req.files.length) return ReportData(req, res, false, {
             content: ["No files staged for upload"],
             type: 'error'
           });
-        else return next(); //Report data is in req.files, so we move on to closing route handler      	
+        else return next(); //Report data is in req.files, so we move on to closing route handler
        }
-      }); //End of File Parse    	
-// ------------------------------------------------------------------------------ 
-      Uploader.on("fileBegin", async function (field, file) {
-      	// ------------------------------------------------------------------------------ 
-          let dirPath = file.name.substring(0, file.name.lastIndexOf('/')); //File name contains path, so we strip the actual file NAME out, so all we get is path
-          let filename = file.name.replace(dirPath + '/', ''); //Opposite of above, just the file name
-          let newpath = path.resolve(ses.home, file.name); //Neither of above (or both), gets full absolute path
-// ------------------------------------------------------------------------------           
+      }); //End of File Parse
+// ------------------------------------------------------------------------------
+    Uploader.on("fileBegin", async function (field, file) {
+     try {
+      	// ------------------------------------------------------------------------------
+      let dirPath = file.name.substring(0, file.name.lastIndexOf('/')); //File name contains path, so we strip the actual file NAME out, so all we get is path
+      let filename = file.name.replace(dirPath + '/', ''); //Opposite of above, just the file name
+      let newpath = path.resolve(ses.home, file.name); //Neither of above (or both), gets full absolute path
+// ------------------------------------------------------------------------------
 		  if (fs.existsSync(newpath) && fs.statSync(newpath).uid !== user.uid) {
 			return filesToWrite.push({name: filename, path: dirPath, denied: true});
 		  } else {
-	        file.path = newpath; // Important, this sets the targeted destination, else it goes to temp folder   
-	  	    file.name = filename;	
+	      file.path = newpath; // Important, this sets the targeted destination, else it goes to temp folder
+	  	  file.name = filename;
 		  }
-// ------------------------------------------------------------------------------           
+// ------------------------------------------------------------------------------
     	filesToWrite.push(new Promise( async (resolve, reject) => { // For parallel processing
-		  if (!fs.existsSync(path.resolve(ses.home, dirPath))) {
-		    let relativeFolder = dirPath.replace(user.residing, '').replace('/', '').split('/')[0];
-		    //Simple code, but deceptive concept. The goal is to find any new directories created that are DIRECT children of the current posting directory (the folder the user is residing in), anything deeper should  be displayed, as page will only show relative directories
+        let newfolder = path.resolve(ses.home, dirPath);
+		  if (!fs.existsSync(newfolder)) {
 		    // ------------------------------------------
-		    fs.mkdirSync(path.resolve(ses.home, dirPath), {recursive: true, force: true}) //If the requested upload path (within name) does not exist, make the directory. This occurs while file data is still being parsed
-		
+		    fs.mkdirSync(newfolder, {recursive: true, force: true}) //If the requested upload path (within name) does not exist, make the directory. This occurs while file data is still being parsed
+        fs.chown(newfolder, user.uid, 100, (err) => err ? console.log(err) : false);
+        let relativeFolder = dirPath.replace(user.residing, '').replace('/', '').split('/')[0];
+        //Simple code, but deceptive concept. The goal is to find any new directories created that are DIRECT children of the current posting directory (the folder the user is residing in), anything deeper should  be displayed, as page will only show relative directories
+
 		    if (!req.body.newfolders.has(relativeFolder))
 		      req.body.newfolders.add(relativeFolder);
 
-		    return resolve({name: filename, path: dirPath, uploaded: true});    
-		  } else return resolve({name: filename, path: dirPath, uploaded: true});	
-// ------------------------------------------------------------------------------ 		  
-		}));
-      });    
+		    return resolve({name: filename, path: dirPath, uploaded: true});
+		  } else return resolve({name: filename, path: dirPath, uploaded: true});
+// ------------------------------------------------------------------------------
+		  }));
+     } catch (err) {console.log(err)};
+    });
 // ------------------------------------------------------------------------------
       Uploader.on("field", async (field, property) => { // The usual 'req.body' is now locked away in the 'fields' object, and preferences would not get updated without this
         if (field === 'preferences')
           req.session.preferences = JSON.parse(property);
       });
-// -----------------------------------------------------------------------------      
+// -----------------------------------------------------------------------------
       Uploader.on('aborted', async () => console.log('aborted'));
 // -----------------------------------------------------------------------------
       Uploader.on('error', async (err) => {
 
-      	WriteLogFilter(user.name, err.message); 
+      	WriteLogFilter(user.name, err.message);
         if (err.message && err.message.includes('maxFileSize')) { //Special error report if max size was exceeded. Otherwise send it through error handler
           return ReportData(req, res, false, {
             content: [`Cannot upload more than`, `at a time`],
@@ -181,26 +188,26 @@ module.exports = {
             items: [getFileSize(uploadOptions.maxFileSize)]
           });
         } else next(err);
-      }); 
-// ----------------------------------------------------------------------------- 
+      });
+// -----------------------------------------------------------------------------
   if (req.reject) { // If error occured prior to Upload parsing, reject will be true. This will inform the Uploader to emit error and cancel upload
    	Uploader.onPart = function (part) {
    	  this.emit('error', `Aborted. Upload would exceed your maximum (${getFileSize(req.session.maxsize)}) capacity. Remove files to free up space`);
 	};
   }
-// -----------------------------------------------------------------------------      
+// -----------------------------------------------------------------------------
   },
 /*===============================================================*/
 
 /*===============================================================*/
 ZipAndDownload: async function (req, res, files, userDir) {
- try {	
+ try {
   const ses = req.session;
   const filesToDownload = files.map( (file, i, arr) => {
     //Go through each file under a promise for parallel processing
     const src = path.resolve(ses.home, file.path, file.name);
     const dest = `${userDir}/${file.name}`;
-  
+
 // ------------------------------------------------------------- If file is already copied, resolve true, if not, copy it, any errors reject file that caused it
     return new Promise( async function (resolve, reject) {
       if (!fs.existsSync(src)) { //If copied file doesn't exist, return it as missing
@@ -215,7 +222,7 @@ ZipAndDownload: async function (req, res, files, userDir) {
     });
 
   }); //End of file mapping
-    // ------------------------------------------------------------- When all files to be downloaded have finished transfer 
+    // ------------------------------------------------------------- When all files to be downloaded have finished transfer
   await Promise.all(filesToDownload).then( async (files) => {
       if (files.filter( file => file.missing).length) {
         //If any files attempted to be extracted actually do not exist (failed to be copied), reject request with error report
@@ -234,7 +241,7 @@ ZipAndDownload: async function (req, res, files, userDir) {
 
         const stream = child_process.spawn('7z', zipOptions.split(' '), {cwd: userDir, detached: true, encoding: 'buffer'});
         res.setHeader('Bullshit', GetFolderSize(req, userDir, 0) * 75 / 100); // This is basically bullshit, an approximation of the time it will take to complete download. Compression time could not be reliably streamed
-   
+
         stream.stdout.pipe(res).on("finish", () => { // We never really create the zip back-end, we actually pipe the entire output/download it simultaneously
           let downloaded = CapArraySize(files.filter( file => file.copied).map( file => file.name))
           Sessions.user(req, ses).log.push(`Successfully downloaded ${downloaded}`);
@@ -269,33 +276,33 @@ ZipAndDownload: async function (req, res, files, userDir) {
     let failed = req.body.transfers.map( (item) => item.failed ? {name: item.name, styled: EntryToHTML(item, item.color)} : null).filter(Boolean);
     let already = req.body.transfers.map( (item) => item.already ? {name: item.name, styled: EntryToHTML(item, item.color)} : null).filter(Boolean);
     let target = `<span style="color: ${process.env.folder_color};">${destination}</span>`; //Destination folder with proper blue color
-// ------------------------------------------------------------------------------ 
+// ------------------------------------------------------------------------------
 //Don't bother trying to decipher all the terinary string operators. They were necessary to account for all variations of transfer conflicts and provide appropriate coloring and segregation so user can adjust operations
         if (transfers.length && failed.length)
           return ReportData (req, res, false, {
-            content: [`${transfers.length ? `Successfully ${action}` : 'Cancelled transfer.'}`, `to ${target} <hr>${failed.map(i => i.styled).join('<br>')} <br>were not successful`], 
-            type: 'warning', 
-            items: transfers.map( i => i.name) || [], 
+            content: [`${transfers.length ? `Successfully ${action}` : 'Cancelled transfer.'}`, `to ${target} <hr>${failed.map(i => i.styled).join('<br>')} <br>were not successful`],
+            type: 'warning',
+            items: transfers.map( i => i.name) || [],
             incomplete: [...failed, ...already].map( i => i.name) || [],
             paths: paths
           });
 // ------------------------------------------------------------------------------
         else if (failed.length > 0 && !transfers.length)
           return ReportData (req, res, false, {
-            content: [`Failed to move`, `to ${target} . Check permission, verify item location, or try copying instead.`], 
-            type: 'error', 
+            content: [`Failed to move`, `to ${target} . Check permission, verify item location, or try copying instead.`],
+            type: 'error',
             items: failed.map( i => i.name),
             incomplete: failed.map( i => i.name)
           });
 // ------------------------------------------------------------------------------
         else return ReportData (req, res, false, {
           content: [`${transfers.length ? `Successfully ${action}` : 'Cancelled.'}`, `${transfers.length ? `to ${target} <hr>`: '<hr>'}${already.length ? already.map(i => i.styled).join('<br>') + ' <br>already within that directory' : ''}`],
-          type: already.length ? 'warning' : 'success', 
-          items: transfers.map( i => i.name) || [], 
-          paths: paths, 
+          type: already.length ? 'warning' : 'success',
+          items: transfers.map( i => i.name) || [],
+          paths: paths,
           incomplete: already.map( i => i.name)
         });
-   } catch (err) { WriteLogFilter(req.session.user.name, err.message)}     
+   } catch (err) { WriteLogFilter(req.session.user.name, err.message)}
 
   }, //End of: Transfer function
 /*===============================================================*/

@@ -64,7 +64,7 @@ class File_Status_Adjuster {
 
       this.count.push(file);
       const {name, path} = file;
-      
+
       $(`[title="${name}"][path="${path}"]`).addClass(this.status);
       $(this.listings).append(`<li title="${name}" path="${path}" size="${file && file.stats ? file.stats.size : file.size || 0}" class="${this.status}"><span>${name}</span></li>`);
 
@@ -126,11 +126,11 @@ class File_Status_Adjuster {
       //We remove all listings under the tag name rather than 'this.listings', as user may be editing it within modal viewport
 
     };
-    
+
 	$('.file-input').val('');
     $('.selected-count').text(`(${SelectedFiles.count.length})`);
     $('.staged-count').text(`(${StagedFiles.count.length})`);
-   } catch (err) { console.log(err)}   
+   } catch (err) { console.log(err)}
   };
   /*========================================================*/
   /*========================================================*/
@@ -153,7 +153,7 @@ class Uploaded_Status_Adjuster extends File_Status_Adjuster {
 
     if (!Array.isArray(files))
       files = [files];
-      
+
       files.map ( async (file) => {
         this.unlist(file);
         let fileCard = getFileCard(file);
@@ -213,7 +213,7 @@ class Uploaded_Status_Adjuster extends File_Status_Adjuster {
       }; //End of loop
 
       pathfinder(this.count, 'find', file).name = file.new;
-      
+
     } catch (err) {
       console.log(err)
       Flash(['Rename error occured with', 'Reload directory to avoid pathing error'], 'error', [file.name]);
@@ -235,7 +235,7 @@ function createReport(content, type, items, excess) {
     type = 'error';
     items = [];
   }
- 
+
   setTimeout( () => $('.closemodal').click(), 500);
   // CSSVariables.setProperty('--operation', ''); //And remove progress bar operation name
   if (typeof (content) === 'string') content = [content];
@@ -310,9 +310,9 @@ async function downloadFiles (fileCard) {
   } else if (event.shiftKey) data.files = AllFiles.count.filter( file => delete(file.stats)); //All items. Without stats, don't need to crowd up req body
   else data.files = {name: fileCard.id || fileCard.title, path: $(fileCard).attr('path')}; //Single item
 
-  if (!showOperation(operation || '', data.files)) 
+  if (!showOperation(operation || '', data.files))
     return false;
-    
+
 // ---------------------------------------------------------------------------------
 if (mobile) {
   //If using mobile device
@@ -333,7 +333,7 @@ if (mobile) {
     responseType: 'blob', //Receiving zip file, which qualifies as arraybuffer or blob
   }).then( (res) => activateDownloads(res, operation, data))
   .catch( (error) => {
-     if (axios.isCancel(error)) 
+     if (axios.isCancel(error))
        Flash(operation + ' aborted', 'warning');
 	 else Flash([error.message], 'error');
       return false;
@@ -366,7 +366,7 @@ async function activateDownloads (res, op, data) {
     const downloadUrl = window.URL.createObjectURL(res.data);
     downloads.push([downloadUrl, 'Files.zip']); // First element is href, second element is the download attribute
     //Create a url link to raw data itself, and use 'download' attribute to receive it as a download link.
-// ----------------------------------------------------- 
+// -----------------------------------------------------
   } else if (mobile && data) { // On mobile device, we don't permit folder or zip downloads, so we just find the file from URL and download from source
   	  Requests.cancel('Download'); // Never was one but need to reset progress bar
       for (let file of data.files) {
@@ -379,13 +379,13 @@ async function activateDownloads (res, op, data) {
       };
     }
 // ----------------------------------------------------- After all links have been stored, iterated and activate them to trigger downloads
-  for (let i = 0; i < downloads.length; i++) 
+  for (let i = 0; i < downloads.length; i++)
   	triggerLink(...downloads[i]); // Spread is important. First element/argument is the href, second is the download tag/name to use
-  
+
   if (failed.length)
     Flash([`Failed to download`, `Folders cannot be downloaded on mobile devices, files only.`], 'error', failed);
-  else Flash([`Files downloaded: `, ``], 'success', downloads.map( l => l.download));
-  
+  else Flash([`Files downloaded: `, ``], 'success', downloads.map( l => l[1]));
+
   SelectedFiles.unlist(data.files);
 // ---------------------------------------------------------------------------------
  } catch (err) {console.log(err)};

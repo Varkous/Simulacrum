@@ -4,17 +4,6 @@
   padding: 10px;
   text-align: center;
 }
-/* .cover-background {
-  color: aliceblue;
-  font-family: 'Courier New';
-
-  font-size: 2.0rem;
-  position: absolute;
-  text-align: center;
-  transition: all 0.5s ease;
-  display: flex;
-  justify-content: center;
-} */
 .error-message {
   font-family: unset;
   word-wrap: break-word;

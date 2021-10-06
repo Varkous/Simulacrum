@@ -2,7 +2,7 @@
 const {app, path, wrapAsync} = require('../index.js');
 const fs = require('fs-extra');
 
-const {VerifyUser, ReportData, Sessions} = require('../controllers/UserHandling.js');
+const {VerifyUser, ReportData, Sessions, GetCreator} = require('../controllers/UserHandling.js');
 const {AccessDirectory, Upload, ZipAndDownload, Rename, IterateDelete} = require('../controllers/FileControllers.js');
 const {Geodetect, CapArraySize, EntryToHTML, CheckSessionAndURL} = require('../controllers/Utilities.js');
 const {parseHTML, checkModeType} = require('../scripts/Helpers.js');
@@ -34,22 +34,22 @@ module.exports.Authentication = {
   loginPage: app.get('/login', Geodetect, wrapAsync( async (req, res, next) => {
 	let Server = process.ServerTracker;
 	let LoginAttempts;
-	
+
 	if (req.session) {
 	  if (req.session.loginAttempts && req.session.loginAttempts >= 2) {
 	  //Technically it's 3, the first login attempt sets it to null (0) rather than 1 for some reason
 	    req.session.loginAttempts ++;
-	
+
 	    Sessions.lock(req, req.body.name);
 	    return next( new Error("Login attempts exceeded. Seek life elsewhere."));
 	  }
-	
-	  if (req.session.loginAttempts) 
-	    LoginAttempts = {count: req.session.loginAttempts, message: ''};  
-	  else LoginAttempts = {count: 0, message: ''};  
-	
+
+	  if (req.session.loginAttempts)
+	    LoginAttempts = {count: req.session.loginAttempts, message: ''};
+	  else LoginAttempts = {count: 0, message: ''};
+
 	  if (req.session.user) await Sessions.terminate(req);
-	  	  
+
 	  return res.render('login', {LoginAttempts, Server});
 	}
 	return res.render('login', {LoginAttempts, Server});
@@ -79,7 +79,7 @@ module.exports.Authentication = {
   /* ====================================
   Temporary for creating new user accounts
   ======================================= */
-  newUser: app.post('/new', Geodetect, wrapAsync( async (req, res, next) => {
+  newUser: app.post('/new', wrapAsync( async (req, res, next) => {
 
     const answers = ["Now that's more like it, Mr. Wayne.",
         "Now that's more like it, Mister Wayne.",
@@ -143,8 +143,8 @@ module.exports.FileViewing = {
       req.session.user.residing = req.session.home === UsersDirectory ? req.session.user.name : '/';
       return res.send(globalDirectory);
   } catch(e) {
-	console.log(e);	
-  }      
+	console.log(e);
+  }
 
   })),
 
@@ -174,25 +174,25 @@ module.exports.FileViewing = {
   	const folder = req.params.folder + req.params[0]; //Get directory
   	const fullpath = `${req.session.home}/${folder}`;
     const {query} = req;
-// ----------------------------------------------------------------    
+// ----------------------------------------------------------------
    try {
    	if (!fs.statSync(path.resolve(fullpath)).isDirectory()) return false;
-   	
+
     if (!req.originalUrl.includes(req.session.home)) return ReportData(req, res, false, {
       content: [`Partition or directory`, 'not found'],
       type: 'error',
       items: [folder]
     });
 
-  	if (query.fetch) return res.send(await CreateItem(req, query.fetch, folder, fullpath)); 
+  	if (query.fetch) return res.send(await CreateItem(req, query.fetch, folder, fullpath));
 // ----------------------------------------------------------------
     await GetDirectory(folder, req, res)
     .then( (directory) => {
     	let {log, residing} = Sessions.user(req, req.backup); // Get log from session store (NOT RELIABLE) along with residing location
-    	
+
     	log = !log.length ? res.locals.UserSession.log || [] : log || []; // The local variable of Log is always out of sync with the Session store log, so if one was cleared, use the other
-      log.push(directory.files.length > 500 ? 
-      `${directory.name} exceeds the stable file capacity (${EntryToHTML(500, 'darkcyan')}). Listing all items is not advised. Relocate files to sub-directories if possible` 
+      log.push(directory.files.length > 500 ?
+      `${directory.name} exceeds the stable file capacity (${EntryToHTML(500, 'darkcyan')}). Listing all items is not advised. Relocate files to sub-directories if possible`
       : `${EntryToHTML(directory.name, '#22a0f4')} loaded `);  // Warn the user of current directory size if large, otherwise normal statement
       // -------------------
       residing = directory.name;
@@ -218,7 +218,7 @@ module.exports.FileViewing = {
       error.message = 'Directory not found. Check spelling, or refresh primary directory to verify its existence.';
       next(error);
     });
-  } catch (err) { next(new Error('Directory not found. Was renamed, moved or does not exist'))}     
+  } catch (err) { next(new Error('Directory not found. Was renamed, moved or does not exist'))}
   })),
 }; //--------------- End of File Viewing Routes
 
@@ -255,19 +255,19 @@ module.exports.FileManagement = {
     let newpath = path.resolve(req.session.home, req.body.path, req.body.new);
     let stats = fs.statSync(oldpath);
     let color = checkModeType(stats.mode) === 'folder' ? process.env.folder_color : process.env.file_color;
-    
+
     if (!fs.existsSync(oldpath)) //Typo by user, or item was stealth-removed
       return await ReportData(req, res, false, {
         content: ["", "does not even exist, verify path"],
         type: 'error',
         items: [req.body.old]
       });
-                 
+
     else if (stats.uid !== req.session.user.uid && stats.uid !== 1024) //Item belongs to another user
       return await ReportData(req, res, false, {
         content: [`You do not have permission to alter <span class="${color}">${req.body.old}</span>. It belongs to:`],
         type: 'error',
-        items: [`<span style="color: green">${Sessions.users[`User${stats.uid}`].name || 'The Director'}</span>`]
+        items: [`<span style="color: green">${await GetCreator(stats.uid)}</span>`]
       });
 
     else if (fs.existsSync(newpath)) //Name already in use
@@ -292,10 +292,10 @@ module.exports.FileManagement = {
     let filter = req.files.map( async (file) => {
     	if (file.uploaded) {
     	  let fullpath = path.resolve(req.session.home, file.path, file.name);
-    	  fs.chown(fullpath, req.session.user.uid, 100, (err) => err ? console.log(err) : false); 
+    	  fs.chown(fullpath, req.session.user.uid, 100, (err) => err ? console.log(err) : false);
     	  file.stats = fs.statSync(fullpath);
     	  return uploaded.push(file);
-    	} 
+    	}
     	if (file.failed) return failed.push(EntryToHTML(file, 'red', '<br>'));
     	if (file.denied) return denied.push(EntryToHTML(file, 'yellow', '<br>'));
     })
@@ -312,7 +312,7 @@ module.exports.FileManagement = {
 	      items: [],
 	      newfolders: newfolders || '',
 	      uploaded: uploaded || [],
-	    });    	
+	    });
     });
   // -------------------------------------------------
   } catch (err) { return next(err); res.redirect('/login');};

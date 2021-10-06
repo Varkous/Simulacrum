@@ -40,19 +40,18 @@ function confirmRedirect(url) {
 async function changeDirectory (evt, link) { //Upon clicking any link (leaving the page), dismiss the entire page body, sending it left or right depending on whether the user is going "forwards" through directories (send it left), or "backwards" (send page right).
 try {
 
-  //if (this && this.download) return true;
-  if (this && this.download) {
-  	// axios.get(this.href);
+  if (this && this.download) { // Download anchor that should trigger like normal
+    evt.stopPropagation();
   	return true;
   }
-  else if (evt) {
+  else if (evt) { // To prevent unwanted redirects/triggers that override this function
   	evt.preventDefault();
     evt.stopPropagation();
   	if (mobile && evt.target && $(evt.target).hasClass('folder-link')) {
     	return false;
     }
   }
-
+// -----------------------------------------------------------------------------------
   let href = filterInput(this ? this.href || link : link || home, -1); //If 'this' does not refer to anchor link, there must be a link that was passed in. Removes end "/".
 
   if (href && !href.replace(home, '').includes('#') && !$(this).hasClass('search-result')) {

@@ -126,8 +126,7 @@ $('body').on('mouseup', '*', () => {
   !$(FolderInput).val() ? $(FolderInput).val(CurrentFolder) : null;
   !$(event.target).hasClass('file-info') && event.target.tagName !== 'A' ? $('.file-info').remove() : null
   //If we click anywhere that is not one of the icons, remove any file-infos that are on hover display
-  $(event.target).hasClass('search-result') ? event.preventDefault() : null;
-  $(folderSuggestions).empty(); //For clearing folder suggestion list
+  event.target.tagName !== 'A' ? $(folderSuggestions).empty() : false; //For clearing folder suggestion list if not clicking an anchor
 });
 /* ----------------------------------------- */
 $('body').on('click', '#confirm', clearDialog);
@@ -153,7 +152,7 @@ $('body').on('click', '.progress', function (evt) { //Whenever a progress bar is
             proceedFunction: `Requests.cancel('${op}')`,
           });
   }
-}); 
+});
 /* ----------------------------------------- */
 window.addEventListener('load', async () => {
 
@@ -175,7 +174,7 @@ window.addEventListener('load', async () => {
 if (document.body.scrollHeight > window.innerHeight) { //If scrollbar is even visible
   document.addEventListener('scroll', function (event) { //This just detects if the scrollbar reached bottom of page (or within 10 pixels), if so, pagenate and show more files
 	clearTimeout(window.listFiles);
-    if (document.body.scrollHeight - ($('html').scrollTop() + window.innerHeight) <= 10  
+    if (document.body.scrollHeight - ($('html').scrollTop() + window.innerHeight) <= 10
     && $(FileTable).children('.column')[0] && AllFiles.count.length > FileTable.children.length) { //This IF statement is making sure scrollbar is at bottom of screen, that there are any uploaded files below, and that there are more left to show
       window.listFiles = setTimeout( async () => await listDirectoryContents(event), 100);
     }

@@ -77,9 +77,9 @@
         </fieldset>
 
 
-        <button class="input" type="submit" name="button">SUBMIT</button>
+        <button class="input" type="submit">SUBMIT</button>
         </form>
-      <button name="button" onclick="showForm()" style="max-width: 400px;">Request New Profile</button>
+       <button name="button" onclick="showForm()" style="max-width: 400px;">Request New Profile</button>
       <hr>
     </main>
   </body>
@@ -95,13 +95,14 @@
   const LoginAttempts = <%-JSON.stringify(LoginAttempts || null)%>;
   const Server = <%-JSON.stringify(Server || null)%>;
 
-  if (LoginAttempts.message) {
+  if (LoginAttempts.message)
     alert(LoginAttempts.message);
-  }
+
   if (LoginAttempts.count < 3) {
 
   	for (let field of fieldsets)
   		field.removeAttribute('disabled');
+
     document.querySelector('button').disabled = false;
     form.hidden = false;
   }
@@ -141,11 +142,5 @@
 /* ================================================= */
   const prefix = (Array.prototype.slice
     .call(window.getComputedStyle(document.documentElement, '')).filter( (style) => style.includes('-moz')));
-    
-         setTimeout( () => {
-          UN.value = 'guest';
-          PW.value = 'JadeFalcon';
-          //form.submit();
-        }, 100);
 
 </script>

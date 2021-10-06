@@ -36,7 +36,7 @@ const {WriteLogFilter, CheckSessionAndURL, ClearTemp, ExitHandler, Compress, Clo
 const {GetPrimaryDirectories} = require('./controllers/FolderProviders.js');
 const {accumulateSize, getFileSize} = require('./scripts/Helpers.js');
 /*======================================================*/
-    
+
 // ============================================================
 const resourceFolders = [
   session({ //Establishing session prototype, adopted by every user session
@@ -93,10 +93,10 @@ if (req.session) {
   req.session.mobile = true;  // Check if user is on mobile device
 
   res.locals.UserSession = req.session;
-  res.locals.UsersDirectory = UsersDirectory;	
+  res.locals.UsersDirectory = UsersDirectory;
   //User session and user directory info provided to browser
   res.locals.Server = process.ServerTracker;
-  
+
 }
   next();
 }));
@@ -104,10 +104,10 @@ if (req.session) {
 
 // ============================================================
 app.get('*', wrapAsync(async (req, res, next) => {
-	
-  if (!req.session) 
+
+  if (!req.session)
     return res.redirect('/signout');
-  
+
   const url = req.originalUrl;
 // ----------
   if (url.includesAny(...module.exports.worthlessURLS))
@@ -133,8 +133,8 @@ app.get('*', wrapAsync(async (req, res, next) => {
 		if (req.originalUrl === '/') res.locals.directory = false;
 
 		GetPrimaryDirectories(req, homedirectory).then( (primes) => {
-		  res.locals.PrimaryDirectories = primes.filter(Boolean);	
-		  res.locals.totalsize = res.locals.PrimaryDirectories.length ? res.locals.PrimaryDirectories.reduce(accumulateSize) : 1;
+		  res.locals.PrimaryDirectories = primes.filter(Boolean);
+		  res.locals.totalsize = res.locals.PrimaryDirectories.length > 1 ? res.locals.PrimaryDirectories.reduce(accumulateSize) : res.locals.PrimaryDirectories[0].size;
 		  next();
 		});
       } else next();
