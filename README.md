@@ -2,7 +2,7 @@
 The purpose of this application is to supplement the given Cloud Drive's file systems manager with a more aesthetic user interface, and additional file manipulation options.
 This project was used primarily to provide a more interactive FSM to relatives, and for the author to practice intermediate Javascript (specifically NodeJS, asynchronous programming, FS library (array buffers, stremaing), and for front-end JQuery/CSS methods without any other CSS libraries.
 
-# index 
+# index.js 
 Holds the framework objects, core server functions, along with the checkpoint routers
 # @NodeExpressAppFrame 
 Calls all the fundamental frameworks, and creates the server listener. It provides the Class which serves Express along with the routes object.
