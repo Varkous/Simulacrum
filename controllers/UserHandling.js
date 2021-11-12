@@ -66,7 +66,7 @@ class SessionStore {
         do user.log.shift();
         while (user.log.length > 50 || user.log.join(' ').length > 5000);
       }
-    let log = user.log.length > 1 && user.log.last().isNotIn(user.log[user.log.length - 2]) ? user.log.last() : ''; //Get the most recent log output
+    let log = user.log.length > 1 ? user.log.last() : ''; //Get the most recent log output
     let date = new Date();
     let basicTime = [` on ${date.toLocaleDateString()}/${date.toLocaleTimeString()}\r\n`];
     let message;
@@ -281,7 +281,7 @@ module.exports = {
 	          // --------------------------------------------------
 			  user.log.push('Logged in');
 	          await Sessions.refresh(req); //Refreshes session and writes any log data
-	          //delete(req.session.user.log); // Clogs up session data, and gets too big anyway
+	          req.session.user.firstVisit = true;
 	          return next(); //Continues on to next handler
 	          break;
          }
@@ -300,12 +300,10 @@ module.exports = {
   	  let ses = req.session;
   	  let op = req.headers.operation;
 	  if (process.ServerTracker.status === 0) {
-	    let currentTime = Math.floor(new Date().getTime() / 60000);
 
-	    res.locals.Server.remaining = Math.abs(currentTime - process.ServerTracker.countdown);
-	    if (op && op.matchesAny('Upload', 'Download') && res.locals.Server.remaining < 4) { // Too long to perform a lot of operations
+	    if (op && op.matchesAny('Upload', 'Download') && process.ServerTracker.countdown < 4) { // Too long to perform a lot of operations
 	      const report = {
-	         content: [`<span style="color: green">${op}</span> aborted`, `${res.locals.Server.remaining} minutes remain before shutdown, and operation could be compromised`],
+	         content: [`<span style="color: green">${op}</span> aborted`, `${process.ServerTracker.countdown} minutes remain before shutdown, and operation could be compromised`],
 	         type: 'error',
 	       };
 	       if (op === 'Download') { // Download operation normally expects Blob response type, so need to adjust headers and response data
@@ -353,7 +351,7 @@ module.exports = {
   /*===============================================================*/
 
   /*===============================================================*/
-  GetCreator: async function (uid) {
+  GetCreator: function (uid) {
 		return Sessions.users[`User${uid}`] ? Sessions.users[`User${uid}`].name : 'Admin';
 	},
   /*===============================================================*/
@@ -364,12 +362,12 @@ module.exports = {
     Sessions.user(req, req.backup || null).operation = false; //Other users will no longer be blocked from operation
 
     if (error) {
+      !error.message ? error.message = error : false;
       Sessions.user(req, req.backup || null).log.push(error.message);
 
       return res.send({
         content: [error.message],
         type: 'error',
-        items: error.stack
       });
     // --------------------------------------------------
     } else {
@@ -381,7 +379,7 @@ module.exports = {
         let currentTime = Math.floor(new Date().getTime() / 60000);
         report.warning = `<hr> <span style="color: red">Warning: </span> <h4 class="white">${process.ServerTracker.warning}: Occuring in ${Math.abs(currentTime - process.ServerTracker.countdown)} minutes</h4>`;
       }
-      res.locals.UserSession = req.session;
+      res.locals ? res.locals.UserSession = req.session : false;
       //Refresh locals
 
       return res.send(report);

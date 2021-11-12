@@ -152,5 +152,12 @@ nav {
   font-size: auto;
   text-indent: 2px;
   padding: 4px;
+} 
+.guest-warning {
+  font-size: 1.3rem;
+  max-width: 1000px;
+  color: rgb(180, 140, 25) !important;
+  border: 3px double gray;
+  padding: 1%;
 }
 /* -------------------- *//* -------------------- */

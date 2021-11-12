@@ -8,7 +8,7 @@ function keydownActions (evt) {
   else if (!$(FolderInput).is(':focus') && !$('a:focus')[0] || evt.keyCode === 27 || evt.keyCode === 13) $(folderSuggestions).empty();
 // If pressing down arrow, move to folder suggestions, while Backscape or ESC will close it
 // ---------------------------------------------------------------
-
+  
   if ($(folderSuggestions).children('a:focus')[0]) {
     evt.stopPropagation();
     evt.preventDefault();
@@ -118,6 +118,10 @@ $('#cancel').click( () => $('main').css({
    'transform': 'translate(0)',
    'transition': 'all 0.7s ease-in-out',
   }));
+// ------------------------------------  
+$('#url').on('input', () => {
+  $('#url').val() ? $('#url').nextAll('*').show() : $('#url').nextAll('*').hide();		
+}); 
 // ------------------------------------
 $('body').on('mousedown', 'a', holdToDownload);
 $('body').on('mouseup', '*', () => {

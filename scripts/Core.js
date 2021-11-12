@@ -226,7 +226,7 @@ class Uploaded_Status_Adjuster extends File_Status_Adjuster {
 /*===============================================================
   Projects a nice little fadein/fadeout message box proceeding any interaction with the back-end. 'content' is the message itself, 'type' is either success/warning/error (green/yellow/red respectively), and 'items' are optional additions to emphasize the data of the message content (i.e file names, folder names etc.).
 ===============================================================*/
-function createReport(content, type, items, excess) {
+function createReport(content = 'Report could not be retrieved', type = 'warning', items, excess) {
  return new Promise ( async (resolve, reject) => {
   excess === 'dragwarning' ? UserSession.preferences.folderWarning = false : null; //Ignore this, just doesn't matter
 
@@ -243,12 +243,12 @@ function createReport(content, type, items, excess) {
   //Turn into array so we don't have to stir in more conditional code below
 
 // --------------------------------------------- Now this bit here is key. The first string of the 'content' element will be first, THEN any 'items', then the second/last element of 'content'. This creates enough flexibility to craft messages that are cohearent to the user
-    let h1 = `
+    let h1 = content ? `
     <h1>${content[0]}
     <span><br>${items ? items.join('<br>') || items : '' }</span>
     <br>
     ${content[1] || ''}
-    </h1>`; // Replace the element ',' with a new line
+    </h1>` : 'Report could not be retrieved'; // Replace the element ',' with a new line
 
     $(MessageLog).removeClass('success-box warning-box error-box fadeout hide')
     .addClass(`${type + '-box'}`).html(h1);
@@ -276,7 +276,8 @@ function createReport(content, type, items, excess) {
 ===============================================================*/
 async function Flash(content, type = 'warning', items, excess) {
   closeModal(true);
-  return window.messageLog ? window.messageLog.then( async () => window.messageLog = createReport(...arguments)) : window.messageLog = createReport(...arguments);
+  //return window.messageLog ? window.messageLog.then( async () => window.messageLog = createReport(...arguments)) : window.messageLog = createReport(...arguments);
+  return window.messageLog = createReport(...arguments);
 };
 
 
@@ -368,7 +369,6 @@ async function activateDownloads (res, op, data) {
     //Create a url link to raw data itself, and use 'download' attribute to receive it as a download link.
 // -----------------------------------------------------
   } else if (mobile && data) { // On mobile device, we don't permit folder or zip downloads, so we just find the file from URL and download from source
-  	  Requests.cancel('Download'); // Never was one but need to reset progress bar
       for (let file of data.files) {
         if (StagedFiles.count.length && pathfinder(StagedFiles.count, 'find', file))
           continue; //Don't try to download staged

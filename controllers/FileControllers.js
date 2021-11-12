@@ -148,15 +148,15 @@ module.exports = {
 		  if (fs.existsSync(newpath) && fs.statSync(newpath).uid !== user.uid) {
 			return filesToWrite.push({name: filename, path: dirPath, denied: true});
 		  } else {
-	      file.path = newpath; // Important, this sets the targeted destination, else it goes to temp folder
-	  	  file.name = filename;
+	        file.path = newpath; // Important, this sets the targeted destination, else it goes to temp folder
+	  	    file.name = filename;
 		  }
 // ------------------------------------------------------------------------------
     	filesToWrite.push(new Promise( async (resolve, reject) => { // For parallel processing
         let newfolder = path.resolve(ses.home, dirPath);
 		  if (!fs.existsSync(newfolder)) {
 		    // ------------------------------------------
-		    fs.mkdirSync(newfolder, {recursive: true, force: true}) //If the requested upload path (within name) does not exist, make the directory. This occurs while file data is still being parsed
+		fs.mkdirSync(newfolder, {recursive: true, force: true}); //If the requested upload path (within name) does not exist, make the directory. This occurs while file data is still being parsed
         fs.chown(newfolder, user.uid, 100, (err) => err ? console.log(err) : false);
         let relativeFolder = dirPath.replace(user.residing, '').replace('/', '').split('/')[0];
         //Simple code, but deceptive concept. The goal is to find any new directories created that are DIRECT children of the current posting directory (the folder the user is residing in), anything deeper should  be displayed, as page will only show relative directories

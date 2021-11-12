@@ -1,4 +1,5 @@
 'use strict';
+
 const {ReportData, Sessions} = require('./UserHandling.js');
 const {getFileSize} = require('../scripts/Helpers.js');
 const {CloseServer, worthlessURLS} = require('../index.js');
@@ -36,7 +37,7 @@ process.checkPartitions = setInterval( async function () {
     }
   });
 
-}, 5000);
+}, 60000);
 
 /*===============================================================*/
 module.exports = {
@@ -44,11 +45,10 @@ module.exports = {
   /*===============================================================*/
   Geodetect: function (req, res, next) {
   	let client = req.connection;
-    req.location = {ip: client.remoteAddress.replace(/[:f]/g, '')};
-
+    req.location = {ip: client.remoteAddress.replace(/[:f]/g, '') || ''};
     if (req.session.user) return next(); //If already logged in
 
-    else if (client.localAddress === client.remoteAddress || req.location.ip.includesAny(...LocalAddresses)) {
+    else if (client.localAddress === client.remoteAddress || LocalAddresses.map( addr => addr.ip === req.location.ip)) {
     // Or client is of a local ip address
       return next();
     }
@@ -66,7 +66,7 @@ module.exports = {
 // --------------------------------------------------------------
     axios.request(options).then( (location) => {
     //If successful, store the essential location data within the request object for later use
-
+		console.log(location.data);
       if (location.data.country.includesAny('United States', 'Canada') && location.data.region.includesAny(...validRegions)) {
         req.location.country = location.data.country;
         req.location.region = location.data.region;
@@ -140,20 +140,22 @@ module.exports = {
 
   /*===============================================================*/
   //Just writes the error to the general log. Barred by timeout so rapidly repeated requests of the same type (page refreshes) won't bloat up the log with duplicate info
-  WriteLogFilter: async function  (user, message) {
+  WriteLogFilter: async function  (user, message, time = 5000) {
     const date = new Date();
 
     clearTimeout(process.logWrite);
     process.logWrite = setTimeout( () => {
        fs.appendFile(`${process.env.infodir}/log.txt`, `(${user || 'Anonymous'}) -> ${message} ${date.toLocaleDateString()}/${date.toLocaleTimeString()}\r\n`);
-    }, 5000);
+    }, time);
   },
   /*===============================================================*/
 
   /*===============================================================*/
   ExitHandler: function (error) {
-    if (error)
-      console.log((new Date).toUTCString() + ' uncaughtException:', error)
+    if (error) {
+      console.log((new Date).toUTCString() + ' uncaughtException:', error);
+      module.exports.WriteLogFilter('SERVER', error.message || error, 1);
+    }
 
     for (let i in Sessions.users) {
       Sessions.users[i].loggedIn = false;
@@ -161,6 +163,7 @@ module.exports = {
 	  process.sessionTimers[Sessions.users[i].name] ? process.sessionTimers[Sessions.users[i].name]._onTimeout() : null;
     }
 
+	fs.writeFile(`${process.env.infodir}/backupLog.txt`, JSON.stringify(Sessions.users));
     module.exports.ClearTemp (path.resolve('temp'));
     process.exit(0, 'SIGTERM');
     return CloseServer('Server shutting down', true);
@@ -205,11 +208,10 @@ module.exports = {
     const partition = req.session.home || process.env.partition
     if (req.session && req.session.user) {
     	const ses = req.session;
-      if (url === `/${partition}` || url === `/${partition}/${ses.user.name}`) {
+      if (url === `/${partition}` || url === `/${partition}/${ses.user.name}`) //Homepage represents top-level partition, so redirect there if partition was input as url
         ses.user.residing = partition === UsersDirectory ? ses.user.name : '/';
-        //Homepage represents top-level partition, so redirect there if partition was input as url
-      }
-     return next();
+      
+      return next();
     } else return res.redirect('/login');
 
   },
@@ -219,18 +221,25 @@ module.exports = {
   CloseServer: async (reason = 'Felt like it', time = process.env.exit_time) => {
     clearTimeout(process.shutdown);
 
-    let shutdownTime = new Date().getTime() + parseInt(time);
+    let restart = parseInt(fs.readFileSync('restartTime.txt', 'utf8')) || new Date().getTime(); // The global time (in MILISECONDS or MS) that the restart was initiated
+    let current = parseInt(new Date().getTime()); // Current time in MS
+	let usual = parseInt(time); // Usually 60 minutes, minus the difference between current and restart time
+	
+    let shutdownTime = Math.abs(usual - (current - restart)) ; //60 Minutes minus the difference between current and restart time
+    console.log(shutdownTime);
     if (time === true) shutdownTime = 1000;
 
     process.ServerTracker.status = 0;
-    process.ServerTracker.countdown = Math.floor( shutdownTime / 60000); //Convert to minutes
+    process.ServerTracker.countdown = new Date(shutdownTime).getMinutes(); //Convert to minutes
     process.ServerTracker.warning = reason;
 
+	process.countdown = setInterval( () => process.ServerTracker.countdown--, 60000); // Subtract one minute from countdown globally every 60000 miliseconds (60 seconds)
     process.shutdown = setTimeout( () => {
       process.exit(0, 'SIGTERM');
       Website.routes.BaseHandlers.server.close( () => console.log ('Server terminated'));
-    }, parseInt(time));
+    }, shutdownTime - 60000);
   },
   /*===============================================================*/
 
 }; //----Modules export
+

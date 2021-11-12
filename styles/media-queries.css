@@ -2,7 +2,7 @@
 /* ==================== Laptop size ====================== */
 @media only screen and (max-width: 1300px) {
 
-  form {
+  .form {
     display: flex;
     flex-direction: column;
   }

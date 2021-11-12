@@ -7,6 +7,11 @@
   /* src: url('/advent-pro.regular.ttf'); */
   src: url('/AllertaStencil-Regular.ttf');
 }
+@font-face {
+  font-family: 'Jupiter';
+  /* src: url('/advent-pro.regular.ttf'); */
+  src: url('/Jupiter.ttf');
+}
 /* General selectors. Used throughout page from top to bottom */
 :root {
   --cardPosition: 0; /* Used when files are deleted, to move them from and back to correct position */
@@ -257,5 +262,25 @@ button {
 }
 .fa {
   cursor: pointer;
+} .info {
+  z-index: 11 !important;
+  position: relative;
 }
+.info:hover::after {
+  content: attr(data-after);
+  border: 1px double gray;
+  background: rgba(0,0,0,0.9);
+  color: #A9A9A9;  
+  cursor: help;
+  z-index: 11 !important;
+  text-shadow: 1px 1px 1px black;
+  
+  position: absolute;
+  padding: 3px;
+  min-width: 280px;
+  font-size: 1.1rem;
+} .info.info-up:hover::after {
+  content: attr(data-after);
+  top: -130px;
+} 
 /* -------------------- *//* -------------------- */

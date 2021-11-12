@@ -41,10 +41,10 @@
   /*===============================================================
     For retrieving the exact element within array (short-hand for array[array.indexOf(<whatever>)].
   ===============================================================*/
-  Array.prototype.get = function (element) {
+  Array.prototype.get = function (element, offset = 0) {
   	if (typeof(element) === 'number')
-  	  return this[element];
-  	else return element ? this[this.indexOf(element)] : false;
+  	  return this[element + offset];
+  	else return element ? this[this.indexOf(element) + offset] : false;
   };
   
   // ----------------------------------------------------------------------
@@ -111,9 +111,8 @@
 
     };
   // ----------------------------------------------------------------------
-    exports.parseHTML = function  (text) {
-      // return text.replace(/<span.*?>/g, '').replace(/<\/span.*?>/g, '').replace('<hr>', '');
-      //return text.replace(/<span.*?>/g, '').replace(/<\/span.*?>/g, '').replace(/<br>/g, ' <> ').replace(/<hr>/g, '').replace(/[[object Object]]/g, '');
+    exports.parseHTML = function (text) {
+      if (!text) return '';
       return text.replace(/<span.*?>/g, '').replace(/<\/span.*?>/g, '').replace(/<br>/g, ', ').replace(/<hr>/g, '').replace(/object Object/g, '').replace(/\[]/g, '').replace(/,/g, '');
       //Replace <spans> and <brs> and <hrs>, and any '[object Object' crap
     }

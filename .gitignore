@@ -2,4 +2,8 @@ public
 temp
 users
 node_modules
+ssl
 .env
+.git
+.gitignore
+

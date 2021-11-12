@@ -1,10 +1,12 @@
 if (process.env.NODE_ENV !== "production") {
   require('dotenv').config();
 }
-const NEW = require('./@NodeExpressAppFrame/N.E.W.js');
+const NEW = require('../@NodeExpressAppFrame/N.E.W.js');
+const {Hash} = require('./controllers/Hasher.js');
 const Website = new NEW();
 //NEW stands for "Node Express Website". Contains all the fundamental libraries that express generally uses
 module.exports = {app, express, path, wrapAsync} = Website;
+
 const session = require('cookie-session');
 const child_process = require('child_process');
 const fs = require('fs-extra');
@@ -15,7 +17,7 @@ const UsersDirectory = process.env.UsersDirectory || 'users';
 process.sessionTimers = {};
 process.ServerTracker = {status: 1, countdown: null, warning: 'None'}; //Default. Any major problems incur status of 0.
 /*======================================================*/
-// Array.prototype.last = function (index) {return index ? this.length - 1 : this[this.length - 1]};
+
 const mobileTags = [ //Identifiers for mobile detection on request
 /Android/i,
 /webOS/i,
@@ -65,10 +67,9 @@ app.set('view engine', 'ejs');
 app.use('/static', express.static(UsersDirectory));
 app.use('/static', express.static(partition));
 app.use(resourceFolders);
-
+app.use(express.json());
 // =========================================================
 app.get('/stop/:code', wrapAsync( async (req, res, next) => {
-
   if (req.params.code === process.env.exit_code) {
     let reason = req.query.reason;
     let time = req.query.time
@@ -82,6 +83,7 @@ process.on('SIGINT', ExitHandler);
 process.on('beforeExit', ExitHandler);
 // ----------------------------------------
 
+// CloseServer('Routine server refresh');
 ClearTemp (path.resolve('temp'));
 /*======================================================*/
 app.use('*', CheckSessionAndURL, wrapAsync( async (req, res, next) => {
@@ -134,7 +136,10 @@ app.get('*', wrapAsync(async (req, res, next) => {
 
 		GetPrimaryDirectories(req, homedirectory).then( (primes) => {
 		  res.locals.PrimaryDirectories = primes.filter(Boolean);
-		  res.locals.totalsize = res.locals.PrimaryDirectories.length > 1 ? res.locals.PrimaryDirectories.reduce(accumulateSize) : res.locals.PrimaryDirectories[0].size;
+		  if (primes.length) res.locals.totalsize = res.locals.PrimaryDirectories.length > 1 ? res.locals.PrimaryDirectories.reduce(accumulateSize) : res.locals.PrimaryDirectories[0].size;
+		  else res.locals.totalsize = 1;
+		  
+		  if (req.session.home === partition) res.locals.UserSession.maxsize = 100e10; // 1 Terrabyte
 		  next();
 		});
       } else next();

@@ -8,10 +8,15 @@ const {Geodetect, CapArraySize, EntryToHTML, CheckSessionAndURL} = require('../c
 const {parseHTML, checkModeType} = require('../scripts/Helpers.js');
 const {GetDirectory, GetAllItems, CreateItem} = require('../controllers/FolderProviders.js');
 const {Hash, Verify} = require('../controllers/Hasher.js');
-const child_process = require('child_process');
 
-let partition = process.env.partition || 'uploads';
-const UsersDirectory = process.env.UsersDirectory || 'Users_1';
+const axios = require('axios');
+const child_process = require('child_process');
+const ytdl = require('ytdl-core');
+const mime = require('mime-types');
+
+
+let partition = process.env.partition || 'public';
+const UsersDirectory = process.env.UsersDirectory || 'users';
 
 const checkVariations = (guess, answers) => {
   guess = guess.toLowerCase();
@@ -79,36 +84,36 @@ module.exports.Authentication = {
   /* ====================================
   Temporary for creating new user accounts
   ======================================= */
-  newUser: app.post('/new', wrapAsync( async (req, res, next) => {
+  //newUser: app.post('/new', wrapAsync( async (req, res, next) => {
 
-    const answers = ["Now that's more like it, Mr. Wayne.",
-        "Now that's more like it, Mister Wayne.",
-        "Now that is more like it, Mr. Wayne.",
-        "Now that is more like it, Mister Wayne."]
+  //  const answers = ["Now that's more like it, Mr. Wayne.",
+  //      "Now that's more like it, Mister Wayne.",
+  //      "Now that is more like it, Mr. Wayne.",
+  //      "Now that is more like it, Mister Wayne."]
 
-    req.session.loginAttempts ++;
-    if (checkVariations(req.body.guess, answers)) {
-      await Hash(req.body.password).then( (pw) => {
+  //  req.session.loginAttempts ++;
+  //  if (checkVariations(req.body.guess, answers)) {
+  //    await Hash(req.body.password).then( (pw) => {
 
-        let user = {
-          name: req.body.name,
-          password: pw,
-          uid: 1,
-          admin: false,
-          note: req.body.note || '',
-          firstVisit: true
-        };
+  //      let user = {
+  //        name: req.body.name,
+  //        password: pw,
+  //        uid: 1,
+  //        admin: false,
+  //        note: req.body.note || '',
+  //        firstVisit: true
+  //      };
 
-        fs.appendFileSync(`${process.env.infodir}/newusers.txt`, JSON.stringify(user), 'utf8');
-        let LoginAttempts = {count: req.session.loginAttempts || 0, message: 'Correct. Sending request for new profile.'};
-        return res.render('login', {LoginAttempts});
-      });
+  //      fs.appendFileSync(`${process.env.infodir}/newusers.txt`, JSON.stringify(user), 'utf8');
+  //      let LoginAttempts = {count: req.session.loginAttempts || 0, message: 'Correct. Sending request for new profile.'};
+  //      return res.render('login', {LoginAttempts});
+  //    });
 
-    } else {
-      return next(new Error('Nope, wrong answer'));
-    }
+  //  } else {
+  //    return next(new Error('Nope, wrong answer'));
+  //  }
 
-  })),
+  //})),
 }; //--------------- End of authentication routes
 
 module.exports.FileViewing = {
@@ -152,14 +157,20 @@ module.exports.FileViewing = {
   Locates all folders/directories with the user ID passed in, and returns all the files in the response.
   ======================================= */
   getNewHomeDirectory: app.get(`/home/:username`, VerifyUser, wrapAsync( async (req, res, next) => {
-    if (req.session && req.session.user) {
-      if (req.session.guest) return ReportData(req, res, false, {
+  	let ses = req.session;
+    if (ses && ses.user) {
+      if (ses.guest) return ReportData(req, res, false, {
         content: ["Cannot access Public directory as a Guest user"],
         type: 'error'
-      });
-      req.session.home = req.session.home.includes(UsersDirectory) ? partition : UsersDirectory; //Get directory
-      //Sessions.user(req, req.backup).residing = req.session.user.name;
-      //req.session.user.residing = Sessions.user(req, req.backup).residing;
+      })
+      if (ses.home.includes(UsersDirectory)) {
+      	req.session.home = UsersDirectory;
+      	req.session.maxsize = 10e10;
+      } else {
+      	req.session.home = partition;
+      	req.session.maxsize = 100e10;
+      }
+ 
       Sessions.user(req, req.backup).log.push(`Viewing ${EntryToHTML('Private', 'green')} directory`);
       res.locals.UserSession.log = Sessions.user(req, req.backup).log;
       return res.redirect('/');
@@ -280,6 +291,98 @@ module.exports.FileManagement = {
     else return await Rename(req, res, oldpath, newpath);
   })),
 
+
+  /* ====================================
+  If user authentication was granted, and directory access was granted from posting to "/upload", this is the NEXT request, which uploads the files to the folder information stored in req.params.
+  ======================================= */
+  convertURL: app.post('/convert/:folder*', VerifyUser, wrapAsync( async (req, res, next) => {
+
+   await AccessDirectory(req, req, next);  
+   let newfolders = req.body.newfolders ? Array.from(req.body.newfolders) : '';
+   const {name, url} = req.body;
+   const {folder} = req.params;
+   let file = {name: name, path: folder};
+   let dirpath = path.resolve(req.session.home, folder);
+   
+ 
+   fs.readdir(dirpath, (err, entries) => { // See if entry already exists
+   	entries = entries.map( e => e.substring(e.indexOf('.'), 0)); // Remove extension from each entry, our new file does not have one
+	if (err) return false;
+	else if (entries.includes(file.name)) 
+	  return ReportData(req, res, false, {
+        content: [`${EntryToHTML(file, 'darkcyan')} already exists within ${EntryToHTML(folder, '#22a0f4')}, use different file name or different folder`],
+        type: 'error'
+      });
+	  
+	// ---------------------------------------------------------------------------------  
+	new Promise( async (resolve, reject) => {
+      
+	  if (url.includesAny('youtube', 'youtu.be')) { //A vast majority of any conversion uploads will likely be from the site YouTube, which throttles data stream requests. Special module and conditions are setup to allow proper retrieval of data.
+	    
+	    if (!ytdl.validateURL(url)) return reject(new Error(`Failed to acquire video ID from URL`));
+	    
+	    let info = await ytdl.getInfo(url); // Lots of info indeed
+	    file.name = file.name + '.mp4' ; // If user did not list as video, just load as audio data
+	    let contentLength = await parseInt(info.formats[0].contentLength); // For browser progress bar
+	    
+	    if (!contentLength) return reject(new Error(`File info could not be parsed, conversion rejected. Try using file address source, or a different URL`));
+
+	    res.setHeader('content-type', 'application/octet-stream');
+		res.setHeader('content-length', contentLength);
+		res.setHeader('filename', file.name);
+		
+	    ytdl(url).pipe(fs.createWriteStream(`${dirpath}/${file.name}`)); // Create file at desginated location
+	    ytdl(url).pipe(res) // And also send it to user for download
+        .on("finish", () => { 
+          Sessions.user(req, req.session).operation = false;
+          return resolve(true);
+        }).on("error", (err) => reject(new Error(`Conversion failed. ${file.name} was not created/uploaded`))); 	
+	 // --------------------------------------------------------------------------------- 
+	  } else { // This could be an image, some audio file, or video from various other sites.
+
+	    axios.get(url, { responseType: 'stream'}).then( async (result) => {
+	      let stream = result.data;
+
+	      let approxLength = parseInt(stream.rawHeaders.get('Content-Length', 1)) || stream._readableState.buffer.head.data.length + stream._readableState.buffer.tail.data.length;
+	      let mimetype = stream.rawHeaders.get('Content-Type', 1);
+	      let ext = mime.extension(mimetype);
+	      
+	      if (!ext || ext.includes('html')) return reject(new Error(`Source URL could not find a valid file. Try linking file address`));
+	      
+	      file.name = `${name}.${ext}`;
+	      res.setHeader('content-type', 'application/octet-stream');
+	      res.setHeader('filename', file.name);
+	      res.setHeader('approx-length', parseInt(approxLength));	   
+	      
+	      stream.pipe(fs.createWriteStream(`${dirpath}/${file.name}`));
+	      stream.pipe(res).on("finish", () => { 
+            Sessions.user(req, req.session).operation = false;
+            return resolve(true);
+          }).on("error", (err) => reject(new Error(`Conversion failed. ${file.name} was not created/uploaded`))); 
+
+	    }).catch( err => {
+	    	Sessions.user(req, req.session).operation = false;
+	    	if (err.response) {
+	          err = err.response;
+	          if (err.statusMessage = 'Bad Request' || err.rawHeaders.get('Content-Type', 1).includes('html'))
+	            return ReportData(req, res, false, { 
+	              content: ["Invalid source or false URL. File not found", "Use link from file address/source content for URL"],
+	              type: "error"
+	            });
+	    	}
+	    	return reject(new Error(`Source not valid. File address must be referenced`));
+	    });  	
+	  } // End Of: If not a YouTube URL
+	}).then( (result) => { 
+	  Sessions.user(req, req.session).operation = false;
+	}).catch( (err) => {
+		console.log('Promise error', err);
+	    return ReportData(req, res, err);
+	}); // End Of: Main promise error
+   }); // End Of: Reading targeted directory
+  // ---------------------------------------------------------------------------------   
+  })),
+
   /* ====================================
   If user authentication was granted, and directory access was granted from posting to "/upload", this is the NEXT request, which uploads the files to the folder information stored in req.params.
   ======================================= */
@@ -336,7 +439,7 @@ module.exports.FileManagement = {
       type = 'warning' //Determine what theme of message to send
 
 // ------------------------------------------------------------------------------
-    let conditionalMessage = `${items.deleted.length ? "Deleted: " + items.deleted.join('') : ""}${items.noPermission.length ? "<hr>No permission to remove: " + items.noPermission.join('') : ""}${items.notFound.length ? "<hr>" + items.notFound.join('') + "Was either moved, or do not not exist" : ""}${items.failed.length ? "<hr>Could not delete: <br>" + items.failed.join('') + "Still in use or being edited" : ""}` // Not necessary for functionality. The above is just to provide user with a better-than-shit explanation of what happened during deletion problems.
+    let conditionalMessage = `${items.deleted.length ? "Deleted: " + items.deleted.join('') : ""}${items.noPermission.length ? "<hr>No permission to remove: " + items.noPermission.join('') : ""}${items.notFound.length ? "<hr>" + items.notFound.join('') + "Was either moved, or does not exist" : ""}${items.failed.length ? "<hr>Could not delete: <br>" + items.failed.join('') + "Still in use or being edited" : ""}` // Not necessary for functionality. The above is just to provide user with a better-than-shit explanation of what happened during deletion problems.
 
     return ReportData(req, res, false, {
       content: [conditionalMessage],

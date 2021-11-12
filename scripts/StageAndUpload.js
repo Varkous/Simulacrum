@@ -146,15 +146,26 @@ async function checkAndStageFiles (inputFiles) {
 // ------------------------------------------------------------------
   //$(FolderInput).attr('disabled', 'true');
   checkForEmpty();
-  fileInput.value = '';
+  $('.file-input').val('')
 }; //----End of File Upload select function
 
 
 /*===============================================================
 Some random selections and options that must be verified before we submit. If there are choices that conflict with the conventional procedure of uploading, return some error.
 ===============================================================*/
-function checkSubmissionOptions(folderChoice) {
+async function checkSubmissionOptions(folderChoice) {
+  clearDialog();
 
+  if (StagedFiles.count.length) {
+  	let operation = 'Upload';
+  	if (await !showOperation(operation, StagedFiles.count))
+      return false;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  // Halt conventional post request, and perform our own using axios futher below
+  
   if ($('#mydirCheck').is(':checked')) {
     const userParameter = `${UsersDirectory}/${Username}`;
     if (folderChoice.slice(0, userParameter.length) !== userParameter) {
@@ -176,20 +187,10 @@ function checkSubmissionOptions(folderChoice) {
 Triggers when a user clicks SUBMIT. Halts default form submission, appends file data from our StagedFiles class (created by checkAndStageFiles function) to the FormData, and submits an extensive axios post request and evaluates user verification before official uploading of files. If successful, we subsequently link the official Files to the File Cards created by "checkAndStageFiles", so the user can see the media data live.
 ===============================================================*/
 async function submitFiles (event) {
-  clearDialog();
-
-  let operation = '';
-  if (StagedFiles.count.length) {
-  	operation = 'Upload';
-  	if (await !showOperation(operation, StagedFiles.count))
-    return false;
-  }
-
-  event.preventDefault();
-  event.stopPropagation();
-  // Halt conventional post request, and perform our own using axios futher below
-
+	
+  let operation = StagedFiles.count.length ? 'Upload' : '';
   let folderChoice = $(FolderInput).val() || CurrentFolder;
+  
   if (checkSubmissionOptions(folderChoice)) {
   // ------------------------------------------
     let formData = new FormData();
@@ -243,7 +244,7 @@ async function submitFiles (event) {
 Receives the data/info after submitting a post request to upload files and/or create a folder. The staged File Card referenced by each created file's name is manipulated and populated with media content and updated in real-time for the user to view. Beforehand, we determine if a lot of files/folders were uploaded, whereas we trigger a page refresh.
 ===============================================================*/
 async function returnUploadedContent (res, op) {
-
+	
   if (await checkForServerError(res, op))
     return Flash(...Object.values(res.data));
 
@@ -268,10 +269,10 @@ async function returnUploadedContent (res, op) {
 	//Special response data, as 'newfolders' is only returned when uploading files and new directory/directories were created in the process. Usually an array of arrays. Must always be an array OF arrays, since each 'array' element represents a directory created, and each element within those arrays how many sub-directories were created
   }
    if (!CurrentFolder && res.data.type !== 'error' || res.data.uploaded && res.data.uploaded.length >= 100)
-    // return changeDirectory(event, `${home}/${Partition + $(FolderInput).val()}`);
+
     return setTimeout( () => changeDirectory(event, `${home}/${Partition + $(FolderInput).val()}`), 1000);
   // -----------------------------------------------------------------------------
-    checkForEmpty();
+
     if (res.data.type !== 'error' && StagedFiles.count.length)  //If no errors, and files were uploaded successfully.
       createFileContent(res);
     else Flash(...Object.values(res.data));
@@ -288,8 +289,8 @@ async function createFolderContent(newfolders) {
     if (namefinder(AllFiles.count, 'find', folder)) {
       continue; //If that folder already exists in directory don't bother
     } else
-     fetchFolder(folder)
-
+    
+    fetchFolder(folder);
   }; //Loop over folders, see how nested they are
   return true;
 };
@@ -332,5 +333,6 @@ async function createFileContent(res) {
   // -----------------------------------------------------------------------------
     }; //End of: For loop going over staged files
   } //End of: If any staged files at all
+  checkForEmpty();
  } catch (err) {console.log(err)};
 };
