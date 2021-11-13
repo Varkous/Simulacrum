@@ -11,6 +11,7 @@ html, img, input, button, textarea {
 body {
   background: url('/voidglobe.gif');
   border-radius: 50%;
+  color: aliceblue;
   background-size: contain;
   background-position: center;
   box-shadow: inset 52px 114px 116px 129px black,
@@ -64,14 +65,14 @@ fieldset {
 }
 label {
   border-radius: 10%;
-  color: #22a0f4;
+  color: aliceblue;
   text-shadow: 3px 3px 3px black;
   align-self: center;
   margin-top: 6px;
 }
 input {
   background: rgba(0,0,0,1);
-  color: aliceblue;
+  color: #22a0f4;
 
   padding: 7px;
   font-size: 1.5rem;
@@ -113,6 +114,46 @@ button {
 .hide {
   display: none;	
 }
+.info-icon:hover + .site-info, .site-info:hover {
+  transition: all 0.6s ease-in;
+  height: auto;
+  max-height: 1000px; 
+}
+.info-icon {
+  font-size: 2.0rem !important;
+  color: lightblue;
+} .info-icon:hover {
+  text-shadow: 2px 2px 2px white;	
+}
+.site-info {
+  border: 3px double lightblue;
+  max-height: 0;
+  position: absolute;
+  transition: max-height 0.6s ease-out;
+  transition-delay: 1s;
+  overflow: hidden;
+  background: rgba(0,0,0,0.8);
+  color: gray;
+  font-size: 1.8rem;
+  font-family: 'Miriam Libre';
+  margin-top: 50px;
+} 
+footer {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-top: 15%;
+}
+.container { 
+  margin-top: 10px; 
+}
+p { 
+  margin: 5%; 
+  font-size: 2.5vh;
+}
+a { color: #22a0f4; } 
+a:hover { color: lightblue; }
+
 @keyframes steady {
   25% {border-left: 2px solid #22a0f4;}
   50% {border-bottom: 2px solid #22a0f4;}
@@ -130,5 +171,15 @@ button {
     inset 12px 14px 56px 59px black,
     inset 12px 14px 56px 59px black,
     12px 14px 16px 29px black;
+  }
+}
+@media only screen and (max-width: 650px) {
+  .site-info {
+    margin-top: 100px
+  }
+}
+@media only screen and (max-width: 470px) {
+  .site-info {
+    margin-top: 150px
   }
 }

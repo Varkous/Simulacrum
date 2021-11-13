@@ -53,7 +53,10 @@ module.exports.Authentication = {
 	    LoginAttempts = {count: req.session.loginAttempts, message: ''};
 	  else LoginAttempts = {count: 0, message: ''};
 
-	  if (req.session.user) await Sessions.terminate(req);
+	  if (req.session.user) {
+	  	req.session = null;
+	  	await Sessions.terminate(req);
+	  } 
 
 	  return res.render('login', {LoginAttempts, Server});
 	}
@@ -64,7 +67,10 @@ module.exports.Authentication = {
   Handler of posted login form data
   ======================================= */
   loginAttempt: app.post('/login', Geodetect, VerifyUser, wrapAsync( async (req, res, next) => {
-
+  	res.setHeader('set-cookie', [
+	  'simulacrum_session; SameSite=Strict; Secure',
+	  'simulacrum_session.sig; SameSite=Strict; Secure',
+	]);
     res.redirect(req.session.route || '/');
   })),
 

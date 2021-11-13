@@ -11,6 +11,8 @@ const session = require('cookie-session');
 const child_process = require('child_process');
 const fs = require('fs-extra');
 const compression = require('compression');
+const cookieParser = require('cookie-parser')
+
 /*======================================================*/
 let partition = process.env.partition || 'public';
 const UsersDirectory = process.env.UsersDirectory || 'users';
@@ -39,19 +41,15 @@ const {GetPrimaryDirectories} = require('./controllers/FolderProviders.js');
 const {accumulateSize, getFileSize} = require('./scripts/Helpers.js');
 /*======================================================*/
 
+
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1); // trust first proxy
+}
+app.set('', path.join('views'));
+app.set('view engine', 'ejs');
 // ============================================================
 const resourceFolders = [
-  session({ //Establishing session prototype, adopted by every user session
-      name: 'simulacrum_session',
-      secret: process.env.secret,
-      saveUninitialized: true,
-      resave: true,
-      httpOnly: false,
-      maxAge: parseInt(process.env.session_time),
-      secure: true,
-      loginAttempts: 1,
-      duration: parseInt(process.env.session_time),
-    }),
+ 
   express.static(path.join(__dirname, 'base_images')),
   express.static(path.join(__dirname, 'styles')),
   express.static(path.join(__dirname, 'fonts')),
@@ -61,13 +59,31 @@ const resourceFolders = [
   express.static(path.join(__dirname, UsersDirectory)),
 ] // Make all resources within these folders accessible from any url/directory without needing absolute path
 // ============================================================
-app.use(compression({ filter: Compress })); //Not really sure, but supposedly speeds up load time of pages
-app.set('', path.join('views'));
-app.set('view engine', 'ejs');
+const sessionUtilities = [
+  cookieParser(),
+  session({ //Establishing session prototype, adopted by every user session
+      name: 'simulacrum_session',
+      secret: process.env.secret,
+      keys: [process.env.secret],
+      saveUninitialized: true,
+      resave: true,
+      httpOnly: false,
+      maxAge: parseInt(process.env.session_time),
+      secure: true,
+      sameSite: 'strict',
+      loginAttempts: 1,
+      duration: parseInt(process.env.session_time),
+    }),   
+    compression({ filter: Compress }), //Not really sure, but supposedly speeds up load time of pages
+	express.json(),
+]
+// ============================================================
+app.use(sessionUtilities);
+app.use(resourceFolders);
 app.use('/static', express.static(UsersDirectory));
 app.use('/static', express.static(partition));
-app.use(resourceFolders);
-app.use(express.json());
+
+
 // =========================================================
 app.get('/stop/:code', wrapAsync( async (req, res, next) => {
   if (req.params.code === process.env.exit_code) {
@@ -89,6 +105,7 @@ ClearTemp (path.resolve('temp'));
 app.use('*', CheckSessionAndURL, wrapAsync( async (req, res, next) => {
 
 if (req.session) {
+  const {referer} = req.headers;
   let userAgent = JSON.stringify(req.headers['user-agent']);
   let op = req.headers.operation;
   req.mobile = mobileTags.some( (match) => userAgent.match(match)) ? true : false;
@@ -96,6 +113,10 @@ if (req.session) {
 
   res.locals.UserSession = req.session;
   res.locals.UsersDirectory = UsersDirectory;
+  if (referer && res.locals.UserSession.user) {
+   if ('login'.isNotIn(referer)) res.locals.UserSession.user.firstVisit = false; 	
+  }
+
   //User session and user directory info provided to browser
   res.locals.Server = process.ServerTracker;
 

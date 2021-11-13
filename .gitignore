@@ -2,8 +2,10 @@ public
 temp
 users
 node_modules
-ssl
-.env
 .git
 .gitignore
-
+@eaDir
+@_Info
+README.md
+ssl
+.env
