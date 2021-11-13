@@ -276,7 +276,7 @@ button {
   text-shadow: 1px 1px 1px black;
   
   position: absolute;
-  padding: 3px;
+  padding: 6px;
   min-width: 280px;
   font-size: 1.1rem;
 } .info.info-up:hover::after {
