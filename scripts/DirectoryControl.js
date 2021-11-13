@@ -115,14 +115,12 @@ function triggerLink (url, download) {
 ===============================================================*/
 async function checkForServerError(res, op) {
 
-  //window.messageLog ? window.messageLog = async () => true : false;
-  //console.log(res);
   let req = res.request
   let problem = false;
   clearDialog();
   document.body.style.overflow = 'visible';
   SelectedFiles.count.filter( f => f.status === op ? delete(f.status) : false); //The current operation is completed, so remove the status indicator from the operand files so they are available for other operations
-  op ? Requests.cancel(op) : false;
+  op ? Requests.cancel(op, res) : false;
   $('.closemodal').click();
 
     if (req.responseURL.includes('/login')) { //Then session expired and redirect attempt to login was made

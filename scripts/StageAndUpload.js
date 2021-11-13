@@ -269,7 +269,6 @@ async function returnUploadedContent (res, op) {
 	//Special response data, as 'newfolders' is only returned when uploading files and new directory/directories were created in the process. Usually an array of arrays. Must always be an array OF arrays, since each 'array' element represents a directory created, and each element within those arrays how many sub-directories were created
   }
    if (!CurrentFolder && res.data.type !== 'error' || res.data.uploaded && res.data.uploaded.length >= 100)
-
     return setTimeout( () => changeDirectory(event, `${home}/${Partition + $(FolderInput).val()}`), 1000);
   // -----------------------------------------------------------------------------
 
@@ -305,6 +304,7 @@ async function createFileContent(res) {
 
   if (StagedFiles.count.length) {
 
+	console.log('2', res.data);
     for (let file of StagedFiles.count) {
 
 	  delete(file.uploading);

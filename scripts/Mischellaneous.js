@@ -1,12 +1,13 @@
 'use strict';
 const CancelToken = axios.CancelToken;
 const Requests = {
-	cancel: function (op) {
+	cancel: function (op, res) {
 		if (this[op]) {
 		  this[op]();
 		  this[op] = false;
 		  $('.' + op) ? $('.' + op).remove() : false; // Any progress bar of that operation
-		  StagedFiles.unlist(StagedFiles.count, true);
+		  if (res && res.data && !res.data.uploaded) 
+			StagedFiles.unlist(StagedFiles.count, true); // Only unlist staged files if a successful upload request was NOT returned (we still need the Staged Files for reference after upload)
 		} else if (op === 'All') { // Halt all request operations
 		    for (let op of Object.keys(this))
 		      op !== 'cancel' ? this.cancel(op) : null;
