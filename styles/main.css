@@ -30,7 +30,7 @@ main {
 #directoryList {
   font-family: 'Alegreya Sans SC', 'Courier';
   background: rgba(0,0,0,0.8);
-  border: 2px double gray;
+  border: 1px double gray;
   overflow-y: scroll;
 
   width: 50%;
@@ -90,11 +90,10 @@ td {
 #convertForm {
   background: rgba(0,0,0,0.3);
   box-shadow: inset 2px 22px 33px 14px black;
-  border: 2px double gray;	
-  
-  display: block;
+  display: flex;
+  flex-direction: row;
   justify-content: center;
-  align-self: baseline;
+  flex-wrap: wrap;
 }
 .oversize-message {
   background: rgba(0,0,0,0.8);

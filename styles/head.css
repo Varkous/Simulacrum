@@ -90,7 +90,8 @@ nav {
 .header {
   color: darkgray;
   text-shadow: 9px 9px 9px black;
-	font-family: 'ui-monospace';
+  font-family: 'ui-monospace';
+  font-family: 'Miriam Libre';;
 
   font-size: 0.6rem;
   align-self: center;

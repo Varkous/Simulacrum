@@ -157,7 +157,7 @@
           <br>
         </h1>
         <% if (UserSession.guest) {%>
-        <p class="guest-warning">As a guest user, you are permitted no more than 5 gigabytes of storage. The guest account is also publicly available to any users and intended only for testing purposes, thus uploaded data may be overwritten at any time.</p>
+        <p class="guest-warning">As a guest user, you are permitted no more than 5 gigabytes of storage. The guest account is publicly available and intended only for testing purposes. Feel free to remove any files (even if they are not yours).</p>
         <% } %>
     	</header>
     <hr>
@@ -194,15 +194,17 @@
       </table>
 <!--------------------------------------------------------------------------------------------------------->    
 	<hr>
-     <h1 title="Paste a URL from an image/audio/video source, then click Convert to upload/create it within target folder" style="cursor: help;">URL Converter</h1>
-
+	  <h1 title="Paste a URL from an image/audio/video source, then click Convert to upload/create it within target folder" style="cursor: help; text-align: center">URL Converter</h1>
       <form id="convertForm" class="input-container form" action="/convert/<%=directory.name%>" method="post" enctype="multipart/form-data" title="Paste a URL or source address from an image, audio or video to replicate it into this folder">
-	      <label for="url">Source URL</label>
-	      <input id="url" type="text" name="url" class="input" style="width: 85%;" value="" placeholder="https://example.com/source">
+	      <div class="input-container" style="flex: 50%">
+		    <label for="url">Source URL</label>
+		    <input id="url" type="text" name="url" class="input" style="width: 85%;" value="" placeholder="https://example.com/source">
+	      </div>
 		  <br>
-	      <label for="name" hidden>Custom Name</label>
-	      <input type="text" name="name" class="input darkcyan" value="" placeholder="File" maxlength="30" required pattern="[A-Za-z0-9)_(-]+"  title='Only numbers, letters, and the symbols: "-_" can be used within the file' autocomplete="off" hidden>
-
+		  <div class="input-container convert-name" style="flex: 50%">
+	        <label for="name">Custom Name</label>
+	        <input type="text" name="name" class="input darkcyan" value="" placeholder="File" maxlength="30" required pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used within the file' autocomplete="off">
+		  </div>
 	    <button id="convert" type="submit" class="my-button" style="border-width: medium; color: lightblue; background: rgb(30,30,40); font-family: 'Allerta Stencil';" hidden>Convert URL</button>
       </form>
       

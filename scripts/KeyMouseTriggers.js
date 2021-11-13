@@ -119,9 +119,7 @@ $('#cancel').click( () => $('main').css({
    'transition': 'all 0.7s ease-in-out',
   }));
 // ------------------------------------  
-$('#url').on('input', () => {
-  $('#url').val() ? $('#url').nextAll('*').show() : $('#url').nextAll('*').hide();		
-}); 
+$('#url').on('input', () => $('#url').val() ? $('.convert-name').show() : $('.convert-name').hide()); // Whenever convert URL input is entered, reveal custom convert name input, or hide
 // ------------------------------------
 $('body').on('mousedown', 'a', holdToDownload);
 $('body').on('mouseup', '*', () => {
@@ -160,7 +158,7 @@ $('body').on('click', '.progress', function (evt) { //Whenever a progress bar is
 /* ----------------------------------------- */
 window.addEventListener('load', async () => {
 
-  $('.logo').draggable({
+  $('.logo').draggable({ // Make the logo draggable in case it gets in the way
     containment: 'body',
     revert: false,
     distance: 1,
