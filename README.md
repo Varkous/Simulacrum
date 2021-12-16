@@ -23,8 +23,6 @@ Contains all the CSS style-sheets, divided up throughout several files to repres
 Contains 90% of all javascript functionality on the browser side. They are loaded in order of importance (with the exception of Aesthetics.js) within the "directory.ejs" file. 
 Core, DirectoryControl, FileAlteration, and StageAndUpload are the most essential files for the front-end operations.
 # public, users, temp 
-Are the root folders for all file operations that take place. The names matter, and are referenced by environment variables.
+Are the root folders for all file operations that take place. The names matter, and are referenced by environment variables. These are not included here, or it would be over 1 terrabyte.
 # base_images, fonts and filetype_images 
 Are just image/aesthetic resources for the front-end.
-# ssl 
-Is just certificate info.
