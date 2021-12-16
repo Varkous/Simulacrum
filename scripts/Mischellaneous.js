@@ -251,8 +251,13 @@ function viewImage (img) {
     else if (await showOperation(operation)) {
 
       let newfile = { // Form Data was not sufficient, difficulties sending to back-end
+<<<<<<< HEAD
     	url: $(this).find('.input')[0].value,
     	name: $(this).find('.input')[1].value,
+=======
+    	url: $(this).children('.input')[0].value,
+    	name: $(this).children('.input')[1].value,
+>>>>>>> 81c8018ee693d247bf53f63a32ed222c34e3e83f
       }
 // ------------------------------------------------------
       axios.post(`/convert/${folderChoice}`, newfile, {
@@ -293,6 +298,9 @@ function viewImage (img) {
     } else return false;
    } catch (err) {console.log(err)}
   });
+<<<<<<< HEAD
   
 //===============================================================
   $('.convert-name input').on('input', () => $('#convert').show());
+=======
+>>>>>>> 81c8018ee693d247bf53f63a32ed222c34e3e83f

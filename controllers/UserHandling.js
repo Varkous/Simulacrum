@@ -66,7 +66,10 @@ class SessionStore {
         do user.log.shift();
         while (user.log.length > 30 || user.log.join(' ').length > 4000);
       }
+<<<<<<< HEAD
       console.log(user);
+=======
+>>>>>>> 81c8018ee693d247bf53f63a32ed222c34e3e83f
     let log = user.log.length > 1 ? user.log.last() : ''; //Get the most recent log output
     let date = new Date();
     let basicTime = [` on ${date.toLocaleDateString()}/${date.toLocaleTimeString()}\r\n`];
