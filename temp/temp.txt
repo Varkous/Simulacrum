@@ -1,0 +1,1 @@
+Every time a ZIP file is being created (due to a user initializing a download), files are transferred here, zipped into the archive, then removed.
