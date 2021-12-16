@@ -8,7 +8,7 @@ Calls all the fundamental frameworks, and creates the server listener. It provid
 # controllers 
 Contains the back-end script files:
   * UserHandling deals with authentication/authorization, session checking, updating Session "store", and reporting results of file operations (including errors) back to the client
-  * FileControllers handles all file operations (Upload, Transfer, Rename, Delete, and Download). 
+  * FileControllers handles all CRUD/file handling operations (Upload, Transfer, Rename, Delete, and Download). 
   * FolderProviders queries folder data and gathers certain properties to be referenced for various tasks depending on request type
   * Utilities contains an assortment of mischellaneous functions generally used for very specific tasks, or to mildly assist larger functions
   * Hasher is simply the crypto-hasher functionality for creating/comparing password info (copied most of this)
