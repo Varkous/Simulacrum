@@ -8,7 +8,7 @@ function keydownActions (evt) {
   else if (!$(FolderInput).is(':focus') && !$('a:focus')[0] || evt.keyCode === 27 || evt.keyCode === 13) $(folderSuggestions).empty();
 // If pressing down arrow, move to folder suggestions, while Backscape or ESC will close it
 // ---------------------------------------------------------------
-
+  
   if ($(folderSuggestions).children('a:focus')[0]) {
     evt.stopPropagation();
     evt.preventDefault();
@@ -118,6 +118,8 @@ $('#cancel').click( () => $('main').css({
    'transform': 'translate(0)',
    'transition': 'all 0.7s ease-in-out',
   }));
+// ------------------------------------  
+$('#url').on('input', () => $('#url').val() ? $('.convert-name').show() : $('.convert-name').hide()); // Whenever convert URL input is entered, reveal custom convert name input, or hide
 // ------------------------------------
 $('body').on('mousedown', 'a', holdToDownload);
 $('body').on('mouseup', '*', () => {
@@ -156,7 +158,7 @@ $('body').on('click', '.progress', function (evt) { //Whenever a progress bar is
 /* ----------------------------------------- */
 window.addEventListener('load', async () => {
 
-  $('.logo').draggable({
+  $('.logo').draggable({ // Make the logo draggable in case it gets in the way
     containment: 'body',
     revert: false,
     distance: 1,

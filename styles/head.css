@@ -90,7 +90,8 @@ nav {
 .header {
   color: darkgray;
   text-shadow: 9px 9px 9px black;
-	font-family: 'ui-monospace';
+  font-family: 'ui-monospace';
+  font-family: 'Miriam Libre';;
 
   font-size: 0.6rem;
   align-self: center;
@@ -116,7 +117,7 @@ nav {
   display: none;
 }
 #MessageLog {
-  font-family: auto;
+  font-family: monospace;
   color: white;
   background-color: rgba(0,0,0,0.8);
   border-radius: 25px;
@@ -152,5 +153,12 @@ nav {
   font-size: auto;
   text-indent: 2px;
   padding: 4px;
+} 
+.guest-warning {
+  font-size: 1.3rem;
+  max-width: 1000px;
+  color: rgb(180, 140, 25) !important;
+  border: 3px double gray;
+  padding: 1%;
 }
 /* -------------------- *//* -------------------- */

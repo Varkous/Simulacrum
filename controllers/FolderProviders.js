@@ -115,10 +115,11 @@ module.exports = {
   /*===============================================================*/
 
   /*===============================================================*/
-  GetAllItems: async function (directory, collected, searchfolder, req, all) { //Very similar to GetFolderSize, except it stores all the stats rather than just "size", and disregards any folder/file that does have the given UID.
+  GetAllItems: function (directory, collected, searchfolder, req, all) { //Very similar to GetFolderSize, except it stores all the stats rather than just "size", and disregards any folder/file that does have the given UID.
   //Also like the pre-mentioned function, it builds on itself, doing internal calls until all files/folders are filtered out and stored properly.
     let partition = req ? req.session.home : process.env.partition;
     let moreItems = collected || []; //This builds with each call to this function ('GetAllItems')
+    
     return new Promise( (resolve, reject) => { //After all items have been iterated (this may include self-calls that restart this process until no more directories can start new iterations), return this promise
       const items = fs.readdirSync(directory);
       const foundItems = items.map( (item, i, arr) => { //If the item was a directory, map through all its children
@@ -129,7 +130,8 @@ module.exports = {
           //VERY important
           if (fs.statSync(dirPath).isDirectory()) {
             //If it's a directory, we will build on the previous directory and call this function again. All the way until (depending on parameters), we find a folder (searchfolder param), or we get an actual file (file search)
-            if (dirPath[0] === '@' || dirPath[0] === '$' || dirPath[0] === '#')
+
+            if (dirPath.includesAny('#', '$', '@') || directory.includesAny('#', '$', '@'))
               return resolve(false); //Then it's a hidden/reserved/special folder
 
             if (searchfolder) { //If searchfolder is true, we're querying for folders, and don't want files
@@ -143,7 +145,8 @@ module.exports = {
           else { //If not a directory and we're not searching/querying folders, we're looking for files
             let maxfiles = req.mobile ? 100 : 500;
             req.session.index += 1; //Every file iterated increments this
-            if (req.body.index && req.session.index < req.body.index * maxfiles || moreItems.length === maxfiles) {
+            // if (req.body.index && req.session.index < (req.body.index * maxfiles) || moreItems.length === maxfiles) {
+            if (req.body.index && req.session.index < (req.body.index * maxfiles) || moreItems.length >= maxfiles) {
               return resolve(moreItems);
             } //The indexing is to locate which "bunch/set" of files to query. Each body index represents a new set of 500 files. 0 = the first 500, 1 = ignores first 500 uses next 500, 2 = ignores first 1000, etc.
             let file = {

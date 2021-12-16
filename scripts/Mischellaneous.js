@@ -1,12 +1,13 @@
 'use strict';
 const CancelToken = axios.CancelToken;
 const Requests = {
-	cancel: function (op) {
+	cancel: function (op, res) {
 		if (this[op]) {
 		  this[op]();
 		  this[op] = false;
 		  $('.' + op) ? $('.' + op).remove() : false; // Any progress bar of that operation
-		  StagedFiles.unlist(StagedFiles.count, true);
+		  if (res && res.data && !res.data.uploaded) 
+			StagedFiles.unlist(StagedFiles.count, true); // Only unlist staged files if a successful upload request was NOT returned (we still need the Staged Files for reference after upload)
 		} else if (op === 'All') { // Halt all request operations
 		    for (let op of Object.keys(this))
 		      op !== 'cancel' ? this.cancel(op) : null;
@@ -19,6 +20,7 @@ const Requests = {
 	Upload: false,
 	Transfer: false,
 	Delete: false,
+	Convert: false,
 	General: false
 };
 
@@ -209,8 +211,6 @@ function closeIframe (evt) {
 /*===============================================================
   Changes <iframe> src url to the image that was clicked/touched, embedding the image within and enlarging it to max-width of the image up to the screen width.
 ===============================================================*/
-// $(FileTable).on('mousedown', 'img', );
-
 function viewImage (img) {
     // $('#viewImage').empty().show().attr('src', img.src); //The iframe. Empty the contents, "show" it on page, and set url src to the image path on server
     $('#viewImage').empty().show(); //The iframe. Empty the contents, "show" it on page, and set url src to the image path on server
@@ -234,3 +234,65 @@ function viewImage (img) {
 
     $('#viewImage')[0].requestFullscreen();
 };
+
+
+/*===============================================================
+  Sends URL to be parsed and transformed into stream on back-end. Creates file in given location, and also streams it to client for download upon completion.
+===============================================================*/
+  $('#convertForm').submit( async function (evt) {
+   try {	
+	evt.preventDefault();
+    let operation = 'Convert';
+    let folderChoice = $(FolderInput).val() || CurrentFolder;
+ 
+    if (!folderChoice.length)
+      return Flash('No folder targeted for upload destination, check input', 'error');
+// ------------------------------------------------------
+    else if (await showOperation(operation)) {
+
+      let newfile = { // Form Data was not sufficient, difficulties sending to back-end
+    	url: $(this).find('.input')[0].value,
+    	name: $(this).find('.input')[1].value,
+      }
+// ------------------------------------------------------
+      axios.post(`/convert/${folderChoice}`, newfile, {
+        headers: {
+          'Content-Type': 'application/json', // Else back-end does not recognize it
+          operation,	
+        },
+        responseType: 'blob', // Expecting downloadable buffer
+        accept: 'application/json', // In case of report message
+        cancelToken: new CancelToken( (c) => Requests.Convert = c),
+        onDownloadProgress: progress => {
+          let total = progress.srcElement.getResponseHeader('content-length') || progress.srcElement.getResponseHeader('approx-length'); // Sometimes back-end content length will be off, need approximation for backup
+	      let percentCompleted = (progress.loaded / total) * 100;
+	      percentCompleted !== Infinity ? $(`.progress.${operation}`).val(`${percentCompleted}`) : $(`.progress.${operation}`).val(0);
+	    }
+      }).then( async (res) => {
+        if (await checkForServerError(res, operation))	
+          return false;
+          
+        if (res.data.type.includesAny('json', 'text', 'plain', 'html')) { // This means there was a report error
+          let report = JSON.parse(await res.data.text()); // Blob is within data, so need to find report within text
+      	  return Flash(...Object.values(report));
+      	} else {
+      	  let filename = res.headers.filename || newfile.name; // File name with extension sent as header from back-end
+      	  Flash([`Successfully converted and uploaded <span class="darkcyan">${filename}</span> to <span class="dimblue">${folderChoice}</span>`, 'Reload directory to view it'], 'success');
+          const downloadUrl = URL.createObjectURL(res.data); //Blob href
+          triggerLink(downloadUrl, filename);
+      	}
+      })
+      .catch( (error) => {
+        Requests.cancel('Convert');
+        if (axios.isCancel(error))
+          Flash(operation + ' aborted', 'warning');
+	    else Flash([error.message], 'error');
+          return false;
+      });
+// ------------------------------------------------------
+    } else return false;
+   } catch (err) {console.log(err)}
+  });
+  
+//===============================================================
+  $('.convert-name input').on('input', () => $('#convert').show());

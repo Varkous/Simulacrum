@@ -194,17 +194,23 @@ if (mobile) {
 	};
 
 
+// ===========================================================
+	window.addEventListener('load', async () => {
+	  $('#FileTable').on('mousedown', startDrag);
+	  $('html').on('mousemove', '#FileTable', resizeDragbox);
+	  $('#FileTable').on('mousemove', '.drag-select-box', resizeDragbox);
+	  /* ----------------------------------------- */
 	/*===============================================================
 	  This is just for the drag-select-box. Determines current Dragbox position and size when the user lets up on the mouse, detecting if it overlaps with a file card
 	===============================================================*/
-	$('html').on('mouseup', '#FileTable div', function () {
-
-	  if ($(dragbox).is(':hidden'))
+	  $('body').on('mouseup', '#FileTable', () => {
+		console.log('crap?');
+	    if ($(dragbox).is(':hidden'))
 	    return false;
 	    // To avoid repeat calls to this function due to mouseup
 
 	  //Then the user is not even drag-selecting, no reason to run this function
-	  window.clearTimeout(window.startdrag);
+	    window.clearTimeout(window.startdrag);
 	// --------------------------------------------------------
 	    if ($(dragbox).hasClass('is-dragging') === true) {
 	        $(dragbox).removeClass('is-dragging');
@@ -245,13 +251,7 @@ if (mobile) {
 	    };
 	  };
 	  $(dragbox).hide();
-	});
-// ===========================================================
-	window.addEventListener('load', async () => {
-	  $('#FileTable').on('mousedown', startDrag);
-	  $('html').on('mousemove', '#FileTable', resizeDragbox);
-	  $('#FileTable').on('mousemove', '.drag-select-box', resizeDragbox);
-	  /* ----------------------------------------- */
-	});
+	});		  
+  });
 };
 /* ======================================================= */

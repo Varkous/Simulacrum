@@ -58,7 +58,11 @@ module.exports = {
               if (!req.body.newfolders.has(relativeFolder))
                 req.body.newfolders.add(relativeFolder);
 
+		
               fs.chown(path.resolve(partition, directory), user.uid, 100, (err) => err ? console.log(err) : false);
+              console.log('1', path.resolve(partition, directory));
+			  console.log('2', user.uid);
+			  setTimeout( () => console.log('3', fs.statSync(path.resolve(partition, directory))))
               if (!op) { // If no operation, user was just creating a folder, and nothing else
                 return ReportData(req, res, false, {
                   content: [`Directory`, `created`],
@@ -134,7 +138,7 @@ module.exports = {
             content: ["No files staged for upload"],
             type: 'error'
           });
-        else return next(); //Report data is in req.files, so we move on to closing route handler
+        else return next(); //Report data is now in req.files, so we move on to closing route handler
        }
       }); //End of File Parse
 // ------------------------------------------------------------------------------
@@ -142,21 +146,21 @@ module.exports = {
      try {
       	// ------------------------------------------------------------------------------
       let dirPath = file.name.substring(0, file.name.lastIndexOf('/')); //File name contains path, so we strip the actual file NAME out, so all we get is path
-      let filename = file.name.replace(dirPath + '/', ''); //Opposite of above, just the file name
-      let newpath = path.resolve(ses.home, file.name); //Neither of above (or both), gets full absolute path
+      let filename = file.name.replace(dirPath + '/', ''); //Opposite of above: Just get the file name
+      let newpath = path.resolve(ses.home, file.name); //Neither of above (or both?), gets full absolute path
 // ------------------------------------------------------------------------------
 		  if (fs.existsSync(newpath) && fs.statSync(newpath).uid !== user.uid) {
 			return filesToWrite.push({name: filename, path: dirPath, denied: true});
 		  } else {
-	      file.path = newpath; // Important, this sets the targeted destination, else it goes to temp folder
-	  	  file.name = filename;
+	        file.path = newpath; // Important, this sets the targeted destination, else it goes to temp folder
+	  	    file.name = filename;
 		  }
 // ------------------------------------------------------------------------------
     	filesToWrite.push(new Promise( async (resolve, reject) => { // For parallel processing
         let newfolder = path.resolve(ses.home, dirPath);
 		  if (!fs.existsSync(newfolder)) {
 		    // ------------------------------------------
-		    fs.mkdirSync(newfolder, {recursive: true, force: true}) //If the requested upload path (within name) does not exist, make the directory. This occurs while file data is still being parsed
+		fs.mkdirSync(newfolder, {recursive: true, force: true}); //If the requested upload path (within name) does not exist, make the directory. This occurs while file data is still being parsed
         fs.chown(newfolder, user.uid, 100, (err) => err ? console.log(err) : false);
         let relativeFolder = dirPath.replace(user.residing, '').replace('/', '').split('/')[0];
         //Simple code, but deceptive concept. The goal is to find any new directories created that are DIRECT children of the current posting directory (the folder the user is residing in), anything deeper should  be displayed, as page will only show relative directories

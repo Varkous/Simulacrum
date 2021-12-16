@@ -1,5 +1,5 @@
 /* --------------------- */
-form, .input-container, .file-box, .file-label, .column, .source-icons {
+.form, .input-container, .file-box, .file-label, .column, .source-icons {
   display: flex;
   justify-content: center;
 }
@@ -10,7 +10,7 @@ main {
   transform: translateX(-100%);
   position: relative;
   width: auto;
-	padding: 1%;
+  padding: 1%;
 }
 #primeDirectoryInput {
   color: #22a0f4;
@@ -30,7 +30,7 @@ main {
 #directoryList {
   font-family: 'Alegreya Sans SC', 'Courier';
   background: rgba(0,0,0,0.8);
-  border: 2px double gray;
+  border: 1px double gray;
   overflow-y: scroll;
 
   width: 50%;
@@ -87,6 +87,14 @@ td {
   color: darkcyan !important; 
   border: 2px solid black !important;
 }
+#convertForm {
+  background: rgba(0,0,0,0.3);
+  box-shadow: inset 2px 22px 33px 14px black;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  flex-wrap: wrap;
+}
 .oversize-message {
   background: rgba(0,0,0,0.8);
   border: 1px double orange;
@@ -100,6 +108,7 @@ td {
 
   width: 100%;
   margin: auto;
+  display: block;
 }
 .file-box {
 
@@ -231,7 +240,7 @@ progress::-webkit-progress-value {
 }
 /* -------------------- */
 label {
-	border-radius: 3%;
+  border-radius: 3%;
 
   font-size: 1.4rem;
   margin: 5px;
@@ -285,7 +294,7 @@ i, .fa{
   flex-direction: column;
   width: 90%;
   max-height: 300px;
-  min-width: 320px;
+  min-width: 300px;
 } #folderSuggestions a:focus {
   color: white;
   border: 1px solid white;

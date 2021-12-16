@@ -1,6 +1,6 @@
 'use strict';
 
-let startFakeTransferProgress;
+let startFakeProgress;
 let transferMultiple;
 let initiateTransfer;
 let fetchFolder;
@@ -31,18 +31,19 @@ fetchFolder = async function (folder) {
 };
 
 /*===============================================================
-  Combines size of all items staged for transfer. For each 100 megabytes, create a 1-second-timeout that advances the transfer progress bar divided by how many seconds remain (3 seconds would advance it 33% each timeout).
+  Combines size of all items staged for transfer (or upload). Create timeouts (divided by triggers) that advance the progress bar.
 ===============================================================*/
-startFakeTransferProgress = async function (items) {
+startFakeProgress = async function (items, op) {
 
-  let totalSize = items.length > 1 ? items.reduce(accumulateSize) : items[0].size // p = "previous", n = "next". Gets cumulative file size of all items. Or if single item, no need for array.
+  let totalSize = items.length > 1 ? items.reduce(accumulateSize) : items[0].size
 
-    let secondsToTransfer = Math.floor(Math.round(totalSize / 1000000) / 15); //Determines how many times to trigger the Transfer movement (higher division number means less triggers)
+    let progressTrigger = Math.floor(Math.round(totalSize / 1000000) / 15); //Determines how many times to trigger the progress movement (higher division number means less triggers)
+    let timeBeforeAdvance = op === 'Upload' ? 1000 : 500;
 
-    if (secondsToTransfer) //If not less than 200 megabytes, create an artificial "progress" tracker to approximate duration of transfer.
-      for (let i = 1; i <= secondsToTransfer; i++) { //Will rarely be more than 10 seconds (which would be over 2 gigabytes)
-        let progress = (totalSize * i) / secondsToTransfer / totalSize * 100; //Each iteration will increase first chunk (totalSize * i), which is ultimately divided by total size
-        setTimeout( () => $('.Transfer') ? $('.progress.Transfer').val(progress) : false, i * 500)
+    if (progressTrigger) //If not less than 200 megabytes, create an artificial "progress" tracker to approximate duration of operation.
+      for (let i = 1; i <= progressTrigger; i++) { //Will rarely be more than 10 seconds (which would be over 2 gigabytes)
+        let progress = (totalSize * i) / progressTrigger / totalSize * 100; //Each iteration will increase first chunk (totalSize * i), which is ultimately divided by total size
+        setTimeout( () => $(`.${op}`) ? $(`.progress.${op}`).val(progress) : false, i * timeBeforeAdvance)
       } 
 }
 
@@ -95,7 +96,7 @@ initiateTransfer = async function (items, destination, copy) {
     preferences: JSON.stringify(UserSession.preferences)
   }
 // -----------------------------------------------------------------------
-  startFakeTransferProgress(items); 
+  startFakeProgress(items, operation); 
   return await axios({
     method  : 'post',
     url : `/${Partition + destination}`,

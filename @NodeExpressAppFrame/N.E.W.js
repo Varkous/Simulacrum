@@ -13,8 +13,6 @@ class NEW {
 		this.methodOverride = require('method-override'); //So we can identify put/patch/delete request methods
 		this.ejs = require('ejs'); //Well. So we can see data/information from our server on the pages?
 		this.bodyParser = require('body-parser'); //Well. So we can see data/information from our server on the pages?
-		this.session = require('express-session'); //Rather vague, but it's a library that establishes a session on each visit to the page. The session is found within "req.session", where cookies can be stored.
-		this.flash = require('connect-flash'); //Dunno, uses session to carry and "flash" warnings/information carried from the previous route onto the next page.
 		this.fs = require('fs');
 		this.https = require('https');
 

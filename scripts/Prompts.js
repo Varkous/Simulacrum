@@ -71,8 +71,8 @@ async function introductionTips(index) {
     $(message.element).addClass('steady-glow high-index').show().removeClass('invisible hide').prepend(`
     <div class="message-tip">
       <p>${message.text}</p>
-      <button class="my-button dark" style="color: #22a0f4" type="button" onclick="introductionTips(${index + 1})">Next</button>
-      <button class="my-button dark" style="color: rgb(44, 166, 211)" type="button" onclick="introductionTips(${false})">Forget It</button>
+      <button class="my-button dark dimblue" style="color: #22a0f4" type="button" onclick="introductionTips(${index + 1})">Next</button>
+      <button class="my-button dark" type="button" onclick="introductionTips(${false})">Forget It</button>
     </div>`);
     $(message.otherElements).addClass('steady-glow high-index');
     // This stuff above creates the introduction messaage for message element and highlights it, makes it top-level z-index, and also highlights any related elements the message tip wants to reference
@@ -157,18 +157,18 @@ function showOperation (op, operands = []) {
     Flash(`<span class="green">${op}</span> operation already in effect. Reload directory to cancel it`, 'error');
     return false;
   }
+  if (operands) {
+    for (let file of operands)
+      if (pathfinder(SelectedFiles.count, 'find', file) && pathfinder(SelectedFiles.count, 'find', file).status)
+        inEffect.push(file.name);
 
-  for (let file of operands)
-   if (pathfinder(SelectedFiles.count, 'find', file) && pathfinder(SelectedFiles.count, 'find', file).status)
-      inEffect.push(file.name);
-
-  if (inEffect.length) {
-    Flash(['Halted. Targeted files: ', 'Are currently under effect of another operation, please wait'], 'warning', inEffect);
-    return false;
+    if (inEffect.length) {
+      Flash(['Halted. Targeted files: ', 'Are currently under effect of another operation, please wait'], 'warning', inEffect);
+      return false;
+    }
+    operands.forEach( async (file, i, arr) => pathfinder(SelectedFiles.count, 'find', file) ? pathfinder(SelectedFiles.count, 'find', file).status = op : false);
   }
 // ----------------------------------------------------------------
-  operands.forEach( async (file, i, arr) => pathfinder(SelectedFiles.count, 'find', file) ? pathfinder(SelectedFiles.count, 'find', file).status = op : false);
-
   $(FS_Modal).show();
   let progressElements = $('.fixed').find('.progress').length;
   let gerund = op;
@@ -244,7 +244,7 @@ function dialogPrompt (operation) {
 
 
 /* ----------------------------------------- */
-$(form).submit( (event) => {
+$('#fileFolderInput').submit( (event) => {
   event.preventDefault();
   event.stopPropagation();
   if (StagedFiles.count.length) {

@@ -40,10 +40,9 @@ function confirmRedirect(url) {
 async function changeDirectory (evt, link) { //Upon clicking any link (leaving the page), dismiss the entire page body, sending it left or right depending on whether the user is going "forwards" through directories (send it left), or "backwards" (send page right).
 try {
 
-  if (this && this.download) { // Download anchor that should trigger like normal
-    evt.stopPropagation();
+  if (this && this.download)  // Download anchor that should trigger like normal
   	return true;
-  }
+  
   else if (evt) { // To prevent unwanted redirects/triggers that override this function
   	evt.preventDefault();
     evt.stopPropagation();
@@ -121,6 +120,7 @@ async function checkForServerError(res, op) {
   clearDialog();
   document.body.style.overflow = 'visible';
   SelectedFiles.count.filter( f => f.status === op ? delete(f.status) : false); //The current operation is completed, so remove the status indicator from the operand files so they are available for other operations
+  op ? Requests.cancel(op, res) : false;
   $('.closemodal').click();
 
     if (req.responseURL.includes('/login')) { //Then session expired and redirect attempt to login was made
@@ -160,8 +160,8 @@ async function checkForServerError(res, op) {
     }
 
   if (op) $(`.${op}`).remove();
-
   return problem;
+  
 };
 
 
@@ -200,10 +200,10 @@ try {
   setupDirectory(); //Establishes basic necessary info, flashes report, and then lists all contents of directory
 
   return res;
-} catch (err) {
-	console.log(err);
-	await revealNextDirectory(CurrentFolder || '/', CurrentFolder);
-}
+ } catch (err) {
+   console.log(err);
+   await revealNextDirectory(CurrentFolder || '/', CurrentFolder);
+ }
 };
 
 
@@ -291,7 +291,7 @@ async function setupDirectory() {
 
   Directory.index = 0;
   if (Directory.name) {
-    Flash(UserSession.log.last() || `<span style="color: #22a0f4;">${Directory.name}</span> loaded`, 'success');
+    Flash(UserSession.user.log.last() || `<span style="color: #22a0f4;">${Directory.name}</span> loaded`, 'success');
     // If within a directory, list all files/folders of the directory and their media contents
 
     for (let rival of rivals) {
@@ -309,12 +309,11 @@ async function setupDirectory() {
 
     if (Server.status === 0) {
       //Just gets shut down timer of Server to warn user
-      let currentTime = Math.floor(new Date().getTime() / 60000);
       setTimeout( () => {
-        Flash(`<hr> <span style="color: red">Warning: </span> <h1>${Server.warning}: Occuring in ${Math.abs(currentTime - Server.countdown)} minutes</h1>`, 'warning');
-      }, 1000);
+        Flash(`<hr> <span style="color: red">Warning: </span> <h1>${Server.warning}: Occuring in ${Server.countdown} minutes</h1>`, 'warning');
+      }, 3000);
       //If hardly any time, just redirect them (which will basically log them out)
-      if (Math.abs(currentTime - Server.countdown) < 2)
+      if (Server.countdown < 2)
         return window.location = domain;
     }
     listDirectoryContents(event);

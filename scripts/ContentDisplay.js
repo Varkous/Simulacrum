@@ -49,9 +49,9 @@ function presentFileStats(item, stats, status) {
 
 	if (item.children) { // Folder stats. If it has files/subdirectories (children), list them as anchor tags
       for (let child of item.children.folders)
-        children.push(`<a href="/${item.path}/${item.name}/${child}" class="dimblue">${child}</a><br>`);
+        children.push(`<a href="/${Partition + item.path}/${item.name}/${child}" class="dimblue">${child}</a><br>`);
       for (let child of item.children.files)
-        children.push(`<a href="/${item.path}/${item.name}/${child}" download="${child}" class="darkcyan">${child}</a><br>`);
+        children.push(`<a href="/${Partition + item.path}/${item.name}/${child}" download="${child}" class="darkcyan">${child}</a><br>`);
     };
 
 	return `
@@ -110,10 +110,11 @@ function createTextFile(fileCard, file) {
 ===============================================================*/
 async function createMedia(file, folder, fileCard) {
 
+  let downloadLink = `<a title="${folder}/${file.name}" href="/${folder}/${file.name}" class="download" download="${file.name}" style="align-self: center; display:inline-block;">
+    <i class="fa fa-download" aria-hidden="true"></i></a>`;
   let sourceLinks = `
   <div class="source-icons hide" style="transition: all 0.5s ease-in-out;">
-    <a title="${folder}/${file.name}" href="/${folder}/${file.name}" download="${file.name}" style="align-self: center; display:inline-block;">
-    <i class="fa fa-download" aria-hidden="true"></i></a>
+	${downloadLink}
     <i class="fa fa-trash-alt gray remove" onclick="deleteSingle(this.parentNode.parentNode)"></i>
     <i onclick="makeEdit(this, $(this).parents('.column, .folder')[0])" class="fa fa-edit"></i>
   </div>`
@@ -125,6 +126,7 @@ async function createMedia(file, folder, fileCard) {
   if (file.stats && checkModeType(file.stats.mode) === 'folder') {
     //Then it's a folder, and we're obviously in a directory so absolute path needed
     mobile || oversize ? null : $(fileCard).droppable(dropItem); //If folder make droppable, unless using mobile device
+    sourceLinks = sourceLinks.replace(downloadLink, '');
     return sourceLinks + `<img src="/folder.png"><a title="${folder}/${file.name}" href="${folder}/${file.name}" class="hide">${file.name}</a>`;
   }
 // --------------------------------------------------------------
@@ -134,9 +136,9 @@ async function createMedia(file, folder, fileCard) {
       <h1 path="${folder}" style="font-size: 1.0rem">
         <i class="fa fa-folder white"></i><a href="/${Partition + folder}">/${folder}</a>
       </h1>`)
-    } if (!file.name.includes('.'))
-      $(fileCard).addClass('faulty');
-      /*Very rare, this means the file has no extension, but wasn't considered a folder either at the very start, so something's off*/
+    } 
+    if ('.'.isNotIn(file.name)) $(fileCard).addClass('faulty');
+    /*Very rare, this means the file has no extension, but wasn't considered a folder either at the very start, so something's off*/
 // --------------------------------------------------------------
   return getMediaType(file, folder, fileCard, sourceLinks);
 };
@@ -288,10 +290,6 @@ async function findAllFiles (evt, index) {
       Directory.index = Math.min(Math.max(index !== undefined ? index : Directory.index, 0), Directory.maxindex || 1); //Directory index cannot go below 0, or surpass the maxindex
 	  $('#fetchFiles').hide();
 	  
-	  setTimeout( () => { //If request has not returned in 5 seconds (there would be files available), cancel the request altogether
-	    if (!Directory.files) 
-	      return Requests.cancel('General');	
-	  }, 5000); 
 	  // --------------------------------------------------------------------
       axios({
       	method: 'post',
@@ -299,6 +297,7 @@ async function findAllFiles (evt, index) {
       	data: {index: Directory.index, folder: Directory.name},
       	cancelToken: new CancelToken( (c) => Requests.General = c),
       }).then( async (res) => {
+
 		$('#fetchFiles').show();
         if (await checkForServerError(res) || Directory.creator) //If server error, or if user switched to a directory when response arrives
           return false;
@@ -324,6 +323,10 @@ async function findAllFiles (evt, index) {
 	     else Flash([error.message], 'error');
            return false;
       });
+      setTimeout( () => { //If request has not returned in 5 seconds (there would be files available), cancel the request altogether
+	    if (!Directory.files) 	
+	      return Requests.cancel('General');	
+	  }, 5000); 
 
       AllFiles.delete(AllFiles.count);
     }

@@ -58,7 +58,7 @@
 
 <title>Simulacrum</title>
 </head>
-
+<!--------------------------------------------------------------------------------------------------------->
   <div class="dialog-cover hide">
     <div class="dialog-box">
   <!-- Message and response buttons go here -->
@@ -71,7 +71,7 @@
   <div class="error-display">
 
   </div>
-
+<!--------------------------------------------------------------------------------------------------------->
   <body ondrop="fileDragger(event)" ondragover="fileDragger(event)">
 
     <div class="operation-status fixed high-index hide">
@@ -81,12 +81,11 @@
       <i class="fa fa-times"></i>
       <!-- Javascript will put message here based on error triggered -->
     </div>
-
-  <aside>
+<!--------------------------------------------------------------------------------------------------------->
+   <aside>
     <a id="logoLink" class="taphover" href="/" draggable="true"><img class="logo" src="/TNT Logo.png" alt="" width="90"></a>
-
+<!--------------------------------------------------------------------------------------------------------->
     <nav>
-
       <% if (UserSession && partition.includes(UserSession.user.name) && !UserSession.guest) {%>
       <button id="myDir" class="navlink">
         <a href="#">
@@ -142,57 +141,45 @@
     <div class="message directory-stats fadeout">
       <!-- Hovering over a directory reveals the stats/sub-folders here -->
     </div>
-  </aside>
-
+   </aside>
+<!--------------------------------------------------------------------------------------------------------->
   	<main>
     	<header class="header d-flex" hidden>
 
         <h1>
           <% if (directory) {%>
-        		Browsing directory: <span><%= directory.name %></span>. <br> Created by: <span><%=directory.stats.creator %></span> on <%=directory.stats.birthtime %>. <br>There are currently <span><%=directory.files.length%></span> entries listed.
+        	Browsing directory: <span><%= directory.name %></span>. <br> Created by: <span><%=directory.stats.creator %></span> on <%=directory.stats.birthtime %>. <br>There are currently <span><%=directory.files.length%></span> entries listed.
           <% } else {%>
             You can interact with the Skeleton Hill database here, though optimization is limited. <br>Videos, audio, images, zips and text files that are less than 1 gigabyte are the data types that will be transmitted most reliably. If you have several files, especially any large ones, compress them into a ZIP before uploading.
             <hr>
             After selecting items to upload, input a folder to create and/or upload to, hit SUBMIT, and the contents should be displayed down below shortly afterwards.<br>
           <% } %>
-          <ul class="info-list">
-            <i class="fa fa-info-circle"></i>
-            <li>Click folder icons <i class="fa fa-folder"></i> to add their name/path to the folder designation input</li>
-            <hr>
-            <li>Hold down left-click and drag the mouse (left to right) over items to select them</li>
-            <hr>
-            <li>Within the File Table below, you can drag-and-drop items onto other folders to transfer them. Hold down left-click on an item to start dragging them.</li>
-            <hr>
-            <li>When transferring, Hold CTRL to copy any selected items, rather than moving them</li>
-            <hr>
-            <li>On clicking a panel button, hold down SHIFT if you wish to Download, Transfer, Delete, or Show all items in the current directory</li>
-            <hr>
-            <li>Double-clicking while holding down SHIFT will select/unselect all items in the given file View</li>
-            <hr>
-            <li>Hold left-click on uploaded files in the panel view to download them</li>
-
-          </ul>
           <br>
         </h1>
+        <% if (UserSession.guest) {%>
+        <p class="guest-warning">As a guest user, you are permitted no more than 5 gigabytes of storage. The guest account is publicly available and intended only for testing purposes. Feel free to remove any files (even if they are not yours).</p>
+        <% } %>
     	</header>
-
     <hr>
     <br>
 <!-- ===================================================  -->
 <script type="text/javascript" src="/Aesthetics.js"></script>
 <!-- ===================================================  -->
-  	 <form id="fileForm" class="form" Method="POST" action="/<%=partition%>" enctype="multipart/form-data">
+ 
+  	 <section class="form">
 
-     <section id="directoryList">
+     <div id="directoryList">
+        <i class="fa fa-folder"></i>
+		<i class="fa fa-info-circle info" data-after="Click folder icons to add their name/path to the folder designation input"></i>
 
         <h1 id="primeDirectoryInput" class="d-flex" style="justify-content: center">
           <i class="fa fa-trash-alt" style="color: gray" onclick="sendDeleteRequest({name: this.parentNode.title, path: CurrentFolder}, true)"></i>
           <a id="editPrime" href="#" disabled="true" title="Drag a primary directory into the box, or click its folder icon to stage it for edit or deletion."></a>
           <i class="fa fa-edit" onclick="makeEdit(this, $(this).prev('a')[0])"></i>
         </h1>
-
+<!--------------------------------------------------------------------------------------------------------->
       <table id="tableOfDirectories">
-        <h1 title="Primary folders for all other sub-directories. Gotta start somewhere right? Generally, any new folders you create should ideally be a sub-directory from one of these, unless the content is unrelated to the names." style="cursor: help;">Base Folders/Primary Directories</h1>
+        <h1 title="Primary folders for all other sub-directories. Gotta start somewhere right? Generally, any new folders you create should be a sub-directory from one of these, unless the content is unrelated to the directory name." style="cursor: help;">Base Folders/Primary Directories</h1>
 
         <% if (PrimaryDirectories) {%>
           <% for (let i = 0; i < PrimaryDirectories.length; i++) {%>
@@ -205,15 +192,30 @@
         <% } %>
 
       </table>
-     </section>
-
+<!--------------------------------------------------------------------------------------------------------->    
+	<hr>
+	  <h1 title="Paste a URL from an image/audio/video source, then click Convert to upload/create it within target folder" style="cursor: help; text-align: center">URL Converter</h1>
+      <form id="convertForm" class="input-container form" action="/convert/<%=directory.name%>" method="post" enctype="multipart/form-data" title="Paste a URL or source address from an image, audio or video to replicate it into this folder">
+	      <div class="input-container" style="flex: 50%">
+		    <label for="url">Source URL</label>
+		    <input id="url" type="text" name="url" class="input" style="width: 85%;" value="" placeholder="https://example.com/source">
+	      </div>
+		  <br>
+		  <div class="input-container convert-name" style="flex: 50%">
+	        <label for="name">Custom Name</label>
+	        <input type="text" name="name" class="input darkcyan" value="" placeholder="File" maxlength="30" required pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used within the file' autocomplete="off">
+		  </div>
+	    <button id="convert" type="submit" class="my-button" style="border-width: medium; color: lightblue; background: rgb(30,30,40); font-family: 'Allerta Stencil';" hidden>Convert URL</button>
+      </form>
+      
+     </div>
     	<% if (totalsize > UserSession.maxsize) {%>
     	<div class="oversize-message">
     	  <h5>Upload capacity exceeded. Remove files/folders to free up space, or contact Director to request more space</h5>
     	</div>
     	<% } %>
-
-      <div id="fileFolderInput">
+<!--------------------------------------------------------------------------------------------------------->  
+      <form id="fileFolderInput">
 
       <div class="file-box">
         <label type="button" class="folder-label">
@@ -252,7 +254,7 @@
               <div id="questionMessage" hidden>
                 <p><span style="color: #22a0f4">Creating new directory:</span>
                   If you wish to create a new folder, type in a name below. If you wish to make a sub-directory (create within an already existing folder), you must specifiy the parent directory as well in your designation (divided by a "/"). For example: If you wanted to create a "Halloween" folder within the "Movies" directory, you would need to input "Movies/Halloween".
-                  Any directory without a parent ("/") is considered a Primary Directory/Base Folder, and can be found in the navbar, or within the list on your left.
+                  Any directory without a parent ("/") is considered a Primary Directory/Base Folder, and can be found in the navbar, or within the prior folder list.
                   <br><br>
                   Hit the checkbox if you wish to create empty directories without uploading files.
                 </p>
@@ -283,45 +285,41 @@
               <h4 style="margin: 0px;">Select folder destination:</h4>
 
               </label>
-
-
             </div>
-  <!-- ================================================================== -->
+
             <div class="d-flex target-folder-div" title="Each folder must be divided by a '/'" style="width: 90%;">
               <button class="dark" type="button" class="dark">
                 <a class="view-dir" href="/" ><i class="fa fa-arrow-right" style="width: 100%"></i></a>
               </button>
 
-              <input id="FolderInput" name="folder" class="folder-input input" type="text" placeholder="Case sensitive, get it right." maxlength="150" pattern='[A-Za-z0-9/)_( \\.-]+'  title='Only numbers, letters, and the symbols: "/-_\" can be used for folder designation. Each folder must be divided by a "/"' required autocomplete="off">
+              <input id="FolderInput" name="folder" class="folder-input input" type="text" placeholder="Case sensitive, get it right." maxlength="150" pattern="[A-Za-z0-9/)_( \\.-]+"  title='Only numbers, letters, and the symbols: "/-_\" can be used for folder designation. Each folder must be divided by a "/"' required autocomplete="off">
 
               <button type="button" id="eraseInput" class="dark" onclick="clearInput($(this).prev()[0])"><i class="fa fa-times"></i>
               </button>
             </div>
 
-              <button id="submit" class="my-button blue">SUBMIT <span class="staged-count"></span></button>
+             <button id="submit" class="my-button blue">SUBMIT <span class="staged-count"></span></button>
 
             <div id="folderSuggestions">
             </div>
 
           </section>
-        <!-- ============================ -->
+        </form>
+<!--------------------------------------------------------------------------------------------------------->
+  	</section>
+     <label for="search">Search</label>
 
-        </div>
-      <!-- ============================ -->
-  	</form>
+     <div style="display: inline; top: 0; left: 0;">
+       <input class="file-search" type="search" name="search" placeholder="File">
+     </div>
+     
 
-    <label for="search">Search</label>
-
-    <div style="display: inline; top: 0; left: 0;">
-      <input class="file-search" type="search" name="search" placeholder="File">
-    </div>
-
-    <div class="resize">
-      <i class="fa fa-search-minus resize" title="Show only basic file info" onclick="resizeCards(true)"></i>
-      <i class="fa fa-search-plus resize" title="View media content of files" onclick="resizeCards(false)"></i>
-    </div>
-
-
+     <div class="resize">
+       <i class="fa fa-search-minus resize" title="Show only basic file info" onclick="resizeCards(true)"></i>
+       <i class="fa fa-search-plus resize" title="View media content of files" onclick="resizeCards(false)"></i>
+     </div>
+<!--------------------------------------------------------------------------------------------------------->
+    <i class="fa fa-info-circle info" data-after="Within the File Table below, you can hold down left-click and drag the mouse (left to right) over items to select them. You may also drag-and-drop items onto other folders to transfer them. Hold down left-click on an item to start dragging."></i>
     <section id="FileTable" ondblclick="selectAll(AllFiles.count)">
       <div class="drag-select-box hide">
       </div>
@@ -329,7 +327,7 @@
       <p></p>
     </section>
   </main>
-
+<!--------------------------------------------------------------------------------------------------------->
     <section id="panelHeader">
 
       <svg height="60px" viewBox="0 0 2400 60" hidden>
@@ -337,6 +335,8 @@
       </svg>
 
       <div id="panelButtons">
+         <i class="fa fa-info-circle info d-flex info-up" style="align-self: center;" data-after="On clicking a panel button, hold down SHIFT if you wish to Download/Transfer/Delete all items in the current directory. Double-clicking while holding down SHIFT will select/unselect all items in the given panel listing (or File Table above)."></i>
+
         <button id="exitPanel" type="button" class="my-button hide" onclick="bringUpPanel()">
           <i class="fa fa-times" style="color: #4f6fb5; opacity: 0.7;"></i>
            | CLOSE PANEL
@@ -353,7 +353,7 @@
         </button>
 
     	<button id="transferBtn" class="my-button transfer" onclick="transferMultiple(event)">
-          <i class="fa fa-angle-double-right" style="color: gold; opacity: 0.7;"></i>
+          <i class="fa fa-angle-double-right info" style="color: gold; opacity: 0.7;"></i>
            | TRANSFER <span></span><span class="selected-count"></span>
         </button>
 
@@ -366,12 +366,9 @@
           <i class="fa fa-th" style="color: purple; opacity: 0.7;"></i>
            | LIST ALL (<span class="all-count"></span>)
         </button>
-
       </div>
-
-
+<!--------------------------------------------------------------------------------------------------------->
       <footer style="display: none; justify-content: space-around;">
-
         <div class="input-container">
           <label class="file-label panel-upload" type="button" style="height: 80px !important;">
             <i class="fa fa-upload"></i>
@@ -385,15 +382,17 @@
           <button class="dark" type="button" class="dark">
             <a class="view-dir" href="/" ><i class="fa fa-arrow-right" style="width: 100%"></i></a>
           </button>
-          <input id="FolderInput" name="folder" class="input folder-input" type="text" placeholder="Case sensitive, get it right." maxlength="150" pattern='[A-Za-z0-9/)_( \\.-]+' title='Some invalid characters used. Only numbers, letters, and the symbols: "/-_\" can be used for folder designation.' required autocomplete="off">
+          <input id="FolderInput" name="folder" class="input folder-input" type="text" placeholder="Case sensitive, get it right." maxlength="150" pattern="[A-Za-z0-9/)_( \\-]+" title='Some invalid characters used. Only numbers, letters, and the symbols: "/-_\" can be used for folder designation.' required autocomplete="off">
           <button id="submit" class="my-button blue" onclick="submitFiles(event)">SUBMIT <span class="staged-count"></span></button>
         </div>
 
         <div class="list-holder" style="position: relative">
           <i class="hide-lists fa fa-arrow-circle-up" style="color: #22a0f4;"></i>
           <ol class="all-files" style="box-shadow: 1px 1px 1px 2px #22a0f4;" ondblclick="selectAll(AllFiles.count)">
+          
             <input class="file-search" type="search" name="search" placeholder="File">
               <h3>
+                <i class="fa fa-info-circle info" data-after="Click/touch to select items. HOLD click/touch on files to download them. Double-clicking while holding down SHIFT will select/unselect all items in a given panel listing (or File Table above)."></i>
                 <i class="fa fa-eye" title="Expand file viewer" onclick="viewTextInModal(this.parentNode.parentNode)"></i>
                 <i class="fa fa-layer-group dimblue" title="Double click or tap to select/unselect all items in the list">
                 </i>All Files/Folders: <span class="all-count"> 0 </span>
@@ -427,8 +426,9 @@
         </div>
 
       </footer>
+   <!--------------------------------------------------------------------------------------------------------->
     </section>
-
+<!--------------------------------------------------------------------------------------------------------->
   <iframe id="viewImage" style="z-index: -1; position: fixed;" src="" title="Image Viewer" allowfullscreen></iframe>
 
   <button class="hide show-modal" type="button" name="button"></button>
@@ -441,7 +441,7 @@
       </div>
     </div>
   </div>
-
+<!--------------------------------------------------------------------------------------------------------->
   </body>
 </html>
 
@@ -472,8 +472,6 @@ const FolderInput = document.getElementsByClassName('folder-input');  //The fold
 const body = document.querySelector('body');
 const FS_Modal = document.getElementById('FS_Modal');
 const LOG_Modal = document.getElementById('LOG_Modal');
-const form = document.querySelector('#fileForm'); //The form that sends file upload data
-const fileInput = document.getElementsByClassName('file-input'); //The input within the form that stages the files themselves
 const dragbox = $('.drag-select-box');
 const folderSuggestions = document.querySelector('#folderSuggestions');
 const directoryStats = document.getElementsByClassName('directory-stats');
@@ -491,3 +489,65 @@ const directoryStats = document.getElementsByClassName('directory-stats');
 <script type="text/javascript" src="/Mischellaneous.js"></script>
 <script type="text/javascript" src="/FileAlteration.js"></script>
 <script type="text/javascript" src="/KeyMouseTriggers.js"></script>
+<script type="text/javascript">
+
+//   $('#convertForm').submit(async function (evt) {
+//   try {	
+// 	evt.preventDefault();
+//     let operation = 'Convert';
+//     let folderChoice = $(FolderInput).val() || CurrentFolder;
+ 
+//     if (!folderChoice.length)
+//       return Flash('No folder targeted for upload destination, check input', 'error');
+// // ------------------------------------------------------
+//     else if (await showOperation(operation)) {
+
+//       let newfile = { // Form Data was not sufficient, difficulties sending to back-end
+//     	url: $(this).children('.input')[0].value,
+//     	name: $(this).children('.input')[1].value,
+//     	// type: $(this).children('.input')[2].value
+//       }
+     
+// 	  //let newfile = {name: $('#newname').val(), path: folderChoice, uploading: true};
+//       //await StagedFiles.add(newfile);
+// // ------------------------------------------------------
+//       axios.post(`/convert/${folderChoice}`, newfile, {
+//         headers: {
+//           'Content-Type': 'application/json',
+//           operation,	
+//         },
+//         responseType: 'blob',
+//         accept: 'application/json',
+//         cancelToken: new CancelToken( (c) => Requests.Convert = c),
+//         onDownloadProgress: progress => {
+//           let total = progress.srcElement.getResponseHeader('content-length') || progress.srcElement.getResponseHeader('approx-length');
+// 	      let percentCompleted = (progress.loaded / total) * 100;
+// 	      percentCompleted !== Infinity ? $(`.progress.${operation}`).val(`${percentCompleted}`) : $(`.progress.${operation}`).val(0);
+// 	    }
+//       }).then( async (res) => {
+//       	Requests.cancel('Convert');
+      	
+//       	if (res.data.type.includesAny('json', 'text', 'plain', 'html')) {
+//       		console.log(await res.data.text());
+//       		console.log(URL.createObjectURL(res.data));
+//       	  console.log(JSON.stringify(res.data));
+//       	  Flash(...Object.values(JSON.stringify(res.data)));
+//       	}
+//         if (await checkForServerError(res, operation))	
+//           return false;
+//           console.log(res);
+//         // const downloadUrl = URL.createObjectURL(res.data);
+//         // triggerLink(downloadUrl, res.headers.filename);
+//       })
+//       .catch( (error) => {
+//         Requests.cancel('Convert');
+//         if (axios.isCancel(error))
+//           Flash(operation + ' aborted', 'warning');
+// 	    else Flash([error.message], 'error');
+//           return false;
+//       });
+// // ------------------------------------------------------
+//     } else return false;
+//   } catch (err) {console.log(err)}
+//   });
+</script>
