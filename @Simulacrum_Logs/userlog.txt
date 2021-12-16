@@ -1,0 +1,14 @@
+{
+  "User1": {
+    "name":"guest",
+    "password":"IEknICdP5J6XRcFqD61SGQ.TQZUkjehA3VYlUlmNXAun+11ES8p4A7AXf6HsLNFRxPuXQYRlstr3/4jDlHRCScHVq4byWf/X7ood8NYnCeL5g",
+    "uid":1,
+    "admin":false,
+    "firstVisit":true,
+	"residing":null,
+    "log": [],
+    "guest":true
+  }
+}
+
+
