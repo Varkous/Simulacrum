@@ -19,6 +19,8 @@ Contains the HTML/EJS display templates. "directory" is the workbench for all fi
 and allowing the "single-page-application" capability.
 # styles
 Contains all the CSS style-sheets, divided up throughout several files to represent portions of the "directory.ejs" page.
+# fonts
+Contains all .ttf font files used by the front-end stylesheets.
 # scripts
 Contains 90% of all javascript functionality on the browser side. They are loaded in order of importance (with the exception of Aesthetics.js) within the "directory.ejs" file. 
 Core, DirectoryControl, FileAlteration, and StageAndUpload are the most essential files for the front-end operations.
