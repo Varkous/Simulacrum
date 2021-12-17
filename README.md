@@ -1,5 +1,47 @@
-# Simulacrum
+## Simulacrum
 The purpose of this application is to supplement the given Cloud Drive's file systems manager with a more aesthetic user interface, and additional file manipulation options. This project was used primarily to provide a more interactive FSM to relatives, and for the author to practice intermediate Javascript (specifically NodeJS), asynchronous programming, FS library, array buffers, file streaming, OOP, and utilizing JQuery/CSS methods without any other front-end libraries.
+
+## INSTALLING
+
+    npm install emailjs
+
+## FEATURES
+
+- Uploading, transferring, editing, deleting and downloading of files to/from the cloud drive storage
+- Viewing of images, videos, and live sound of audio files
+- Conversion of URLs of YouTube videos and other source videos into downloadable files
+- Logging of user operations and actions in the FMS
+
+## REQUIRES
+- Permission from author to redistribute and deploy.
+- Access to environment variables and back-end information files from "simulacrum-env" to work.
+
+## EXAMPLE USAGE - text only emails
+
+```js
+import { SMTPClient } from 'emailjs';
+
+const client = new SMTPClient({
+	user: 'user',
+	password: 'password',
+	host: 'smtp.your-email.com',
+	ssl: true,
+});
+
+// send the message and get a callback with an error or details of the message that was sent
+client.send(
+	{
+		text: 'i hope this works',
+		from: 'you <username@your-email.com>',
+		to: 'someone <someone@your-email.com>, another <another@your-email.com>',
+		cc: 'else <else@your-email.com>',
+		subject: 'testing emailjs',
+	},
+	(err, message) => {
+		console.log(err || message);
+	}
+);
+```
 
 # index.js 
 Holds the framework objects, core server functions, along with the checkpoint routers
