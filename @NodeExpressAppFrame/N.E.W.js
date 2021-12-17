@@ -10,17 +10,15 @@ class NEW {
 		/*this.mongoose = require('mongoose'); Our ODM (Object Document Mapper) for making models. Utilized by the database MongoDB to store collections/documents*/
 		this.path = require('path'); //For acknowledging directory/file paths relative to the server file (app.js)
 		let {urlencoded} = require('express'); this.urlencoded = urlencoded; //To identify arrays/strings within request bodies
-		this.methodOverride = require('method-override'); //So we can identify put/patch/delete request methods
 		this.ejs = require('ejs'); //Well. So we can see data/information from our server on the pages?
 		this.bodyParser = require('body-parser'); //Well. So we can see data/information from our server on the pages?
-		this.fs = require('fs');
 		this.https = require('https');
+		this.fs = require('fs-extra');
 
 		const browserTools = [
-		this.urlencoded({extended: true}),
-		this.methodOverride('_method'),
-		this.bodyParser.json(),
-		this.bodyParser.urlencoded({ extended: true }),
+			this.urlencoded({extended: true}),
+			this.bodyParser.json(),
+			this.bodyParser.urlencoded({ extended: true }),
 		//this.sessions({ name: 'sessions', store: store, session: 'sessions', secret: "wtf",  resave: false,  saveUninitialized: true, cookie: { secure: false,}}),
 		//this.flash(),
 		];
@@ -28,10 +26,6 @@ class NEW {
 
 	} //------------End of Constructor
 	routes = {};
-
-
-	success = (data) => console.log("Here ya go:", data);
-	failure = (error) => console.log("Success.", error);
 
 	wrapAsync (fn){
     	return function (req, res, next){
@@ -50,8 +44,8 @@ class NEW {
 			//=================================
 			nullpage: app.get('/:error', wrapAsync(async (req, res, next) => {
 
-			   let error = new Error("Directory not found. Does not exist, or input not correct.", 404);
-				 let {message, status, stack} = error;
+			  const error = new Error("Directory not found. Does not exist, or input not correct.", 404);
+				const {message, status, stack} = error;
 				return res.render('errorpage', {status, message, stack});
 			})),
 			//=================================
@@ -59,7 +53,7 @@ class NEW {
 			//=================================
 			homepage: app.get('/', wrapAsync(async (req, res, next) => {
 
-			    res.render(homepage);
+			  return res.render(homepage);
 			})),
 
 			//=================================
@@ -67,9 +61,9 @@ class NEW {
 			//=================================
 			errorpage: typeof errorpage === 'function' ? errorpage :
 			app.use(async (err, req, res, next) => {
-			   const {status = 401, message = "Sigh", stack} = err;
+			  const {status = 401, message = "Sigh", stack} = err;
 
-			   return res.render('errorpage', {status, message, stack});
+			  return res.render('errorpage', {status, message, stack});
 			}),
 
 			//=================================
