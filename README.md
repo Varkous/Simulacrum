@@ -39,7 +39,7 @@ Contains the back-end script files:
   * FolderProviders queries folder data and gathers certain properties to be referenced for various tasks depending on request type
   * Utilities contains an assortment of mischellaneous functions generally used for very specific tasks, or to mildly assist larger functions
   * Hasher is simply the crypto-hasher functionality for creating/comparing password info (copied most of this)
-  * 
+
 # routes 
 "auth.js" directs all authentication route handlers (register, login, signout), "file-ops" holds all post routes for CRUD operations performed by the client, and "file-viewing" directs requests to view different directories returns the appropriate content.
 
