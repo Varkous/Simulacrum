@@ -1,2 +1,0 @@
-This directory should be a public, shared folder for all users in the database to access and perform all file operations. 
-Users cannot delete each other's files unless those files are within a directory they made.
