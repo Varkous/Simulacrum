@@ -6,7 +6,7 @@ const Requests = {
 		  this[op]();
 		  this[op] = false;
 		  $('.' + op) ? $('.' + op).remove() : false; // Any progress bar of that operation
-		  if (res && res.data && !res.data.uploaded) 
+		  if (res && res.data && !res.data.uploaded)
 			StagedFiles.unlist(StagedFiles.count, true); // Only unlist staged files if a successful upload request was NOT returned (we still need the Staged Files for reference after upload)
 		} else if (op === 'All') { // Halt all request operations
 		    for (let op of Object.keys(this))
@@ -63,7 +63,7 @@ function filterInput (input, position) {
       input = input === input.slice(0, -1) ? '' : input.slice(0, -1);
     }
   }
-// ----------------------------------  
+// ----------------------------------
   if (position === 0 || position === 1) { // Removes any "/" at the START of input string
     while (input.slice(0, 1) === '/') {
       $(FolderInput).val(input.slice(1));
@@ -125,7 +125,7 @@ function checkError(error) {
    return window.location = '/login';
  }
 }
-  
+
 
 /*===============================================================
   Manipulates a preference according to the checkbox (the only input within the dialog box), and then removes all dialog elements and the temporary outbound data if any.
@@ -174,8 +174,8 @@ function closeModal(force) {
     $('.fixed').show();
   }
   if (force && !event) return $('.modal').hide();
-  
-  if ($(event.target).hasClass('closemodal') || $(event.target).hasClass('modal') || event.keyCode === 27) { 
+
+  if ($(event.target).hasClass('closemodal') || $(event.target).hasClass('modal') || event.keyCode === 27) {
     $('.fs-modal-message').text('').removeClass('view-text');
     //Clear any previous text content, else it stacks up
     $('.modal-image').attr('src', '/upload.gif');
@@ -215,7 +215,7 @@ function viewImage (img) {
     // $('#viewImage').empty().show().attr('src', img.src); //The iframe. Empty the contents, "show" it on page, and set url src to the image path on server
     $('#viewImage').empty().show(); //The iframe. Empty the contents, "show" it on page, and set url src to the image path on server
 
-    let iFrameImageStyles = ` 
+    let iFrameImageStyles = `
       width: 100%;
       max-width: ${img.naturalWidth}px;
       max-height: ${img.naturalHeight}px;
@@ -240,30 +240,25 @@ function viewImage (img) {
   Sends URL to be parsed and transformed into stream on back-end. Creates file in given location, and also streams it to client for download upon completion.
 ===============================================================*/
   $('#convertForm').submit( async function (evt) {
-   try {	
+   try {
 	evt.preventDefault();
     let operation = 'Convert';
     let folderChoice = $(FolderInput).val() || CurrentFolder;
- 
+
     if (!folderChoice.length)
       return Flash('No folder targeted for upload destination, check input', 'error');
 // ------------------------------------------------------
     else if (await showOperation(operation)) {
 
       let newfile = { // Form Data was not sufficient, difficulties sending to back-end
-<<<<<<< HEAD
-    	url: $(this).find('.input')[0].value,
-    	name: $(this).find('.input')[1].value,
-=======
-    	url: $(this).children('.input')[0].value,
-    	name: $(this).children('.input')[1].value,
->>>>>>> 81c8018ee693d247bf53f63a32ed222c34e3e83f
+	    	url: $(this).find('.input')[0].value,
+	    	name: $(this).find('.input')[1].value,
       }
 // ------------------------------------------------------
       axios.post(`/convert/${folderChoice}`, newfile, {
         headers: {
           'Content-Type': 'application/json', // Else back-end does not recognize it
-          operation,	
+          operation,
         },
         responseType: 'blob', // Expecting downloadable buffer
         accept: 'application/json', // In case of report message
@@ -274,9 +269,9 @@ function viewImage (img) {
 	      percentCompleted !== Infinity ? $(`.progress.${operation}`).val(`${percentCompleted}`) : $(`.progress.${operation}`).val(0);
 	    }
       }).then( async (res) => {
-        if (await checkForServerError(res, operation))	
+        if (await checkForServerError(res, operation))
           return false;
-          
+
         if (res.data.type.includesAny('json', 'text', 'plain', 'html')) { // This means there was a report error
           let report = JSON.parse(await res.data.text()); // Blob is within data, so need to find report within text
       	  return Flash(...Object.values(report));
@@ -298,9 +293,5 @@ function viewImage (img) {
     } else return false;
    } catch (err) {console.log(err)}
   });
-<<<<<<< HEAD
-  
 //===============================================================
-  $('.convert-name input').on('input', () => $('#convert').show());
-=======
->>>>>>> 81c8018ee693d247bf53f63a32ed222c34e3e83f
+$('.convert-name input').on('input', () => $('#convert').show());

@@ -165,7 +165,7 @@ async function checkSubmissionOptions(folderChoice) {
   event.preventDefault();
   event.stopPropagation();
   // Halt conventional post request, and perform our own using axios futher below
-  
+
   if ($('#mydirCheck').is(':checked')) {
     const userParameter = `${UsersDirectory}/${Username}`;
     if (folderChoice.slice(0, userParameter.length) !== userParameter) {
@@ -187,10 +187,10 @@ async function checkSubmissionOptions(folderChoice) {
 Triggers when a user clicks SUBMIT. Halts default form submission, appends file data from our StagedFiles class (created by checkAndStageFiles function) to the FormData, and submits an extensive axios post request and evaluates user verification before official uploading of files. If successful, we subsequently link the official Files to the File Cards created by "checkAndStageFiles", so the user can see the media data live.
 ===============================================================*/
 async function submitFiles (event) {
-	
+
   let operation = StagedFiles.count.length ? 'Upload' : '';
   let folderChoice = $(FolderInput).val() || CurrentFolder;
-  
+
   if (checkSubmissionOptions(folderChoice)) {
   // ------------------------------------------
     let formData = new FormData();
@@ -244,7 +244,7 @@ async function submitFiles (event) {
 Receives the data/info after submitting a post request to upload files and/or create a folder. The staged File Card referenced by each created file's name is manipulated and populated with media content and updated in real-time for the user to view. Beforehand, we determine if a lot of files/folders were uploaded, whereas we trigger a page refresh.
 ===============================================================*/
 async function returnUploadedContent (res, op) {
-	
+
   if (await checkForServerError(res, op))
     return Flash(...Object.values(res.data));
 
@@ -288,7 +288,7 @@ async function createFolderContent(newfolders) {
     if (namefinder(AllFiles.count, 'find', folder)) {
       continue; //If that folder already exists in directory don't bother
     } else
-    
+
     fetchFolder(folder);
   }; //Loop over folders, see how nested they are
   return true;
@@ -304,7 +304,6 @@ async function createFileContent(res) {
 
   if (StagedFiles.count.length) {
 
-	console.log('2', res.data);
     for (let file of StagedFiles.count) {
 
 	  delete(file.uploading);
