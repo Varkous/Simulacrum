@@ -5,7 +5,7 @@
     "uid":1,
     "admin":false,
     "firstVisit":true,
-	"residing":null,
+    "residing":null,
     "log": [],
     "guest":true
   }
