@@ -135,6 +135,12 @@
         <a href="/signout">Signout</a>
       </button>
 
+      <div class="d-flex" style="order: 1; align-self: center; margin-top: 3%;">
+        <i class="fa fa-arrow-up"></i>
+        <h5>Primary Directories List</h5>
+        <i class="fa fa-arrow-up"></i>
+      </div>
+
     </nav>
 
 
@@ -145,7 +151,6 @@
 <!--------------------------------------------------------------------------------------------------------->
   	<main>
     	<header class="header d-flex" hidden>
-
         <h1>
           <% if (directory) {%>
         	Browsing directory: <span><%= directory.name %></span>. <br> Created by: <span><%=directory.stats.creator %></span> on <%=directory.stats.birthtime %>. <br>There are currently <span><%=directory.files.length%></span> entries listed.
@@ -157,15 +162,16 @@
           <br>
         </h1>
         <% if (UserSession.guest) {%>
-        <p class="guest-warning">As a guest user, you are permitted no more than 5 gigabytes of storage. The guest account is publicly available and intended only for testing purposes. Feel free to remove any files (even if they are not yours).</p>
+          <p class="guest-warning">As a guest user, you are permitted no more than 3 gigabytes of storage.</p>
         <% } %>
     	</header>
+
     <hr>
     <br>
 <!-- ===================================================  -->
 <script type="text/javascript" src="/Aesthetics.js"></script>
 <!-- ===================================================  -->
- 
+
   	 <section class="form">
 
      <div id="directoryList">
@@ -190,31 +196,30 @@
               </td>
           <%}%>
         <% } %>
-
       </table>
-<!--------------------------------------------------------------------------------------------------------->    
-	<hr>
-	  <h1 title="Paste a URL from an image/audio/video source, then click Convert to upload/create it within target folder" style="cursor: help; text-align: center">URL Converter</h1>
-      <form id="convertForm" class="input-container form" action="/convert/<%=directory.name%>" method="post" enctype="multipart/form-data" title="Paste a URL or source address from an image, audio or video to replicate it into this folder">
-	      <div class="input-container" style="flex: 50%">
-		    <label for="url">Source URL</label>
-		    <input id="url" type="text" name="url" class="input" style="width: 85%;" value="" placeholder="https://example.com/source">
-	      </div>
-		  <br>
-		  <div class="input-container convert-name" style="flex: 50%">
-	        <label for="name">Custom Name</label>
-	        <input type="text" name="name" class="input darkcyan" value="" placeholder="File" maxlength="30" required pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used within the file' autocomplete="off">
-		  </div>
-	    <button id="convert" type="submit" class="my-button" style="border-width: medium; color: lightblue; background: rgb(30,30,40); font-family: 'Allerta Stencil';" hidden>Convert URL</button>
-      </form>
-      
+<!--------------------------------------------------------------------------------------------------------->
+  	 <hr>
+	      <h1 title="Paste a URL from an image/audio/video source, then click Convert to upload/create it within target folder" style="cursor: help; text-align: center">URL Converter</h1>
+        <form id="convertForm" class="input-container form" action="/convert/<%=directory.name%>" method="post" enctype="multipart/form-data" title="Paste a URL or source address from an image, audio or video to replicate it into this folder">
+  	      <div class="input-container" style="flex: 50%">
+  		    <label for="url">Source URL</label>
+  		    <input id="url" type="text" name="url" class="input" style="width: 85%;" value="" placeholder="https://example.com/source">
+  	      </div>
+  		  <br>
+  		  <div class="input-container convert-name" style="flex: 50%">
+  	        <label for="name">Custom Name</label>
+  	        <input type="text" name="name" class="input darkcyan" value="" placeholder="File" maxlength="30" required pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used within the file' autocomplete="off">
+  		  </div>
+  	    <button id="convert" type="submit" class="my-button" style="border-width: medium; color: lightblue; background: rgb(30,30,40); font-family: 'Allerta Stencil';" hidden>Convert URL</button>
+        </form>
+
      </div>
     	<% if (totalsize > UserSession.maxsize) {%>
     	<div class="oversize-message">
     	  <h5>Upload capacity exceeded. Remove files/folders to free up space, or contact Director to request more space</h5>
     	</div>
     	<% } %>
-<!--------------------------------------------------------------------------------------------------------->  
+<!--------------------------------------------------------------------------------------------------------->
       <form id="fileFolderInput">
 
       <div class="file-box">
@@ -312,7 +317,7 @@
      <div style="display: inline; top: 0; left: 0;">
        <input class="file-search" type="search" name="search" placeholder="File">
      </div>
-     
+
 
      <div class="resize">
        <i class="fa fa-search-minus resize" title="Show only basic file info" onclick="resizeCards(true)"></i>
@@ -343,7 +348,7 @@
         </button>
 
         <button id="overheadPanel" class="my-button">
-          <i class="fa fa-list-alt" style="color: #4f6fb5; opacity: 0.7;"></i>
+          <i class="fa fa-list" style="color: #4f6fb5; opacity: 0.7;"></i>
           | OVERHEAD PANEL
         </button>
 
@@ -389,7 +394,7 @@
         <div class="list-holder" style="position: relative">
           <i class="hide-lists fa fa-arrow-circle-up" style="color: #22a0f4;"></i>
           <ol class="all-files" style="box-shadow: 1px 1px 1px 2px #22a0f4;" ondblclick="selectAll(AllFiles.count)">
-          
+
             <input class="file-search" type="search" name="search" placeholder="File">
               <h3>
                 <i class="fa fa-info-circle info" data-after="Click/touch to select items. HOLD click/touch on files to download them. Double-clicking while holding down SHIFT will select/unselect all items in a given panel listing (or File Table above)."></i>
@@ -489,68 +494,3 @@ const directoryStats = document.getElementsByClassName('directory-stats');
 <script type="text/javascript" src="/Mischellaneous.js"></script>
 <script type="text/javascript" src="/FileAlteration.js"></script>
 <script type="text/javascript" src="/KeyMouseTriggers.js"></script>
-<script type="text/javascript">
-<<<<<<< HEAD
-
-//   $('#convertForm').submit(async function (evt) {
-//   try {	
-// 	evt.preventDefault();
-//     let operation = 'Convert';
-//     let folderChoice = $(FolderInput).val() || CurrentFolder;
- 
-//     if (!folderChoice.length)
-//       return Flash('No folder targeted for upload destination, check input', 'error');
-// // ------------------------------------------------------
-//     else if (await showOperation(operation)) {
-
-//       let newfile = { // Form Data was not sufficient, difficulties sending to back-end
-//     	url: $(this).children('.input')[0].value,
-//     	name: $(this).children('.input')[1].value,
-//     	// type: $(this).children('.input')[2].value
-//       }
-     
-// 	  //let newfile = {name: $('#newname').val(), path: folderChoice, uploading: true};
-//       //await StagedFiles.add(newfile);
-// // ------------------------------------------------------
-//       axios.post(`/convert/${folderChoice}`, newfile, {
-//         headers: {
-//           'Content-Type': 'application/json',
-//           operation,	
-//         },
-//         responseType: 'blob',
-//         accept: 'application/json',
-//         cancelToken: new CancelToken( (c) => Requests.Convert = c),
-//         onDownloadProgress: progress => {
-//           let total = progress.srcElement.getResponseHeader('content-length') || progress.srcElement.getResponseHeader('approx-length');
-// 	      let percentCompleted = (progress.loaded / total) * 100;
-// 	      percentCompleted !== Infinity ? $(`.progress.${operation}`).val(`${percentCompleted}`) : $(`.progress.${operation}`).val(0);
-// 	    }
-//       }).then( async (res) => {
-//       	Requests.cancel('Convert');
-      	
-//       	if (res.data.type.includesAny('json', 'text', 'plain', 'html')) {
-//       		console.log(await res.data.text());
-//       		console.log(URL.createObjectURL(res.data));
-//       	  console.log(JSON.stringify(res.data));
-//       	  Flash(...Object.values(JSON.stringify(res.data)));
-//       	}
-//         if (await checkForServerError(res, operation))	
-//           return false;
-//           console.log(res);
-//         // const downloadUrl = URL.createObjectURL(res.data);
-//         // triggerLink(downloadUrl, res.headers.filename);
-//       })
-//       .catch( (error) => {
-//         Requests.cancel('Convert');
-//         if (axios.isCancel(error))
-//           Flash(operation + ' aborted', 'warning');
-// 	    else Flash([error.message], 'error');
-//           return false;
-//       });
-// // ------------------------------------------------------
-//     } else return false;
-//   } catch (err) {console.log(err)}
-//   });
-=======
->>>>>>> 81c8018ee693d247bf53f63a32ed222c34e3e83f
-</script>
