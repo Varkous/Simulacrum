@@ -270,11 +270,12 @@ button {
   content: attr(data-after);
   border: 1px double gray;
   background: rgba(0,0,0,0.9);
-  color: #A9A9A9;  
+  color: #A9A9A9;
+  font-family: monospace;
   cursor: help;
   z-index: 11 !important;
   text-shadow: 1px 1px 1px black;
-  
+
   position: absolute;
   padding: 6px;
   min-width: 280px;
@@ -282,5 +283,5 @@ button {
 } .info.info-up:hover::after {
   content: attr(data-after);
   top: -130px;
-} 
+}
 /* -------------------- *//* -------------------- */

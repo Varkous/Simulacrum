@@ -1,16 +1,16 @@
 'use strict';
 
-const {ReportData, Sessions} = require('./UserHandling.js');
+const {ReportData, Sessions} = require('../controllers/UserHandling.js');
 const {getFileSize} = require('../scripts/Helpers.js');
-const {CloseServer, worthlessURLS} = require('../index.js');
+const {CloseServer, worthlessURLS, fs} = require('../index.js');
 
 const axios = require('axios');
-const fs = require('fs-extra');
 const find_local = require('local-devices');
 const compression = require('compression');
 const checkDiskSpace = require('check-disk-space').default;
 
-const validRegions = ['Idaho', 'Utah', 'Washington', 'Oregon', 'North Carolina', 'Colorado', 'Montana', 'Ontario', 'Saskatchewan', 'Alberta', 'British Columbia', 'Québec'];
+// const validRegions = ['Idaho', 'Utah', 'Washington', 'Oregon', 'North Carolina', 'Colorado', 'Montana', 'Ontario', 'Saskatchewan', 'Alberta', 'British Columbia', 'Québec', 'Texas', 'Florida', 'New York', 'Massachusetts', 'Virginia', 'Pennsylvania', 'Michigan', 'Wisconsin', 'Georgia'];
+const validRegions = [ "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming", "Ontario", "Saskatchewan", "Alberta", "British Columbia", "Québec"];
 const UsersDirectory = process.env.UsersDirectory || 'users';
 const partition = process.env.partition;
 /*===============================================================*/
@@ -41,7 +41,6 @@ process.checkPartitions = setInterval( async function () {
 
 /*===============================================================*/
 module.exports = {
-
   /*===============================================================*/
   Geodetect: function (req, res, next) {
   	let client = req.connection;
@@ -75,7 +74,6 @@ module.exports = {
 
     }).catch( (error) => {
       console.log(error)
-      //return next(error);
       return next(error);
     });
 // --------------------------------------------------------------
@@ -160,13 +158,13 @@ module.exports = {
     for (let i in Sessions.users) {
       Sessions.users[i].loggedIn = false;
       Sessions.users[i].locked = false;
-	  process.sessionTimers[Sessions.users[i].name] ? process.sessionTimers[Sessions.users[i].name]._onTimeout() : null;
+	    process.sessionTimers[Sessions.users[i].name] ? process.sessionTimers[Sessions.users[i].name]._onTimeout() : null;
     }
 
-	fs.writeFile(`${process.env.infodir}/backupLog.txt`, JSON.stringify(Sessions.users));
-    module.exports.ClearTemp (path.resolve('temp'));
-    process.exit(0, 'SIGTERM');
-    return CloseServer('Server shutting down', true);
+  	fs.writeFile(`${process.env.infodir}/backupLog.txt`, JSON.stringify(Sessions.users));
+      module.exports.ClearTemp (path.resolve('temp'));
+      process.exit(0, 'SIGTERM');
+      return CloseServer('Server shutting down', true);
   },
   /*===============================================================*/
 
@@ -190,41 +188,13 @@ module.exports = {
   /*===============================================================*/
 
   /*===============================================================*/
-  CheckSessionAndURL: async function (req, res, next) {
-
-    const url = req.baseUrl;
-// ----------
-    if (url.includesAny(worthlessURLS))
-      return false;
-    //These are unnecessary requests made by browser, dismiss them
-// ----------
-    if (url.includesAny('/login', '/signout', '/new') || req.session && url.includesAny('/all', '/all/undefined'))
-      return next(); // These URLs do not use the data below, and need redirection to avoid sidetracking to login
-// ----------
-    if (!req.session)
-      return res.redirect('/signout');
-
-    // -------------------------------------
-    const partition = req.session.home || process.env.partition
-    if (req.session && req.session.user) {
-    	const ses = req.session;
-      if (url === `/${partition}` || url === `/${partition}/${ses.user.name}`) //Homepage represents top-level partition, so redirect there if partition was input as url
-        ses.user.residing = partition === UsersDirectory ? ses.user.name : '/';
-      
-      return next();
-    } else return res.redirect('/login');
-
-  },
-  /*===============================================================*/
-
-  /*===============================================================*/
   CloseServer: async (reason = 'Felt like it', time = process.env.exit_time) => {
     clearTimeout(process.shutdown);
 
     let restart = parseInt(fs.readFileSync('restartTime.txt', 'utf8')) || new Date().getTime(); // The global time (in MILISECONDS or MS) that the restart was initiated
     let current = parseInt(new Date().getTime()); // Current time in MS
-	let usual = parseInt(time); // Usually 60 minutes, minus the difference between current and restart time
-	
+	  let usual = parseInt(time); // Usually 60 minutes, minus the difference between current and restart time
+
     let shutdownTime = Math.abs(usual - (current - restart)) ; //60 Minutes minus the difference between current and restart time
     console.log(shutdownTime);
     if (time === true) shutdownTime = 1000;
@@ -233,7 +203,7 @@ module.exports = {
     process.ServerTracker.countdown = new Date(shutdownTime).getMinutes(); //Convert to minutes
     process.ServerTracker.warning = reason;
 
-	process.countdown = setInterval( () => process.ServerTracker.countdown--, 60000); // Subtract one minute from countdown globally every 60000 miliseconds (60 seconds)
+  	process.countdown = setInterval( () => process.ServerTracker.countdown--, 60000); // Subtract one minute from countdown globally every 60000 miliseconds (60 seconds)
     process.shutdown = setTimeout( () => {
       process.exit(0, 'SIGTERM');
       Website.routes.BaseHandlers.server.close( () => console.log ('Server terminated'));
@@ -242,4 +212,3 @@ module.exports = {
   /*===============================================================*/
 
 }; //----Modules export
-

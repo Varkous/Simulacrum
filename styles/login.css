@@ -3,7 +3,6 @@ html {
 
   overflow: scroll;
   transition: all 1s ease;
-  height: 100%;
 }
 html, img, input, button, textarea {
   width: 100%;
@@ -11,7 +10,6 @@ html, img, input, button, textarea {
 body {
   background: url('/voidglobe.gif');
   border-radius: 50%;
-  color: aliceblue;
   background-size: contain;
   background-position: center;
   box-shadow: inset 52px 114px 116px 129px black,
@@ -24,16 +22,14 @@ body {
   font-size: 1.5rem;
 }
 main {
-  transition: all 0.9s ease-in-out;
+  transition: all 1s ease;
   transform: scale(0);
   font-size: 2.0rem;
   max-width: 1000px;
   min-height: 800px;
-  padding: 10px;
-  margin-top: 5%;
-  margin-left: auto;
-  margin-right: auto;
-  align-self: center;
+  max-height: 1300px;
+  margin: auto;
+  overflow: hidden;
 }
 #title {
   opacity: 1.0;
@@ -44,11 +40,15 @@ img {
   border-radius: 50px;
   opacity: 0.8;
 }
+hr {
+  box-shadow: 3px 3px 3px blue;
+}
 form {
   font-family: 'Courier New';
   color: #22a0f4;
 
   font-size: 2.0rem;
+  overflow: hidden !important;
 }
 .form-block {
   position: relative;
@@ -63,6 +63,14 @@ fieldset {
   flex-wrap: wrap;
   padding: 1px;
 }
+#mainForm {
+  transition: max-height 1s ease;
+  max-height: 700px;
+  height: 700px;
+}
+#mainForm.slide-up {
+  max-height: 0px;
+}
 label {
   border-radius: 10%;
   color: aliceblue;
@@ -76,14 +84,54 @@ input {
 
   padding: 7px;
   font-size: 1.5rem;
-} #newUserForm, textarea {
-  background: black;
-  color: aliceblue;
-  font-family: monospace;
+}
+#newUserForm {
+  background: rgba(15, 15, 15, 0.7);
+  box-shadow: inset 3px 10px 35px 15px black;
+  border-radius: 50px;
+  font-family: monospace !important;
 
-  font-size: 1.3rem;
-} #newUserForm input {
-  font-size: 1.3rem;
+  padding: 5%;
+} #newUserForm h5 {
+  margin: 0px;
+  text-align: center;
+  color: darkgray;
+}
+#newUserForm fieldset {
+  align-items: center;
+  margin: auto;
+  flex-wrap: wrap;
+} #newUserForm .form-block {
+  box-shadow: 3px 10px 35px 15px black;
+  background: rgba(0,0,0,0.5);
+  border-radius: 15px;
+  margin: 3%;
+} #newUserForm .form-block {
+  max-width: 350px;
+}
+select {
+  background: black;
+  color: lightblue;
+  font-family: monospace;
+  font-size: 1.4rem;
+}
+#codeForm {
+  border-radius: 15px;
+  align-items: center;
+  padding: 15px;
+  background: rgb(30, 30, 30);
+}
+.res-message {
+  font-family: monospace;
+  font-size: 1.4rem;
+  padding: 10px;
+  color: orange;
+}
+#confirmCode {
+  border-radius: 15px;
+  font-size: 3.0rem;
+  text-transform: uppercase;
+  font-family: inherit;
 }
 button {
   font-family: 'Jupiter', 'Courier New';
@@ -95,7 +143,7 @@ button {
   transition: all 1s ease-in-out;
   display: block;
   margin: auto;
-  margin-top: 10%;
+  margin-top: 5%;
   max-width: 280px;
   font-size: 3.0rem;
 } button:hover {
@@ -104,26 +152,36 @@ button {
   color: #22a0f4;
   box-shadow: 1px 1px 1px 1px #22a0f4;
   text-shadow: 1px 1px 1px white;
-
 }
-.secret-message {
-  z-index: 2;
-  font-size: 1.4rem;
-  margin: 0;
+.active {
+  animation: active 1s infinite forwards;
+  color: #22af;
 }
 .hide {
-  display: none;	
+  display: none;
 }
-.info-icon:hover + .site-info, .site-info:hover {
+.info-icon-1:hover::after {
+  content: 'If the confirmation email is not in your inbox, check your spam folder. If it is still not visible, just wait, as the email server may be overloaded with queues.';
+  position: absolute;
+  top:-230px;
+  left:-230px;
+  min-width: 300px;
+  font-size: 1.7rem;
+  background: rgba(0,0,0,0.9);
+  border: 3px double lightblue;
+  padding: 12px;
+  border-radius: 15px;
+}
+.info-icon-2:hover + .site-info, .site-info:hover {
   transition: all 0.6s ease-in;
   height: auto;
-  max-height: 1000px; 
+  max-height: 1000px;
 }
-.info-icon {
+.fa-info-circle {
   font-size: 2.0rem !important;
   color: lightblue;
 } .info-icon:hover {
-  text-shadow: 2px 2px 2px white;	
+  text-shadow: 2px 2px 2px white;
 }
 .site-info {
   border: 3px double lightblue;
@@ -136,22 +194,19 @@ button {
   color: gray;
   font-size: 1.8rem;
   font-family: 'Miriam Libre';
-  margin-top: 50px;
-} 
+  margin-top: 11vh;
+}
 footer {
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
   margin-top: 15%;
 }
-.container { 
-  margin-top: 10px; 
-}
-p { 
-  margin: 5%; 
+p {
+  margin: 3%;
   font-size: 2.5vh;
 }
-a { color: #22a0f4; } 
+a { color: #22a0f4; }
 a:hover { color: lightblue; }
 
 @keyframes steady {
@@ -165,6 +220,18 @@ a:hover { color: lightblue; }
   50% {filter: drop-shadow(0.3px 0.5px 1px #44a0ff);}
   100% {filter: drop-shadow(0.3px 0.5px 1px transparent);}
 }
+@keyframes active {
+  10% {box-shadow: 1px 3px 13px 4px #22af;}
+  20% {box-shadow: 1px 3px 13px 5px #22af;}
+  30% {box-shadow: 1px 3px 13px 6px #22af;}
+  40% {box-shadow: 1px 3px 13px 7px #22af;}
+  50% {box-shadow: 1px 3px 13px 8px #22af;}
+  60% {box-shadow: 1px 3px 13px 9px #22af;}
+  70% {box-shadow: 1px 3px 13px 8px #22af;}
+  80% {box-shadow: 1px 3px 13px 7px #22af;}
+  90% {box-shadow: 1px 3px 13px 6px #22af;}
+  100% {box-shadow: 1px 3px 13px 5px #22af;}
+}
 @media only screen and (max-width: 1000px) {
   body {
     box-shadow: inset 22px 54px 56px 59px black,
@@ -172,14 +239,13 @@ a:hover { color: lightblue; }
     inset 12px 14px 56px 59px black,
     12px 14px 16px 29px black;
   }
-}
-@media only screen and (max-width: 650px) {
-  .site-info {
-    margin-top: 100px
+  #newUserForm, #newUserForm fieldset, .container {
+    padding: 0px;
+    margin: 0px;
+    width: 100%;
   }
-}
-@media only screen and (max-width: 470px) {
-  .site-info {
-    margin-top: 150px
+ #newUserForm .form-block {
+    margin: 3% auto 3% auto;
+    width: 100vw;
   }
 }

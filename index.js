@@ -1,17 +1,16 @@
 if (process.env.NODE_ENV !== "production") {
   require('dotenv').config();
 }
-const NEW = require('../@NodeExpressAppFrame/N.E.W.js');
-const {Hash} = require('./controllers/Hasher.js');
+const NEW = require('./@NodeExpressAppFrame/N.E.W.js');
 const Website = new NEW();
 //NEW stands for "Node Express Website". Contains all the fundamental libraries that express generally uses
-module.exports = {app, express, path, wrapAsync} = Website;
+
+module.exports = {app, express, path, wrapAsync, fs} = Website;
 
 const session = require('cookie-session');
 const child_process = require('child_process');
-const fs = require('fs-extra');
 const compression = require('compression');
-const cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser');
 
 /*======================================================*/
 let partition = process.env.partition || 'public';
@@ -29,18 +28,13 @@ const mobileTags = [ //Identifiers for mobile detection on request
 /BlackBerry/i,
 /Windows Phone/i
 ];
-const allExtensions =  [
-  '.bat','.apk','.com','.jpg','.jpeg','.exe','.doc','.docx','.docm','.ttf','woff2','.rpp', '.tar', '.html','.z','.pkg','.jar','.py','.aif','.cda','.iff','.mid','.mp3','.flac','.wav','.wpl','.avi','.flv','.h264','.m4v','.mkv','.mov','.mp4','.mpg','.rm','.swf','.vob','.wmv','.3g2','.3gp','.doc','.odt','.msg','.pdf','.tex','.txt','.wpd','.ods','.xlr','.xls','.xls','.key','.odp','.pps','.ppt','.pptx','.accdb','.csv','.dat','.db','.log','.mdbdatabase','.pdb','.sql','.tar','.bak','.cabile','.cfg','.cpl','.cur','.dll','.dmp','.drve','.icns','.ico','.inile','.ini','.info','.lnk','.msi','.sys','.tmp','.cer','.ogg','.cfm','.cgi','.css','.htm','.js','.jsp','.part','.odb','.php','.rss','.xhtml','.ai','.bmp','.gif','.jpeg','.max','.obj','.png','.ps','.psd','.svg','.tif','.3ds','.3dm','.cpp','.h','.c','.C','.cs','.zip','.rar','.7z'
-];
-module.exports.worthlessURLS = ['/fonts', '/favicon.ico', ...allExtensions];
-
 /*======================================================*/
 const {Sessions} = require('./controllers/UserHandling.js');
-const {WriteLogFilter, CheckSessionAndURL, ClearTemp, ExitHandler, Compress, CloseServer} = require('./controllers/Utilities.js');
+const {WriteLogFilter, ClearTemp, ExitHandler, Compress, CloseServer} = require('./utils/Utilities.js');
 const {GetPrimaryDirectories} = require('./controllers/FolderProviders.js');
-const {accumulateSize, getFileSize} = require('./scripts/Helpers.js');
+const {CheckSessionAndURL, worthlessURLS} = require('./utils/RequestCheckers.js');
+const {accumulateSize} = require('./scripts/Helpers.js');
 /*======================================================*/
-
 
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1); // trust first proxy
@@ -49,7 +43,6 @@ app.set('', path.join('views'));
 app.set('view engine', 'ejs');
 // ============================================================
 const resourceFolders = [
- 
   express.static(path.join(__dirname, 'base_images')),
   express.static(path.join(__dirname, 'styles')),
   express.static(path.join(__dirname, 'fonts')),
@@ -73,8 +66,8 @@ const sessionUtilities = [
       sameSite: 'strict',
       loginAttempts: 1,
       duration: parseInt(process.env.session_time),
-    }),   
-    compression({ filter: Compress }), //Not really sure, but supposedly speeds up load time of pages
+    }),
+  compression({ filter: Compress }), //Not really sure, but supposedly speeds up load time of pages
 	express.json(),
 ]
 // ============================================================
@@ -101,27 +94,27 @@ process.on('beforeExit', ExitHandler);
 
 // CloseServer('Routine server refresh');
 ClearTemp (path.resolve('temp'));
+
 /*======================================================*/
 app.use('*', CheckSessionAndURL, wrapAsync( async (req, res, next) => {
 
-if (req.session) {
-  const {referer} = req.headers;
-  let userAgent = JSON.stringify(req.headers['user-agent']);
-  let op = req.headers.operation;
-  req.mobile = mobileTags.some( (match) => userAgent.match(match)) ? true : false;
-  req.session.mobile = true;  // Check if user is on mobile device
+  if (req.session) {
+    const {referer} = req.headers;
+    let userAgent = JSON.stringify(req.headers['user-agent']);
+    let op = req.headers.operation;
+    req.mobile = mobileTags.some( (match) => userAgent.match(match)) ? true : false;
+    req.session.mobile = true;  // Check if user is on mobile device
 
-  res.locals.UserSession = req.session;
-  res.locals.UsersDirectory = UsersDirectory;
-  if (referer && res.locals.UserSession.user) {
-   if ('login'.isNotIn(referer)) res.locals.UserSession.user.firstVisit = false; 	
+    res.locals.UserSession = req.session;
+    res.locals.UsersDirectory = UsersDirectory;
+    if (referer && res.locals.UserSession.user) {
+     if ('login'.isNotIn(referer)) res.locals.UserSession.user.firstVisit = false;
+    }
+
+    //User session and user directory info provided to browser
+    res.locals.Server = process.ServerTracker;
   }
-
-  //User session and user directory info provided to browser
-  res.locals.Server = process.ServerTracker;
-
-}
-  next();
+  return next();
 }));
 // ============================================================
 
@@ -133,7 +126,7 @@ app.get('*', wrapAsync(async (req, res, next) => {
 
   const url = req.originalUrl;
 // ----------
-  if (url.includesAny(...module.exports.worthlessURLS))
+  if (url.includesAny(worthlessURLS))
     return false;
 
   if (req.session && req.session.user) {
@@ -144,37 +137,35 @@ app.get('*', wrapAsync(async (req, res, next) => {
 		// -----------------------------------------------------------------
 		req.session.home === partition ? res.locals.partition = req.session.home + '/' : res.locals.partition = homedirectory + '/'; //If the public partition is the home, use it with no additions. If home is the user's private directory, add their name (by using homedirectory, see if-else condition at the top), so we aren't browsing the USERS directory, and instead just finding contents of ONE folder within Users directory for THIS user.
 
-		res.locals.rivals = Object.values(Sessions.users)
-		.map( user => user.loggedIn && user.name !== req.session.user.name ? {
-		  name: user.name,
-		  residing: user.residing,
-		  operating: user.operation
-		} : null).filter(Boolean) || [];
-		res.locals.firstVisit = req.session.user.firstVisit || false;
+  		res.locals.rivals = Object.values(Sessions.users)
+  		.map( user => user.loggedIn && user.name !== req.session.user.name ? {
+  		  name: user.name,
+  		  residing: user.residing,
+  		  operating: user.operation
+  		} : null).filter(Boolean) || [];
+  		res.locals.firstVisit = req.session.user.firstVisit || false;
 		//The parameter true is for "search", means we are just searching for directory names, not files
 
-		if (req.originalUrl === '/') res.locals.directory = false;
+  		if (req.originalUrl === '/') res.locals.directory = false;
 
-		GetPrimaryDirectories(req, homedirectory).then( (primes) => {
-		  res.locals.PrimaryDirectories = primes.filter(Boolean);
-		  if (primes.length) res.locals.totalsize = res.locals.PrimaryDirectories.length > 1 ? res.locals.PrimaryDirectories.reduce(accumulateSize) : res.locals.PrimaryDirectories[0].size;
-		  else res.locals.totalsize = 1;
-		  
-		  if (req.session.home === partition) res.locals.UserSession.maxsize = 100e10; // 1 Terrabyte
-		  next();
-		});
-      } else next();
+  		GetPrimaryDirectories(req, homedirectory).then( (primes) => {
+  		  res.locals.PrimaryDirectories = primes.filter(Boolean);
+  		  if (primes.length) res.locals.totalsize = res.locals.PrimaryDirectories.length > 1 ? res.locals.PrimaryDirectories.reduce(accumulateSize) : res.locals.PrimaryDirectories[0].size;
+  		  else res.locals.totalsize = 1;
+
+  		  if (req.session.home === partition) res.locals.UserSession.maxsize = 100e10; // 1 Terrabyte
+  		  next();
+  		}).catch( err => res.redirect('/login'));
+    } else next();
 //--------------------------------------------------
   } else next(); //If there was no user, go to next route
 }));
 // ============================================================
 
-// ============================================================
-const {Authentication, FileViewing, FileManagement} = require('./routes/routes.js');
+Website.routes.Authentication = require('./routes/auth.js');
+Website.routes.FileViewing = require('./routes/file-viewing.js');
+Website.routes.FileOperations = require('./routes/file-ops.js');
 
-Website.routes.Authentication = Authentication;
-Website.routes.FileViewing = FileViewing;
-Website.routes.FileManagement = FileManagement;
 /*======================================================*/
 Website.routes.BaseHandlers = Website.makeBaseRoutes(process.env.PORT || 3001, 'directory',
 //Normally just put "errorpage" as parameter to create error page, but instead had to pass in function to replace it with alternate functionality'

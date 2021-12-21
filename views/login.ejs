@@ -5,16 +5,18 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta property="og:image" content="https://skeletonhill.com:3001/Simulacrum Title.png"/>
-	<meta property="og:description" content="Simulacrum is a file-systems-management platform designated for -- and hosted on -- the cloud drive Skeleton Hill, belonging to the T.N.T family. 
+	<meta property="og:description" content="Simulacrum is a file-systems-management platform designated for -- and hosted on -- the cloud drive Skeleton Hill, belonging to the T.N.T family.
 Simulacrum provides alternative access and utilization of the cloud drive's File System, supplementing the bare-bones features with a more aesthetic user interface, versatile file operations, and easier file identification/searching."/>
     <!-- ====================== Essential scripts ======================== -->
     <meta http-equiv="Content-Security-Policy" content="default-src
       'self'
       'unsafe-inline'
+      https://cdnjs.cloudflare.com
     ">
     <link rel="stylesheet" type="text/css" href="/fa-icons.css">
     <link rel="stylesheet" href="/body-logo.css">
     <link rel="stylesheet" href="/login.css">
+<!-- Axios --> <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.24.0/axios.min.js"></script>
     <title>Simulacrum Authorization</title>
   </head>
 <!-- ================================================================== -->
@@ -24,146 +26,173 @@ Simulacrum provides alternative access and utilization of the cloud drive's File
       <img id="logo" src="/TNT Logo 4.png" alt="">
       <img id="title" src="Simulacrum Title.png" alt="">
 
-        <form id="mainForm" action="/login" method="POST">
+      <form id="mainForm" action="/login" method="POST">
 
-          <fieldset disabled>
-            <div class="form-block">
-              <label for="name">Username </label>
-              <input id="UN" class="input" type="text" name="name" minlength="5" maxlength="20" required>
-            </div>
+        <fieldset disabled>
+          <div class="form-block">
+            <label for="name">Username (or Email)</label>
+            <input id="UN" class="input" type="text" name="name" minlength="5" required>
+          </div>
 
-            <div class="form-block">
-              <label for="password">Password </label>
-              <input id="PW" class="input" type="password" name="password" minlength="8" maxlength="20" required>
-            </div>
-          </fieldset>
+          <div class="form-block">
+            <label for="password">Password </label>
+            <input id="PW" class="input" type="password" name="password" minlength="6" maxlength="20" required>
+          </div>
+        </fieldset>
 
-          <button class="input" type="submit" name="button">LOGIN</button>
+        <button class="input" type="submit" name="button">LOGIN</button>
+        <button name="button" type="button" style="color: lightblue; margin-top: 40%;" onclick="showForm(this, forms[1])">REGISTER</button>
 
-        </form>
+      </form>
 <!-- ========================================================================== -->
-
-       <!-- <form id="newUserForm" action="/new" method="POST" class="hide">-->
-       <!--   <fieldset disabled>-->
-
-       <!--     <div class="form-block">-->
-       <!--       <label for="name">Username </label>-->
-       <!--       <input class="input" type="text" name="name" minlength="6" maxlength="20" required>-->
-       <!--     </div>-->
-
-       <!--     <div class="form-block">-->
-       <!--       <label for="password">Password </label>-->
-       <!--       <input class="input" type="password" name="password" minlength="8" maxlength="20" required>-->
-       <!--     </div>-->
-
-       <!--     <div class="form-block">-->
-       <!--       <label for="note">Note <span>(Optional)</span></label>-->
-       <!--       <textarea name="note" rows="5" cols="50" maxlength="120" placeholder="Any info related to the purpose of this account, and who will be the primary owner/user of it"></textarea>-->
-       <!--     </div>-->
-
-       <!--     <h5 style="padding: 5px; color: lightgray">Answer the secret question (you should know where to find it).</h5>-->
-       <!--     <br>-->
-       <!--     <div class="form-block" style="border: 1px double gray; padding: 5px">-->
-       <!--       <p class="secret-message">When Bruce Wayne unzips his pants...</p>-->
-       <!--       <img src="/mrwayne.png" alt="">-->
-       <!--     </div>-->
-
-       <!--     <div class="form-block">-->
-       <!--       <p class="secret-message" style="border: 1px double gray;">What is Mr. Fox's response?</p>-->
-       <!--       <img src="/mrfox.png" alt="">-->
-       <!--     </div>-->
-
-       <!--     <div class="form-block">-->
-       <!--       <label for="guess">Guess</label>-->
-       <!--       <input class="input" type="text" name="guess" minlength="20" required>-->
-       <!--       <p><span style="color: #22a0f4">Hint: </span> Less than 8 words...</p>-->
-       <!--     </div>-->
-       <!-- </fieldset>-->
+    <hr>
 
 
-       <!-- <button class="input" type="submit">SUBMIT</button>-->
-       <!-- </form>-->
-       <!--<button name="button" onclick="showForm()" style="max-width: 400px;">Request New Profile</button>-->
-      <hr>
+      <form id="newUserForm" action="/new" method="POST" hidden>
+        <h5>Create a new profile</h5>
+
+        <fieldset disabled>
+          <div class="form-block">
+            <label for="name">Username</label>
+            <input class="input" type="text" name="name" minlength="6" maxlength="20" required value="Manticore">
+          </div>
+
+          <div class="form-block">
+            <label for="password">Password</label>
+            <input class="input" type="password" name="password" minlength="8" maxlength="20" required value="Manticore" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*?[0-9])(?=.*?[!@#$%^*+`~=?\|<>/]).{8,}">
+          </div>
+
+          <div class="form-block">
+            <label for="email">Email</label>
+            <input class="input" type="email" name="email" minlength=8 required pattern="[^ @]*@[^ @]*" value="varkous@rocketmail.com">
+          </div>
+
+          <div class="form-block">
+            <label for="state">Location</label>
+            <select class="input" name="state" required>
+              <optgroup label="United States">
+                <option>Alabama</option>
+                <option>Alaska</option>
+                <option>Arizona</option>
+                <option>Arkansas</option>
+                <option>California</option>
+                <option>Colorado</option>
+                <option>Connecticut</option>
+                <option>Delaware</option>
+                <option>Florida</option>
+                <option>Georgia</option>
+                <option>Hawaii</option>
+                <option>Idaho</option>
+                <option>Illinois</option>
+                <option>Indiana</option>
+                <option>Iowa</option>
+                <option>Kansas</option>
+                <option>Kentucky</option>
+                <option>Louisiana</option>
+                <option>Maine</option>
+                <option>Maryland</option>
+                <option>Massachusetts</option>
+                <option>Michigan</option>
+                <option>Minnesota</option>
+                <option>Mississippi</option>
+                <option>Missouri</option>
+                <option>Montana</option>
+                <option>Nebraska</option>
+                <option>Nevada</option>
+                <option>New Hampshire</option>
+                <option>New Jersey</option>
+                <option>New Mexico</option>
+                <option selected>New York</option>
+                <option>North Carolina</option>
+                <option>North Dakota</option>
+                <option>Ohio</option>
+                <option>Oklahoma</option>
+                <option>Oregon</option>
+                <option>Pennsylvania</option>
+                <option>Rhode Island</option>
+                <option>South Carolina</option>
+                <option>South Dakota</option>
+                <option>Tennessee</option>
+                <option>Texas</option>
+                <option>Utah</option>
+                <option>Vermont</option>
+                <option>Virginia</option>
+                <option>Washington</option>
+                <option>West Virginia</option>
+                <option>Wisconsin</option>
+                <option>Wyoming</option>
+              </optgroup>
+              <optgroup label="Canada">
+                <option>British Columbia</option>
+                <option>Québec</option>
+                <option>Newfoundland and Labrador</option>
+                <option>Prince Edward Island</option>
+                <option>Nova Scotia</option>
+                <option>New Brunswick</option>
+                <option>Manitoba</option>
+                <option>Saskatchewan</option>
+                <option>Alberta</option>
+                <option>Nunavut</option>
+                <option>Northwest Territories</option>
+                <option>Yukon Territory</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <br>
+
+          <div class="form-block" style="border: 1px double gray; padding: 5px">
+            <div class="res-message">
+            </div>
+
+            <div id="codeForm" class="form-block hide">
+              <i class="fa fa-info-circle info-icon-1"></i>
+              <input id="confirmCode" class="input" type="text" name="code" value="" maxlength=5 style="min-height: 80px; max-width: 140px;" disabled>
+            </div>
+
+          </div>
+
+        </fieldset>
+
+        <button id="register" class="input" type="submitn">SUBMIT</button>
+        <button name="button" type="button" style="color: gray;" onclick="showForm(this, forms[0])">BACK</button>
+      </form>
     </main>
+
   	<footer>
-    	  <i class="fa fa-info-circle info-icon"></i>  
-	  	  <div class="site-info">
-	    <p><a href="https://github.com/Varkous/Simulacrum">Simulacrum</a> is a file-systems-management platform designated for -- and hosted on -- the cloud drive "Skeleton Hill", belonging to the T.N.T family. Simulacrum provides alternative access and utilization of the cloud drive's File System, supplementing the bare-bones features with a more aesthetic user interface, versatile file operations, and easier file identification/searching. 
-	    </p>
-	    <hr>
-	    <p>The file server is privately owned by T.N.T and not openly available to the public, and anonymous users must request profiles via email to gain access. Although employers may utilize the guest account if they know the password.</p>
-	    <!--<i class="fa fa-info-circle info-icon"></i>    -->
-	  </div>	
-	  <div class="container">
-	    <label>Creator Email: </label>
-	    <a href="#">varkous@protonmail.com</a>
-	  </div>
+    	<i class="fa fa-info-circle info-icon-2"></i>
+	  	<div class="site-info">
+  	    <p><a href="https://github.com/Varkous/Simulacrum">Simulacrum</a> is a file-systems-management platform designed for -- and hosted on -- the cloud drive "Skeleton Hill", belonging to the T.N.T family. Simulacrum provides alternative access and utilization of the cloud drive's File System, supplementing the bare-bones features with a more aesthetic user interface, versatile file operations, and easier file identification/searching.
+  	    </p>
+  	    <hr>
+  	    <p>The file server is privately owned by T.N.T and not readily available for the public. However, anonymous users may create email-linked profiles with an allocation of 3 gigabytes of private storage. Employers and scouts may utilize the guest account if they know the password.</p>
+	    </div>
+  	  <div class="container">
+  	    <label>Creator Email: </label>
+  	    <a href="#">varkous@protonmail.com</a>
+  	  </div>
 
-	  <div class="container">
-	    <label>GitHub: </label>
-	    <a href="https://github.com/Varkous">Varkous</a>
-	  </div>  
+  	  <div class="container">
+  	    <label>GitHub: </label>
+  	    <a href="https://github.com/Varkous">Varkous</a>
+  	  </div>
+	  </footer>
 
-
-	</footer>
   </body>
 </html>
 
-<script text="text/javascript">
+<!-- In-House Javascript -->
+<script type="text/javascript">
   const body = document.querySelector('body');
   const main = document.querySelector('main');
-  const form = document.querySelector('form');
-  const fieldsets = document.querySelectorAll('fieldset');
+  const forms = document.querySelectorAll('form');
   const newUserForm = document.getElementById('newUserForm');
+  const codeForm = document.getElementById('codeForm');
+  const fieldsets = document.querySelectorAll('fieldset');
+  const register = document.querySelector('#register');
+  const message = document.querySelector('.res-message');
+
   const LoginAttempts = <%-JSON.stringify(LoginAttempts || null)%>;
   const Server = <%-JSON.stringify(Server || null)%>;
-
-  if (LoginAttempts.message)
-    alert(LoginAttempts.message);
-
-  if (LoginAttempts.count < 3) {
-
-  	for (let field of fieldsets)
-  		field.removeAttribute('disabled');
-
-    document.querySelector('button').disabled = false;
-    form.hidden = false;
-  }
-/* ================================================= */
-  window.onsubmit = () => {
-    if (LoginAttempts.count >= 2) {
-      alert('Login attempts exceeded.');
-      return false;
-    }
-    event.preventDefault();
-
-    document.querySelector('button').disabled = false;
-    let currentTarget = event.target;
-    main.style.transform = 'scale(0)';
-    body.style.transform = 'scale(70%)';
-    setTimeout( () => {
-      currentTarget.submit();
-    }, 300);
-  }
-/* ================================================= */
-  window.onload = () => {
-    if (Server.status === 1 || Server.countdown > 2) {
-      main.style.transform = "scale(1.0)";
-    } else alert('Server shutdown in less than two minutes. Check back later.')
-  }
-/* ================================================= */
-  function showForm() {
-    newUserForm.classList.remove('hide');
-    mainForm.hidden = true;
-  }
-/* ================================================= */
-  if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent)) {
-  	body.style.background = "url('/staticglobe.gif')";
-    // Take the user to a different screen here.
-	}
-/* ================================================= */
-  const prefix = (Array.prototype.slice
-    .call(window.getComputedStyle(document.documentElement, '')).filter( (style) => style.includes('-moz')));
-
 </script>
+<script type="text/javascript" src="/Login.js"></script>

@@ -204,7 +204,7 @@ if (mobile) {
 	  This is just for the drag-select-box. Determines current Dragbox position and size when the user lets up on the mouse, detecting if it overlaps with a file card
 	===============================================================*/
 	  $('body').on('mouseup', '#FileTable', () => {
-		console.log('crap?');
+
 	    if ($(dragbox).is(':hidden'))
 	    return false;
 	    // To avoid repeat calls to this function due to mouseup
@@ -251,7 +251,7 @@ if (mobile) {
 	    };
 	  };
 	  $(dragbox).hide();
-	});		  
+	});
   });
 };
 /* ======================================================= */

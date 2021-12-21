@@ -1,20 +1,22 @@
 'use strict';
-const {ReportData, Sessions} = require('./UserHandling.js');
-const {CapArraySize, CheckIfTransfer, EntryToHTML, WriteLogFilter} = require('./Utilities.js');
+const {Sessions} = require('./UserHandling.js');
+const {ReportData} = require('../utils/RequestCheckers.js');
+const {CapArraySize, CheckIfTransfer, EntryToHTML, WriteLogFilter} = require('../utils/Utilities.js');
 const {GetFolderSize} = require('./FolderProviders');
-const {checkModeType, getFileSize, accumulateSize} = require('../scripts/Helpers.js');
-const fs = require('fs-extra');
-const path = require('path');
+const {checkModeType, getFileSize} = require('../scripts/Helpers.js');
+const {fs, path} = require('../index.js')
 const child_process = require("child_process");
 const {IncomingForm} = require('formidable');
+
 let uploadOptions = {
-encoding: 'utf-8',
-uploadDir: path.resolve('temp'),
-multiples: true, // req.files to be arrays of files
-maxFileSize: 10000 * 1000 * 1000, // 10 Gigabyte max upload
-maxFields: 0,
-keepExtensions: true,
+  encoding: 'utf-8',
+  uploadDir: path.resolve('temp'),
+  multiples: true, // req.files to be arrays of files
+  maxFileSize: 10000 * 1000 * 1000, // 10 Gigabyte max upload
+  maxFields: 0,
+  keepExtensions: true,
 };
+
 const UsersDirectory = process.env.UsersDirectory || 'users';
 
 module.exports = {
@@ -51,18 +53,14 @@ module.exports = {
             fs.mkdir(`${partition}/${directory}`, {recursive: true}, (err, dir) => {
               if (err) return next(err);
 
-
               let relativeFolder = directory.replace(user.residing, '').replace('/', '').split('/')[0];
     		  //Simple code, but deceptive concept. The goal is to find any new directories created that are DIRECT children of the current posting directory (the folder the user is residing in), anything deeper should  be displayed, as page will only show relative directories
               // ------------------------------------------------------------------------------
               if (!req.body.newfolders.has(relativeFolder))
                 req.body.newfolders.add(relativeFolder);
 
-		
               fs.chown(path.resolve(partition, directory), user.uid, 100, (err) => err ? console.log(err) : false);
-              console.log('1', path.resolve(partition, directory));
-			  console.log('2', user.uid);
-			  setTimeout( () => console.log('3', fs.statSync(path.resolve(partition, directory))))
+
               if (!op) { // If no operation, user was just creating a folder, and nothing else
                 return ReportData(req, res, false, {
                   content: [`Directory`, `created`],
@@ -275,11 +273,18 @@ ZipAndDownload: async function (req, res, files, userDir) {
     req.body.transfers = await module.exports.TransferItems(req, res, partition);
     //After all is said and done, gather any successful/failed/already established items for front-end to display results report to user on browser. Each array holds the an object with the item name to be referenced, and a styled HTML entry for aesthetic clarity to be used on report data
 
-    let transfers = req.body.transfers.map( (item) => item.transferred ? {name: item.name, styled: EntryToHTML(item, item.color)} : null).filter(Boolean) || [];
-    let paths = req.body.transfers.map( (item) => item.transferred ? item.path : null).filter(Boolean);
-    let failed = req.body.transfers.map( (item) => item.failed ? {name: item.name, styled: EntryToHTML(item, item.color)} : null).filter(Boolean);
-    let already = req.body.transfers.map( (item) => item.already ? {name: item.name, styled: EntryToHTML(item, item.color)} : null).filter(Boolean);
-    let target = `<span style="color: ${process.env.folder_color};">${destination}</span>`; //Destination folder with proper blue color
+    let transfers = [], paths = [], failed = [], already = [];
+    let target = `<span style="color: ${process.env.folder_color};">${destination}</span>`; //Destination folder with
+
+    for (let item of req.body.transfers.filter(Boolean)) {
+      let HTML_Text = {name: item.name, styled: EntryToHTML(item, item.color)}; // Result of transfer attempt for each item will be reported, this simply styles and structures it into HTML for proper display on front-end
+      if (item.transferred) {
+        transfers.push(HTML_Text);
+        paths.push(item.path);
+      }
+      else if (item.failed) failed.push(HTML_Text);
+      else if (item.already) already.push(HTML_Text);
+    };
 // ------------------------------------------------------------------------------
 //Don't bother trying to decipher all the terinary string operators. They were necessary to account for all variations of transfer conflicts and provide appropriate coloring and segregation so user can adjust operations
         if (transfers.length && failed.length)

@@ -1,8 +1,8 @@
 'use strict';
-const fs = require('fs-extra');
-const {Sessions, GetCreator} = require('./UserHandling.js')
+const {Sessions} = require('./UserHandling.js');
 const child_process = require('child_process');
 const {checkModeType} = require('../scripts/Helpers.js');
+const {fs} = require('../index.js');
 
 module.exports = {
 
@@ -17,7 +17,8 @@ module.exports = {
 	    if (directory[0] === '@' || directory[0] === '$' || directory[0] === '#')
 	      return resolve (false);
 	    //Then it's a hidden/reserved/special folder
-		const dirstats = fs.statSync(`${home}/${directory}`);
+
+		  const dirstats = fs.statSync(`${home}/${directory}`);
 	    let subfolders = [];
 	    //Grabbing sub-directories along with the stats and items within the given directory
 
@@ -25,12 +26,12 @@ module.exports = {
 	      for (let i = 0; i < items.length; i++) { /*Check every item*/
 
 	        const filestats = fs.statSync(`${home}/${directory}/${items[i]}`);
-	        dirstats.creator = await GetCreator(dirstats.uid);
+	        dirstats.creator = await module.exports.GetCreator(dirstats.uid);
 
 	        //Every item's stats are checked, and just their size is returned to be concatenated with the folderStats size (usually 0), so it will ultimately add up the sizes of all present items
 	        if (checkModeType(filestats.mode) === 'folder') {
-	 		  subfolders.push(items[i]);
-	 		  items.splice(i, 1);
+	 		      subfolders.push(items[i]);
+	 		      items.splice(i, 1);
 	        } /*Then it can't BE a file, so --*/
 
 	      }; //End of second For Loop
@@ -61,7 +62,7 @@ module.exports = {
      children: await module.exports.GetChildren(`${fullpath}/${item}`), //Finding sub-files/folders
     };
 
-    item.stats.creator = await GetCreator(item.stats.uid);
+    item.stats.creator = await module.exports.GetCreator(item.stats.uid);
     if (item.children) {
       item.stats.size = await module.exports.GetFolderSize(req, `${fullpath}/${item.name}`, 0); // Continues inward cycle of iterations
       item.size = item.stats.size;
@@ -105,7 +106,7 @@ module.exports = {
             stats: stats,
             files: items.filter(Boolean),
             get creator() { //Add a new property
-              return GetCreator(this.stats.uid);
+              return module.exports.GetCreator(this.stats.uid);
             }
           });
         }).catch( error => console.log (error.message));
@@ -119,7 +120,7 @@ module.exports = {
   //Also like the pre-mentioned function, it builds on itself, doing internal calls until all files/folders are filtered out and stored properly.
     let partition = req ? req.session.home : process.env.partition;
     let moreItems = collected || []; //This builds with each call to this function ('GetAllItems')
-    
+
     return new Promise( (resolve, reject) => { //After all items have been iterated (this may include self-calls that restart this process until no more directories can start new iterations), return this promise
       const items = fs.readdirSync(directory);
       const foundItems = items.map( (item, i, arr) => { //If the item was a directory, map through all its children
@@ -154,7 +155,7 @@ module.exports = {
               path: directory.replace(partition + '/', ''), //When its stored, partition path no longer needed
               stats: fs.statSync(dirPath)
             };
-            file.stats.creator = GetCreator(file.stats.uid);
+            file.stats.creator = module.exports.GetCreator(file.stats.uid);
 
               moreItems.push(file);
               return resolve(moreItems);
@@ -207,6 +208,12 @@ module.exports = {
     } else return null;
 
   },
+  /*===============================================================*/
+
+  /*===============================================================*/
+  GetCreator: function (uid) {
+		return Sessions.users[`User${uid}`] ? Sessions.users[`User${uid}`].name : 'Admin';
+	},
   /*===============================================================*/
 
 }; //----Modules export
