@@ -16,7 +16,7 @@ The purpose of this application is to supplement the given Cloud Drive's file sy
 const express = require('express');
 const ejs = require('ejs');
 const bodyParser = require('body-parser');
-const { SMTPClient } = require('emailjs');
+const nodemailer = require("nodemailer");
 const session = require('cookie-session');
 const cookieParser = require('cookie-parser');
 const compression = require('compression');
