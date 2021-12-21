@@ -34,6 +34,7 @@ nav {
 
   transition: all 1s ease-in-out;
   overflow: scroll;
+    display: flex;
   font-size: 0rem;
   flex-direction: column;
   top: 110px;
@@ -54,12 +55,13 @@ nav {
 .navlink {
   background-color: rgba(60,60,60,0.5);
   font-family: 'Courier New';
-
   transition: transform 1s ease;
+
   font-size: 1.3rem;
   width: 90%;
   padding: 2%;
-  margin: 1%;
+  min-width: 300px;
+  margin: 2%;
 } .navlink:hover {
   color: white;
   text-shadow: 21px 41.8px 33.4px white;
@@ -126,7 +128,7 @@ nav {
   transition: all 1s ease-in-out;
   position: fixed;
   z-index: 11;
- 
+
   padding: 16px;
   font-size: 0.6rem;
   max-width: 350px;
@@ -153,7 +155,7 @@ nav {
   font-size: auto;
   text-indent: 2px;
   padding: 4px;
-} 
+}
 .guest-warning {
   font-size: 1.3rem;
   max-width: 1000px;
