@@ -62,3 +62,4 @@ Are the root folders for all file operations that take place. The names matter, 
 
 # base_images, fonts and filetype_images 
 Are just image/aesthetic resources for the front-end.
+

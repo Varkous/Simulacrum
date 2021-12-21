@@ -1,1 +1,0 @@
-This directory should house the private folder of each individual user. The folders in here should ONLY be accessed by the owner of the same name.
