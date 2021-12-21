@@ -7,7 +7,6 @@ class NEW {
 
 		this.express = require('express'); //Our framework for handling web responses/requests, designed for NodeJS (a runtime environment/framework)
 		this.app = this.express(); /*Never fully understood why, but we simply create "app" out of the "express" function, using the functionality of the express framework*/
-		/*this.mongoose = require('mongoose'); Our ODM (Object Document Mapper) for making models. Utilized by the database MongoDB to store collections/documents*/
 		this.path = require('path'); //For acknowledging directory/file paths relative to the server file (app.js)
 		let {urlencoded} = require('express'); this.urlencoded = urlencoded; //To identify arrays/strings within request bodies
 		this.ejs = require('ejs'); //Well. So we can see data/information from our server on the pages?
@@ -19,8 +18,6 @@ class NEW {
 			this.urlencoded({extended: true}),
 			this.bodyParser.json(),
 			this.bodyParser.urlencoded({ extended: true }),
-		//this.sessions({ name: 'sessions', store: store, session: 'sessions', secret: "wtf",  resave: false,  saveUninitialized: true, cookie: { secure: false,}}),
-		//this.flash(),
 		];
 		this.app.use(browserTools);
 
