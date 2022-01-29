@@ -56,10 +56,10 @@ function presentFileStats(item, stats, status) {
 
 	return `
 	<div class="file-info folder-children fadein" style="word-break: break-word;" title="${item.name}/${item.path}">
-	<span>Path: </span>${item.path}<br>
-	<span>Size: </span>${item.size}<br>
-	<span>Created By: </span>${item.creator}<br>
-	<span>${status || 'Uploaded'}: </span>${item.date}<br>
+	<span class="gray">Path: </span>${item.path}<br>
+	<span class="gray">Size: </span>${item.size}<br>
+	<span class="gray">Created By: </span>${item.creator}<br>
+	<span class="gray">${status || 'Uploaded'}: </span>${item.date}<br>
 	${children.join('')}</div>`; //A little info tab 
 };
 
