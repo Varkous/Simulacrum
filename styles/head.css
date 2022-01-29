@@ -1,28 +1,32 @@
 .logo {
   background: rgb(20, 20, 100);
   border-radius: 50%;
-  box-shadow: 1px 12.8px 12.2px #22a0f9,
-  1px 6.7px 25.3px #22a0f9,
-  1px 12.5px 10px #22a0f9,
-  1px 41.8px 33.4px rgba(0,0,0,0.7),
-  1px 10px 80px #22a0f4,
-  inset 1px 5px 7px 9px #22a0f9;
+  box-shadow: 1px 2.8px 12.2px 3px #22a0f9, 
+  1px 6.7px 25.3px #22a0f9, 
+  inset 1px 12.5px 10px #22a0f9, 
+  inset 1px 51.8px 33.4px rgb(0 0 0 / 70%), 
+  inset 1px -21.8px 33.4px #22a0f9;
 
   position: fixed;
   display: flex;
   justify-content: center;
-  top: 2px;
-  left: 7px;
+  top: -1px;
+  left: 1px;
   z-index: 8;
 } .logo:hover {
   background: rgb(220, 240, 255);
-  box-shadow: 1px 12.8px 12.2px #22a0f9,
-  1px 6.7px 5.3px #22a0f9,
-  1px 12.5px 10px #22a0f9,
-  1px 41.8px 33.4px rgba(0,0,0,0.7),
-  1px 10px 80px #22a0f4,
-  inset 1px 5px 7px 9px #22a0f9,
-  1px 10px 80px rgb(240, 240, 255);
+  box-shadow: 1px 2.8px 32.2px 3px #22a0f9, 
+  1px 6.7px 25.3px #22a0f9, 
+  inset 1px 12.5px 10px #22a0f9, 
+  inset 1px 51.8px 33.4px rgb(0 0 0 / 70%), 
+  inset 1px -21.8px 33.4px #22a0f9;
+  /*box-shadow: 1px 12.8px 12.2px #22a0f9,*/
+  /*1px 6.7px 5.3px #22a0f9,*/
+  /*1px 12.5px 10px #22a0f9,*/
+  /*1px 41.8px 33.4px rgba(0,0,0,0.7),*/
+  /*1px 10px 80px #22a0f4,*/
+  /*inset 1px 5px 7px 9px #22a0f9,*/
+  /*1px 10px 80px rgb(240, 240, 255);*/
 
   transition: transform 1s ease;
 }
@@ -114,37 +118,39 @@ nav {
   transition: font-size 1s ease;
   font-size: inherit !important;
 }
-
-#MessageLog::-webkit-scrollbar {
-  display: none;
-}
 #MessageLog {
-  font-family: monospace;
-  color: white;
   background-color: rgba(0,0,0,0.8);
-  border-radius: 25px;
-  border: 2px double gray;
+  border-radius: 50px;
   overflow-y: scroll;
+  border: 2px double gray;
   transition: all 1s ease-in-out;
+    
   position: fixed;
-  z-index: 11;
-
-  padding: 16px;
-  font-size: 0.6rem;
-  max-width: 350px;
-  min-width: 280px;
+  z-index: 7;
+  
+  padding: 8px;
+  display: flex;
   max-height: 100%;
-  width: auto;
-  text-align: center;
+  min-height: 50px;
+  max-width: 700px;
+  font-size: 0.5rem !important;
   word-wrap: break-word;
   text-overflow: wrap;
-  left: 43%;
+
+} #MessageLog h1 {
+  font-size: 1.2rem;
+  font-family: emoji;	
+  word-break: break-word;
+  width: 80vw;
 } #MessageLog span {
   color: darkcyan;
+  font-size: inherit;
+} #MessageLog::-webkit-scrollbar {
+  display: none;
 }
-.success-box { box-shadow: 2px 3px 24px 3px #407a52; }
-.warning-box { box-shadow: 2px 3px 24px 3px gold; }
-.error-box { box-shadow: 2px 3px 24px 3px #7f1515; }
+.success-box { box-shadow: inset -1px -1px 5px 0px #407a52; }
+.warning-box { box-shadow: inset -1px -1px 5px 0px gold; }
+.error-box { box-shadow: inset -1px -1px 5px 0px #7f1515; }
 #logDisplay {
   color: rgb(100,100,100);
   font-family: 'Courier New';

@@ -27,13 +27,14 @@
   	  /*animation: steady-glow 2.5s forwards infinite;*/
   	}
   /* ------------------------------------ */
-  #MessageLog {     left: 10%;    }
-  /* ------------------------------------ */
   nav:hover {    max-width: 300px;    }
   /* ------------------------------------ */
   #logDisplay {
     width: 90%;
     font-size: 1.0rem;
+  }
+  #MessageLog {
+    min-width: 270px;
   }
   .header h1{
     margin: 0;

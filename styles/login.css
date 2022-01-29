@@ -62,6 +62,10 @@ fieldset {
   justify-content: space-around;
   flex-wrap: wrap;
   padding: 1px;
+    
+} fieldset:nth-of-type(1) {
+  background: radial-gradient(black, transparent);
+  box-shadow: 3px 3px 150px 5px black;  
 }
 #mainForm {
   transition: max-height 1s ease;
@@ -192,7 +196,7 @@ button {
   color: gray;
   font-size: 1.8rem;
   font-family: 'Miriam Libre';
-  margin-top: 11vh;
+  margin-top: 15vh;
 }
 footer {
   display: flex;
