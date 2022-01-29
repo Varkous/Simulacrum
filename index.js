@@ -19,6 +19,7 @@ process.sessionTimers = {};
 process.ServerTracker = {status: 1, countdown: null, warning: 'None'}; //Default. Any major problems incur status of 0.
 /*======================================================*/
 
+
 const mobileTags = [ //Identifiers for mobile detection on request
 /Android/i,
 /webOS/i,
@@ -34,6 +35,7 @@ const {WriteLogFilter, ClearTemp, ExitHandler, Compress, CloseServer} = require(
 const {GetPrimaryDirectories} = require('./controllers/FolderProviders.js');
 const {CheckSessionAndURL, worthlessURLS} = require('./utils/RequestCheckers.js');
 const {accumulateSize} = require('./scripts/Helpers.js');
+const uuid = require('uuid');
 /*======================================================*/
 
 if (process.env.NODE_ENV === 'production') {
@@ -52,6 +54,7 @@ const resourceFolders = [
   express.static(path.join(__dirname, UsersDirectory)),
 ] // Make all resources within these folders accessible from any url/directory without needing absolute path
 // ============================================================
+// console.log(parseInt(process.env.session_time));
 const sessionUtilities = [
   cookieParser(),
   session({ //Establishing session prototype, adopted by every user session
@@ -61,14 +64,16 @@ const sessionUtilities = [
       saveUninitialized: true,
       resave: true,
       httpOnly: false,
-      maxAge: parseInt(process.env.session_time),
+      //domain: 'skeletonhill.com',
       secure: true,
+      maxAge: parseInt(process.env.session_time),
       sameSite: 'strict',
       loginAttempts: 1,
       duration: parseInt(process.env.session_time),
+      //duration: 1000 * 1000 * 1000,
     }),
   compression({ filter: Compress }), //Not really sure, but supposedly speeds up load time of pages
-	express.json(),
+  express.json(),
 ]
 // ============================================================
 app.use(sessionUtilities);
@@ -91,6 +96,7 @@ process.on('uncaughtException', ExitHandler);
 process.on('SIGINT', ExitHandler);
 process.on('beforeExit', ExitHandler);
 // ----------------------------------------
+
 
 // CloseServer('Routine server refresh');
 ClearTemp (path.resolve('temp'));
@@ -127,11 +133,12 @@ app.get('*', wrapAsync(async (req, res, next) => {
   const url = req.originalUrl;
 // ----------
   if (url.includesAny(worthlessURLS))
-    return false;
+    return false; // Redundant server request
 
   if (req.session && req.session.user) {
 
-    if (url.includes(req.session.home) || url === '/') {
+    if (url.includes(req.session.home) || url === '/') { // Actual request to homepage or directory listing
+ 
     	const homedirectory = req.session.home.includes(UsersDirectory) ? `${req.session.home}/${req.session.user.name}` : req.session.home;
 		//Whenever the user is browsing their own directory, restrict access to only folders that belong to them. We include their name and only search directories under that user name.
 		// -----------------------------------------------------------------
