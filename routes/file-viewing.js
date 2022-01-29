@@ -49,15 +49,18 @@ module.exports = {
   Locates all folders/directories with the user ID passed in, and returns all the files in the response.
   ======================================= */
   getNewHomeDirectory: app.get(`/home/:username`, VerifyUser, wrapAsync( async (req, res, next) => {
+  	
   	let ses = req.session;
+  	
     if (ses && ses.user) {
       if (ses.guest) return ReportData(req, res, false, {
         content: ["Cannot access Public directory as a Guest user"],
         type: 'error'
-      })
-      if (ses.home.includes(UsersDirectory)) {
+      });
+      
+      if (ses.home.includes(partition)) {
       	req.session.home = UsersDirectory;
-      	req.session.maxsize = 10e10;
+      	req.session.maxsize = ses.user.guest ? 3 * 1000 * 1000 : 10e10;
       } else {
       	req.session.home = partition;
       	req.session.maxsize = 100e10;
@@ -65,6 +68,7 @@ module.exports = {
 
       Sessions.user(req, req.backup).log.push(`Viewing ${EntryToHTML('Private', 'green')} directory`);
       res.locals.UserSession.user.log = Sessions.user(req, req.backup).log;
+      console.log(req.session.home);
       return res.redirect('/');
     }
 
@@ -91,16 +95,16 @@ module.exports = {
 // ----------------------------------------------------------------
     await GetDirectory(folder, req, res)
     .then( (directory) => {
-    	let {log, residing} = Sessions.user(req, req.backup); // Get log from session store (NOT RELIABLE) along with residing location
+      let {log, residing} = Sessions.user(req, req.backup); // Get log from session store (NOT RELIABLE) along with residing location
 
-    	log = !log.length ? res.locals.UserSession.user.log || [] : log || []; // The local variable of Log is always out of sync with the Session store log, so if one was cleared, use the other
+      log = !log.length ? res.locals.UserSession.user.log || [] : log || []; // The local variable of Log is always out of sync with the Session store log, so if one was cleared, use the other
       log.push(directory.files.length > 500 ?
       `${directory.name} exceeds the stable file capacity (${EntryToHTML(500, 'darkcyan')}). Listing all items is not advised. Relocate files to sub-directories if possible`
       : `${EntryToHTML(directory.name, '#22a0f4')} loaded `);  // Warn the user of current directory size if large, otherwise normal statement
       // -------------------
       residing = directory.name;
       req.session.user.residing = residing; // Separate from UserSession sent to locals
-      res.locals.UserSession.user.residing = residing; // What directory user is currently within
+      res.locals.UserSession.user.residing = residing; // Directory user is currently within
       res.locals.UserSession.user.firstVisit = false; // Should only occur once
       res.locals.UserSession.user.log = log; // Actual session cannot maintain this, ends up exceeding the 4000 KB limit
       // -------------------
@@ -118,8 +122,8 @@ module.exports = {
 
     }).catch( (error) => {
     	console.log(error);
-      error.message = 'Directory not found. Check spelling, or refresh primary directory to verify its existence.';
-      next(error);
+        error.message = 'Directory not found. Check spelling, or refresh primary directory to verify its existence.';
+        next(error);
     });
   } catch (err) { next(new Error('Directory not found. Was renamed, moved or does not exist'))}
   })),
