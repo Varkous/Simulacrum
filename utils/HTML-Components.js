@@ -1,38 +1,47 @@
 const styles = {
   emailMessage: {
+  	div: `
+	  padding: 15px;
+      background-image: linear-gradient(to right, rgba(0,0,0,0.5), #22a0f4);
+      background-size: cover;
+      background-position: center;
+      color: white;
+      border-radius: 15px;`,
     input: `
-    background: black;
-    border: 3px double gray;
-    color: #22a0f4;
-    border-radius: 15px;
-    font-family: monospace;
-    height: 150px;
-    display: block;
-    font-size: 1.5rem;
-    text-align: center`,
+      background: black;
+      border: 3px double gray;
+      color: #22a0f4;
+      border-radius: 15px;
+      font-family: monospace;
+      height: 150px;
+      display: block;
+      font-size: 1.5rem;
+      text-align: center`,
     p: `
       color: invert;
       font-size: 1.0rem;`,
     img: `
       max-width: 300px;`,
     article: `
-      box-shadow: 2px 2px 8px 1px black;
       font-size: 1.2rem;
       padding: 5px;
       border-radius: 10px;
       font-family: revert;
-      border: 2px double lightblue;`,
+      border: 2px double lightblue;
+      background: rgba(0,0,0,0.6);
+      box-shadow: 2px 2px 15px 3px black;
+      color: lightblue;`,
     article_header: `
       font-family: monospace`,
   },
 };
 
 // ====================================================
-const {input, p, img, article, article_header} = styles.emailMessage;
+const {div, input, p, img, article, article_header} = styles.emailMessage;
 module.exports = {
   emailMessage: function (refs) {
     return `
-      <div>
+      <div style="${div}">
         <h4>(For Simulacrum Access)</h4>
         <p style="${p}">To complete profile creation and access Simulacrum, note the code below:</p>
         <hr>

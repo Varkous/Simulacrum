@@ -27,7 +27,7 @@ main {
   font-size: 2.0rem;
   max-width: 1000px;
   min-height: 800px;
-  max-height: 1300px;
+  max-height: 1320px;
   margin: auto;
   overflow: hidden;
 }
@@ -152,10 +152,8 @@ button {
   color: #22a0f4;
   box-shadow: 1px 1px 1px 1px #22a0f4;
   text-shadow: 1px 1px 1px white;
-}
-.active {
+} button:hover:disabled, .active {
   animation: active 1s infinite forwards;
-  color: #22af;
 }
 .hide {
   display: none;

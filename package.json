@@ -1,6 +1,6 @@
 {
   "name": "Simulacrum",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "An interactive GUI for file management stationed on the Skeleton Hill cloud drive",
   "main": "index.js",
   "scripts": {
@@ -16,6 +16,7 @@
     "cookie-session": "^1.4.0",
     "dotenv": "^10.0.0",
     "ejs": "^3.1.6",
+    "express-session": "^1.17.2",
     "formidable": "^1.2.2",
     "fs-extra": "^10.0.0",
     "local-devices": "^3.0.0",

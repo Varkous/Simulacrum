@@ -53,7 +53,6 @@ function RandomCode(code = '') {
 };
 
 
-// return console.log (Sessions.users)
 /*======================================================*/
 module.exports = {
 
@@ -143,7 +142,7 @@ module.exports = {
       await SendEmail(req, res, form).then( () => {
         return ReportData(req, res, false, {
           content: `<h4 style="color: cadetblue">Registered! Before you can access Simulacrum, input the code we sent to your email for confirmation.</h4>`,
-          type: 'success'
+          type: 'none'
         });
       }).catch( (err) => {
         return ReportData(req, res, false, {

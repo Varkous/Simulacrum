@@ -266,8 +266,7 @@ module.exports.VerifyUser = wrapAsync(async function (req, res, next) {
     for (let i in users) {
 
       if (await Verify(users[i].password, req.body.password) && req.body.name.matchesAny(users[i].name, users[i].email)) { //If authentication succeeded and user info matched
-        console.log (Sessions)
-        console.log (Sessions.user(req))
+
         if (Sessions.user(req).locked === true || Sessions.user(req).loggedIn === true) {
           //If user is logged in or locked out, log to their private text file and return error
 

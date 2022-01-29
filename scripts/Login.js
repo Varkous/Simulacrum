@@ -39,7 +39,6 @@ newUserForm.onsubmit = async (evt) => {
     if (res.data.type && res.data.type !== 'warning') {
       confirmCode.disabled = false;
       codeForm.classList.remove('hide');
-      // codeInput.hidden = false;
     }
 
     message.innerHTML = content;

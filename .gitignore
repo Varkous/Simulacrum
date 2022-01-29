@@ -1,3 +1,7 @@
 node_modules
+ssl
+public
+users
+temp
+@Simulacrum_Logs
 .git
-README.md
