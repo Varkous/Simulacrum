@@ -187,7 +187,7 @@ module.exports = {
         }
       });
       return directorySize;
-    } catch (error) { throw error;}
+    } catch (error) { console.log(error);}
   }, //-------End of: Get folder size
   /*===============================================================*/
 
