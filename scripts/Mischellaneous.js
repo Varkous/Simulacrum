@@ -251,8 +251,8 @@ function viewImage (img) {
     else if (await showOperation(operation)) {
 
       let newfile = { // Form Data was not sufficient, difficulties sending to back-end
-	    	url: $(this).find('.input')[0].value,
-	    	name: $(this).find('.input')[1].value,
+	    url: $(this).find('.input')[0].value,
+	    name: $(this).find('.input')[1].value,
       }
 // ------------------------------------------------------
       axios.post(`/convert/${folderChoice}`, newfile, {
@@ -269,6 +269,7 @@ function viewImage (img) {
 	      percentCompleted !== Infinity ? $(`.progress.${operation}`).val(`${percentCompleted}`) : $(`.progress.${operation}`).val(0);
 	    }
       }).then( async (res) => {
+      	console.log(res);
         if (await checkForServerError(res, operation))
           return false;
 

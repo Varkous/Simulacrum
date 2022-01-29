@@ -244,6 +244,7 @@ function createReport(content = 'Report could not be retrieved', type = 'warning
 
 // --------------------------------------------- Now this bit here is key. The first string of the 'content' element will be first, THEN any 'items', then the second/last element of 'content'. This creates enough flexibility to craft messages that are cohearent to the user
     let h1 = content ? `
+    <div style="min-width: 100px !important;"></div>
     <h1>${content[0]}
     <span><br>${items ? items.join('<br>') || items : '' }</span>
     <br>
