@@ -92,10 +92,11 @@ module.exports = {
   Handler of posted login form data
   ======================================= */
   loginAttempt: app.post('/login', Geodetect, VerifyUser, wrapAsync( async (req, res, next) => {
+
   	res.setHeader('set-cookie', [
   	  'simulacrum_session; SameSite=Strict; Secure',
   	  'simulacrum_session.sig; SameSite=Strict; Secure',
-	  ]);
+	]);
 
     return res.redirect(req.session.route || '/');
   })),

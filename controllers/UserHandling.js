@@ -204,7 +204,8 @@ module.exports.VerifyUser = wrapAsync(async function (req, res, next) {
     if (req.session && req.session.user) { //Any preferences changed on front-end need to be reflected back-end
 
 	  await ProbeSessionDetails(req, res, next);
-      let confirmed = false; // Default response, this changes to "next()" if user is verified
+      let authorized = false; // Default response, this changes to "next()" if user is verified
+      let folder = req.params.folder;
 
       for (let i in users) { // ----------------------------------- Begins loop and first checks if any other users are performing operation, reject request if so
         let user = req.session.user;
@@ -214,45 +215,43 @@ module.exports.VerifyUser = wrapAsync(async function (req, res, next) {
             operation: Sessions.users[i].operation
           };
 
-          // -------------------------------- This checks if another user is performing an operation within primary directory, and if so, rejects request with report of which is user is operating
-          if (user.residing && user.residing.includes(req.clash.operation.location)
-          || req.params.folder && req.params.folder.includes(req.clash.operation.location)) {
+          // -------------------------------- This checks if another user is performing an operation within primary directory, and if so, rejects request with a report of which user is operating
+          if (user.residing && user.residing === req.clash.operation.location
+          && folder && folder.includes(req.clash.operation.location) && req.clash.user !== user.name) {
             return await ReportData(req, res, false, {
-              content: [`${req.clash.user === user.name ? 'You are' : req.clash.user + ' is'} currently performing a ${req.clash.operation.type} operation under the`, 'directory'],
+              content: [`${req.clash.user === user.name ? 'You are' : req.clash.user + ' is'} currently performing an ${req.clash.operation.type} operation under the`, 'directory'],
               type: 'error',
-              items: [`<span class="dimblue">${Sessions.users[i].residing || req.clash.operation.location}</span>`]
+              items: [`<span class="dimblue">"${Sessions.users[i].residing || req.clash.operation.location}"</span>`]
             });
           }
 
         } //End of: If there was an operation to begin with
         //----------------------------- If user info matches, check for valid folder and continue on to find any "rival" users currently logged in
         if (user.name === users[i].name || user.email === users[i].email) {
-          if (!confirmed) {
-            confirmed = await CheckForUserFolder(req, res, next);
-            Sessions.user(req).operation = {type: req.headers.operation, location: req.params.folder};
-          } else continue; //We need to make sure all logged-in users are passed in, so return response ('confirmed') later
+          if (!authorized) {
+            authorized = true;
+            Sessions.user(req).operation = {type: req.headers.operation, location: folder};
+          } else continue; //Need to continue iteration even after authorization, as we still need to check for clashes or operations from other users
         }
       //--------------------- Refresh session and proceed to next route
       };
+      
       await Sessions.refresh(req).catch( err => res.redirect('/login'));
       res.locals.Log = Sessions.user(req, req.backup).log;
       req.backup = req.session; //In case the session reaches expiration during a 60 minute+ operation
+      return await CheckForUserFolder(req, res, next);
+      
+    } else if (!req.body.name || !req.body.password) { //If client is not logged in, and/or one of the fields is missing
+       
+      if (!req.session || !req.session.user) return next(new Error("User information must be provided."));
+      else return ReportData (req, res, false, {
+        content: ['User information must be provided'],
+        type: 'error'
+      });
 
-      return confirmed;
-    } //End of If a user is currently logged in
-    else { //If not logged in, and one of the fields is missing
-      if (!req.body.name || !req.body.password) {
-        if (!req.session || !req.session.user) return next(new Error("User information must be provided."));
-        else return ReportData (req, res, false, {
-          content: ['User information must be provided'],
-          type: 'error'
-        });
+    } else return module.exports.CompareInfo(req, res, next, users);
+    //Iterates over all users and compares data, if user found we proceed to login, which establishes session, then returns next route.
 
-      }
-
-    //The big one that iterates over all users and compares data, if user found we proceed to next route.
-    module.exports.CompareInfo(req, res, next, users);
-    };
    } catch (err) {
   	console.log(err);
     return false;
