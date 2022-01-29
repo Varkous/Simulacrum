@@ -193,7 +193,7 @@ module.exports = {
 
     let restart = parseInt(fs.readFileSync('restartTime.txt', 'utf8')) || new Date().getTime(); // The global time (in MILISECONDS or MS) that the restart was initiated
     let current = parseInt(new Date().getTime()); // Current time in MS
-	  let usual = parseInt(time); // Usually 60 minutes, minus the difference between current and restart time
+	let usual = parseInt(time); // Usually 60 minutes, minus the difference between current and restart time
 
     let shutdownTime = Math.abs(usual - (current - restart)) ; //60 Minutes minus the difference between current and restart time
     console.log(shutdownTime);

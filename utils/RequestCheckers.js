@@ -134,12 +134,15 @@ module.exports = {
   /*======================================================*/
 
   /*======================================================*/
-  CheckForUserFolder: async function (req, res, next, folder) {
+  //Checking to ensure -- if a user is browsing their private directory -- that they cannot view or post to another private directory outside their own
+  CheckForUserFolder: async function (req, res, next) {
     const user = req.session.user.name;
     const url = req.originalUrl;
-    const userHome = `/users/${user}`;
+    const userHome = `/${UsersDirectory}/${user}`;
+  
 
     if (req.method === 'GET' && req.session.home === UsersDirectory && url.slice(0, userHome.length) !== userHome && !url.includes(`/home/${user}`)) {
+    	  console.log(user, url, userHome);
       //If user is viewing home/private directory, but did not include their folder (username) within the submission/viewing request, then reject request.
       if (!req.path.includes(user)) {
         return next(new Error('Cannot view any private directories outside your own.'));
