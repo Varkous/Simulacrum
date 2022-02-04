@@ -39,7 +39,7 @@ module.exports = {
         content: ["Cannot transfer or submit to other private directories. Be sure to include", `as root of folder input while within your directory`],
         type: 'error',
         items: [user.name]
-      });
+      });		
     }
     partition = await CheckIfTransfer(req, res, directory);
     if (!partition) return false; //Checks if its a transfer, and if user is attempting transfer from public to private. If a conflict occured, partition will actually be "false", and therefore abort request
@@ -285,8 +285,10 @@ ZipAndDownload: async function (req, res, files, userDir) {
       else if (item.failed) failed.push(HTML_Text);
       else if (item.already) already.push(HTML_Text);
     };
+    console.log('Transfers: ', transfers);
+    console.log('Req.body.transfers: ', req.body.transfers);
 // ------------------------------------------------------------------------------
-//Don't bother trying to decipher all the terinary string operators. They were necessary to account for all variations of transfer conflicts and provide appropriate coloring and segregation so user can adjust operations
+//Don't bother trying to decipher all the terinary string operators. They were necessary to account for all variations of transfer conflicts and provide appropriate presentation/styling so user can adjust operations
         if (transfers.length && failed.length)
           return ReportData (req, res, false, {
             content: [`${transfers.length ? `Successfully ${action}` : 'Cancelled transfer.'}`, `to ${target} <hr>${failed.map(i => i.styled).join('<br>')} <br>were not successful`],
@@ -298,14 +300,14 @@ ZipAndDownload: async function (req, res, files, userDir) {
 // ------------------------------------------------------------------------------
         else if (failed.length > 0 && !transfers.length)
           return ReportData (req, res, false, {
-            content: [`Failed to move`, `to ${target} . Check permission, verify item location, or try copying instead.`],
+            content: [`Failed to move`, `to ${target}. Check permission, verify item location, or try copying instead.`],
             type: 'error',
             items: failed.map( i => i.name),
             incomplete: failed.map( i => i.name)
           });
 // ------------------------------------------------------------------------------
         else return ReportData (req, res, false, {
-          content: [`${transfers.length ? `Successfully ${action}` : 'Cancelled.'}`, `${transfers.length ? `to ${target} <hr>`: '<hr>'}${already.length ? already.map(i => i.styled).join('<br>') + ' <br>already within that directory' : ''}`],
+          content: [`${transfers.length ? `Successfully ${action}` : 'Cancelled. Permission error or invalid item location'}`, `${transfers.length ? `to ${target} <hr>`: '<hr>'}${already.length ? already.map(i => i.styled).join('<br>') + ' <br>already within that directory' : ''}`],
           type: already.length ? 'warning' : 'success',
           items: transfers.map( i => i.name) || [],
           paths: paths,
