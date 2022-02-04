@@ -80,17 +80,15 @@ module.exports = {
    await AccessDirectory(req, req, next);
    let newfolders = req.body.newfolders ? Array.from(req.body.newfolders) : '';
    const {name, url} = req.body;
-   const {folder} = req.params;
-   let file = {name: name, path: folder};
-   let dirpath = path.resolve(req.session.home, folder);
-
+   let file = {name: name, path: req.params.folder + req.params[0]};
+   let dirpath = path.resolve(req.session.home, file.path);
 
    fs.readdir(dirpath, (err, entries) => { // See if entry already exists
    	entries = entries.map( e => e.substring(e.indexOf('.'), 0)); // Remove extension from each entry, our new file does not have one
   	if (err) return false;
   	else if (entries.includes(file.name))
 	  return ReportData(req, res, false, {
-        content: [`${EntryToHTML(file, 'darkcyan')} already exists within ${EntryToHTML(folder, '#22a0f4')}, use different file name or different folder`],
+        content: [`${EntryToHTML(file, 'darkcyan')} already exists within ${EntryToHTML(file.path, '#22a0f4')}, use different file name or different folder`],
         type: 'error'
       });
 
@@ -110,8 +108,11 @@ module.exports = {
 	    res.setHeader('content-type', 'application/octet-stream');
   		res.setHeader('content-length', contentLength);
   		res.setHeader('filename', file.name);
+  		
+	    ytdl(url).pipe(fs.createWriteStream(`${dirpath}/${file.name}`)).on("finish", () => {
+          fs.chown(`${dirpath}/${file.name}`, req.session.user.uid, 100, (err) => err ? console.log(err) : false);
+        }); // Create file at desginated location
 
-	    ytdl(url).pipe(fs.createWriteStream(`${dirpath}/${file.name}`)); // Create file at desginated location
 	    ytdl(url).pipe(res) // And also send it to user for download
         .on("finish", () => {
           Sessions.user(req, req.session).operation = false;
@@ -119,7 +120,6 @@ module.exports = {
         }).on("error", (err) => reject(new Error(`Conversion failed. ${file.name} was not created/uploaded`)));
 	 // ---------------------------------------------------------------------------------
 	  } else { // This could be an image, some audio file, or video from various other sites.
-
 	    axios.get(url, { responseType: 'stream'}).then( async (result) => {
 	      let stream = result.data;
 
