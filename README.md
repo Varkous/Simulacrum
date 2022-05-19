@@ -41,7 +41,7 @@ Contains the back-end script files:
   * Hasher is simply the crypto-hasher functionality for creating/comparing password info (copied most of this)
 
 # routes 
-"auth.js" directs all authentication route handlers (register, login, signout), "file-ops" holds all post routes for CRUD operations performed by the client, and "file-viewing" directs requests to view different directories returns the appropriate content.
+"auth.js" directs all authentication route handlers (register, login, signout), "file-ops" holds all post routes for CRUD operations performed by the client, and "file-viewing" directs requests to view different directories, and returns the appropriate content.
 
 # views 
 Contains the HTML/EJS display templates. "directory" is the workbench for all file browsing that takes place, providing the application the core global variables, 
@@ -56,9 +56,6 @@ All .ttf font files that are used by the front-end stylesheets.
 # scripts
 Contains 90% of all javascript functionality on the browser side. They are loaded in order of importance (with the exception of Aesthetics.js) within the "directory.ejs" file. 
 Core, DirectoryControl, FileAlteration, and StageAndUpload are the most essential files for the front-end operations.
-
-# public, users, temp 
-Are the root folders for all file operations that take place. The names matter, and are referenced by environment variables. NOTE: These are not actually included here in the repo, or it would be over 1 terrabyte. Create them on deployment.
 
 # base_images, fonts and filetype_images 
 Are just image/aesthetic resources for the front-end.
