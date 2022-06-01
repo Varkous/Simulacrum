@@ -172,7 +172,7 @@
 <script type="text/javascript" src="/Aesthetics.js"></script>
 <!-- ===================================================  -->
 
-  	 <section class="form">
+  	<section class="form">
 
      <div id="directoryList">
         <i class="fa fa-folder"></i>
@@ -199,18 +199,55 @@
       </table>
 <!--------------------------------------------------------------------------------------------------------->
   	 <hr>
-	      <h1 title="Paste a URL from an image/audio/video source, then click Convert to upload/create it within target folder" style="cursor: help; text-align: center">URL Converter</h1>
+	      <h1 id="convertShow" title="Paste a URL from an image/audio/video source, then click Convert to upload/create it within target folder">URL Converter</h1>
         <form id="convertForm" class="input-container form" action="/convert/<%=directory.name%>" method="post" enctype="multipart/form-data" title="Paste a URL or source address from an image, audio or video to replicate it into this folder">
-  	      <div class="input-container" style="flex: 50%">
-  		    <label for="url">Source URL</label>
-  		    <input id="url" type="text" name="url" class="input" style="width: 85%;" value="" placeholder="https://example.com/source">
-  	      </div>
+
+          <div class="input-container" style="flex: 40%">
+            <label for="url">Source URL</label>
+            <input id="url" type="text" name="url" class="input" style="width: 85%;" value="" placeholder="https://example.com/source">
+          </div>
+
   		  <br>
-  		  <div class="input-container convert-name" style="flex: 50%">
-  	        <label for="name">Custom Name</label>
-  	        <input type="text" name="name" class="input darkcyan" value="" placeholder="File" maxlength="50" required pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used within the file' autocomplete="off">
-  		  </div>
-  	    <button id="convert" type="submit" class="my-button" style="border-width: medium; background: rgb(30,30,40); font-family: 'Allerta Stencil';" hidden>Convert URL</button>
+    		  <div class="input-container convert-name" style="flex: 40%">
+    	        <label for="name">Custom Name</label>
+    	        <input id="newName" type="text" name="name" class="input darkcyan" value="" placeholder="File" maxlength="50" required pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used within the file' autocomplete="off">
+    		  </div>
+
+          <div class="input-container" style="flex: 20%">
+            <label for="audioOnly" style="font-size: 0.8rem;">Audio Only</label>
+            <input id="audioOnly" type="checkbox" name="audioOnly" class="input" style="width: 85%;">
+          </div>
+
+    	    <button id="convert" type="submit" class="my-button" style="border-width: medium; background: rgb(30,30,40); font-family: 'Allerta Stencil'; color: darkcyan;" hidden>Convert URL</button>
+          <hr>
+          <h3 title="Metadata for converted file (artist name, album, title, etc.), useful for media player organization. Converted files may already hold metadata.">Metadata</h3>
+
+          <div id="convertMetadata" class="input-container form">
+            <p style="color: gray;">Metadata for converted file (artist name, album, title, etc.), useful for media player organization. Converted files may already hold metadata.</p>
+
+            <div class="input-container">
+              <label for="song">Name/Title</label>
+    	        <input id="song" type="text" name="song" class="input darkcyan metadata" value="" maxlength="80" pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used for title name' autocomplete="off">
+            </div>
+            <div class="input-container">
+              <label for="artist">Artist/Creator</label>
+              <input id="artist" type="text" name="artist" class="input darkcyan metadata" value="" maxlength="80" pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used for artist name' autocomplete="off">
+            </div>
+            <div class="input-container">
+              <label for="album">Album/Collection</label>
+              <input id="album" type="text" name="album" class="input darkcyan metadata" value="" maxlength="80" pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used for album name' autocomplete="off">
+            </div>
+            <div class="input-container">
+              <label for="year">Release Year</label>
+              <input id="year" type="text" name="year" class="input darkcyan metadata" value="" maxlength="4" pattern="[0-9]+"  title='Only numbers can be used for album year' autocomplete="off">
+            </div>
+            <div class="input-container">
+              <label for="genre">Genre/Style</label>
+              <input id="genre" type="text" name="genre" class="input darkcyan metadata" value="" maxlength="80" pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used for genre name' autocomplete="off">
+            </div>
+
+          </div>
+
         </form>
 
      </div>
@@ -222,12 +259,12 @@
 <!--------------------------------------------------------------------------------------------------------->
       <form id="fileFolderInput">
 
-      <div class="file-box">
-        <label type="button" class="folder-label">
-          <img src="/file-folder.png" width="180" draggable="false" style="filter: drop-shadow(6px 4px 6px black);">
-          <input class="file-input" type="file" name="files" hidden webkitdirectory mozdirectory directory multiple onchange="checkAndStageFiles(event.target.files)">
-        </label>
-      </div>
+        <div class="file-box">
+          <label type="button" class="folder-label">
+            <img src="/file-folder.png" width="180" draggable="false" style="filter: drop-shadow(6px 4px 6px black);">
+            <input class="file-input" type="file" name="files" hidden webkitdirectory mozdirectory directory multiple onchange="checkAndStageFiles(event.target.files)">
+          </label>
+        </div>
 
         <div class="file-box">
           <label class="file-label" type="button">
@@ -246,70 +283,70 @@
     	    </div>
         </div>
 
-          <section class="input-container">
-            <div class="current-directory">
+        <section class="input-container">
+          <div class="current-directory">
+          </div>
+
+          <span id="inputQuestion" title="Information on folder submission" type="button">
+          <i class="fa fa-info-circle"></i>
+          </span>
+
+          <div id="folderInfo">
+
+            <div id="questionMessage" hidden>
+              <p><span style="color: #22a0f4">Creating new directory:</span>
+                If you wish to create a new folder, type in a name below. If you wish to make a sub-directory (create within an already existing folder), you must specifiy the parent directory as well in your designation (divided by a "/"). For example: If you wanted to create a "Halloween" folder within the "Movies" directory, you would need to input "Movies/Halloween".
+                Any directory without a parent ("/") is considered a Primary Directory/Base Folder, and can be found in the navbar, or within the prior folder list.
+                <br><br>
+                Hit the checkbox if you wish to create empty directories without uploading files.
+              </p>
+              <p><span style="color: #22a0f4">Uploading to existing directory:</span>
+                If you know what folder you wish to upload your files to (and it exists of course), type in the folder like usual, or click any folder icon to add the relative folder name as the target. And simularily, if your target is a sub-directory nested within another directory, you must specify each directory layer -- divided by a "/" -- your target folder is nested within.
+                <br><br>
+                Names are case sensitive (even with Spaces), so be accurate lest you create bogus directories.
+                All public directories/folders outside the current directory may also be located by typing their initial names, which will prompt them as suggestions in the list below.
+              </p>
+
             </div>
 
-            <span id="inputQuestion" title="Information on folder submission" type="button">
-            <i class="fa fa-info-circle"></i>
-            </span>
+            <label class="d-flex" for="folder">
 
-            <div id="folderInfo">
-
-              <div id="questionMessage" hidden>
-                <p><span style="color: #22a0f4">Creating new directory:</span>
-                  If you wish to create a new folder, type in a name below. If you wish to make a sub-directory (create within an already existing folder), you must specifiy the parent directory as well in your designation (divided by a "/"). For example: If you wanted to create a "Halloween" folder within the "Movies" directory, you would need to input "Movies/Halloween".
-                  Any directory without a parent ("/") is considered a Primary Directory/Base Folder, and can be found in the navbar, or within the prior folder list.
-                  <br><br>
-                  Hit the checkbox if you wish to create empty directories without uploading files.
-                </p>
-                <p><span style="color: #22a0f4">Uploading to existing directory:</span>
-                  If you know what folder you wish to upload your files to (and it exists of course), type in the folder like usual, or click any folder icon to add the relative folder name as the target. And simularily, if your target is a sub-directory nested within another directory, you must specify each directory layer -- divided by a "/" -- your target folder is nested within.
-                  <br><br>
-                  Names are case sensitive (even with Spaces), so be accurate lest you create bogus directories.
-                  All public directories/folders outside the current directory may also be located by typing their initial names, which will prompt them as suggestions in the list below.
-                </p>
-
+              <div class="input-container">
+                <input id="emptydirCheck" title="Allow empty directory creation?" class="checkbox" type="checkbox" style="transform: scale(1.5); margin-bottom: 6px">
+                <i class="fa fa-folder-open" onclick="$(this).prev().click()"></i>
               </div>
 
-              <label class="d-flex" for="folder">
-
+              <% if (UserSession.home !== UsersDirectory) {%>
                 <div class="input-container">
-                  <input id="emptydirCheck" title="Allow empty directory creation?" class="checkbox" type="checkbox" style="transform: scale(1.5); margin-bottom: 6px">
-                  <i class="fa fa-folder-open" onclick="$(this).prev().click()"></i>
+                  <input id="mydirCheck" type="checkbox" name="mydirectory" class="checkbox" style="transform: scale(1.5); margin-bottom: 6px" title="Targets your private directory">
+                  <i class="fa fa-folder fa-house-user my-dir" title="Targets your private directory" onclick="$(this).prev().click()"></i>
+
+                  <a href="<%=UsersDirectory%>/<%=UserSession.user.name%>"></a>
                 </div>
+              <%}%>
+            <h4 style="margin: 0px;">Select folder destination:</h4>
 
-                <% if (UserSession.home !== UsersDirectory) {%>
-                  <div class="input-container">
-                    <input id="mydirCheck" type="checkbox" name="mydirectory" class="checkbox" style="transform: scale(1.5); margin-bottom: 6px" title="Targets your private directory">
-                    <i class="fa fa-folder fa-house-user my-dir" title="Targets your private directory" onclick="$(this).prev().click()"></i>
+            </label>
+          </div>
 
-                    <a href="<%=UsersDirectory%>/<%=UserSession.user.name%>"></a>
-                  </div>
-                <%}%>
-              <h4 style="margin: 0px;">Select folder destination:</h4>
+          <div class="d-flex target-folder-div" title="Each folder must be divided by a '/'" style="width: 90%;">
+            <button class="dark" type="button" class="dark">
+              <a class="view-dir" href="/" ><i class="fa fa-arrow-right" style="width: 100%"></i></a>
+            </button>
 
-              </label>
-            </div>
+            <input id="FolderInput" name="folder" class="folder-input input" type="text" placeholder="Case sensitive, get it right." maxlength="150" pattern="[A-Za-z0-9/)_( \\.-]+"  title='Only numbers, letters, and the symbols: "/-_\" can be used for folder designation. Each folder must be divided by a "/"' required autocomplete="off">
 
-            <div class="d-flex target-folder-div" title="Each folder must be divided by a '/'" style="width: 90%;">
-              <button class="dark" type="button" class="dark">
-                <a class="view-dir" href="/" ><i class="fa fa-arrow-right" style="width: 100%"></i></a>
-              </button>
+            <button type="button" id="eraseInput" class="dark" onclick="clearInput($(this).prev()[0])"><i class="fa fa-times"></i>
+            </button>
+          </div>
 
-              <input id="FolderInput" name="folder" class="folder-input input" type="text" placeholder="Case sensitive, get it right." maxlength="150" pattern="[A-Za-z0-9/)_( \\.-]+"  title='Only numbers, letters, and the symbols: "/-_\" can be used for folder designation. Each folder must be divided by a "/"' required autocomplete="off">
+           <button id="submit" class="my-button blue">SUBMIT <span class="staged-count"></span></button>
 
-              <button type="button" id="eraseInput" class="dark" onclick="clearInput($(this).prev()[0])"><i class="fa fa-times"></i>
-              </button>
-            </div>
+          <div id="folderSuggestions">
+          </div>
 
-             <button id="submit" class="my-button blue">SUBMIT <span class="staged-count"></span></button>
-
-            <div id="folderSuggestions">
-            </div>
-
-          </section>
-        </form>
+        </section>
+      </form>
 <!--------------------------------------------------------------------------------------------------------->
   	</section>
      <label for="search">Search</label>
