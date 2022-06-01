@@ -11,14 +11,12 @@ const session = require('cookie-session');
 const child_process = require('child_process');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
-
 /*======================================================*/
 let partition = process.env.partition || 'public';
 const UsersDirectory = process.env.UsersDirectory || 'users';
 process.sessionTimers = {};
 process.ServerTracker = {status: 1, countdown: null, warning: 'None'}; //Default. Any major problems incur status of 0.
 /*======================================================*/
-
 
 const mobileTags = [ //Identifiers for mobile detection on request
 /Android/i,
@@ -138,7 +136,7 @@ app.get('*', wrapAsync(async (req, res, next) => {
   if (req.session && req.session.user) {
 
     if (url.includes(req.session.home) || url === '/') { // Actual request to homepage or directory listing
- 
+
     	const homedirectory = req.session.home.includes(UsersDirectory) ? `${req.session.home}/${req.session.user.name}` : req.session.home;
 		//Whenever the user is browsing their own directory, restrict access to only folders that belong to them. We include their name and only search directories under that user name.
 		// -----------------------------------------------------------------

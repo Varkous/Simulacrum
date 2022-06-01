@@ -24,7 +24,7 @@ module.exports = {
   /*===============================================================*/
   AccessDirectory: async function (req, res, next) {
 
-	if (req.reject) return false;
+	  if (req.reject) return false;
     let directory = req.params.folder + req.params[0];
     let partition = req.session.home || process.env.partition;
     let user = req.session.user;
@@ -39,76 +39,76 @@ module.exports = {
         content: ["Cannot transfer or submit to other private directories. Be sure to include", `as root of folder input while within your directory`],
         type: 'error',
         items: [user.name]
-      });		
+      });
     }
     partition = await CheckIfTransfer(req, res, directory);
     if (!partition) return false; //Checks if its a transfer, and if user is attempting transfer from public to private. If a conflict occured, partition will actually be "false", and therefore abort request
 // ------------------------------------------------------------------------------
-      try {
+    try {
+      fs.access(`${partition}/${directory}`, fs.constants.R_OK | fs.constants.W_OK, async (error) => {
+      // To check if the given directory already exists or not
 
-        fs.access(`${partition}/${directory}`, fs.constants.R_OK | fs.constants.W_OK, async (error) => {
-        // To check if the given directory already exists or not
+        if (error) {
+          fs.mkdir(`${partition}/${directory}`, {recursive: true}, (err, dir) => {
+            if (err) return next(err);
 
-          if (error) {
-            fs.mkdir(`${partition}/${directory}`, {recursive: true}, (err, dir) => {
-              if (err) return next(err);
+            let relativeFolder = directory.replace(user.residing, '').replace('/', '').split('/')[0];
+  		  //Simple code, but deceptive concept. The goal is to find any new directories created that are DIRECT children of the current posting directory (the folder the user is residing in), anything deeper should  be displayed, as page will only show relative directories
+            // ------------------------------------------------------------------------------
+            if (!req.body.newfolders.has(relativeFolder))
+              req.body.newfolders.add(relativeFolder);
 
-              let relativeFolder = directory.replace(user.residing, '').replace('/', '').split('/')[0];
-    		  //Simple code, but deceptive concept. The goal is to find any new directories created that are DIRECT children of the current posting directory (the folder the user is residing in), anything deeper should  be displayed, as page will only show relative directories
-              // ------------------------------------------------------------------------------
-              if (!req.body.newfolders.has(relativeFolder))
-                req.body.newfolders.add(relativeFolder);
+            fs.chown(path.resolve(partition, directory), user.uid, 100, (err) => err ? console.log(err) : false);
 
-              fs.chown(path.resolve(partition, directory), user.uid, 100, (err) => err ? console.log(err) : false);
-
-              if (!op) { // If no operation, user was just creating a folder, and nothing else
-                return ReportData(req, res, false, {
-                  content: [`Directory`, `created`],
-                  type: 'success',
-                  items: [`<span style="color: ${process.env.folder_color};">${directory}</span>`],
-                  newfolders: relativeFolder,
-                });
-              } else if (op === 'Transfer')
-                return module.exports.SetupTransfer(req, res, partition);
-              else return true;
-            });
-          }
-          // ------------------------------------------------------------------------------
-          else if (op && op === 'Transfer') {
-            return module.exports.SetupTransfer(req, res, partition);
-          }
-          // ------------------------------------------------------------------------------
-          else { //If no error, then user is trying to create new directory, check permission
-
-            if (op) {
-              return true;
-            } else fs.stat(`${partition}/${directory}`, (err, stats) => {
-
-              if (err)
-                return ReportData (req, res, false, {
-                  content: ["Could not find directory data. May have been deleted since query.", "Operation aborted"],
-                  type: 'error'});
-
-              else if (!op) {
-                fs.readdir(`${partition}/${directory}`, {withFileTypes: true}, (err, entries) => {
-                  if (err) return ReportData(req, res, err);
-                  entries = entries.map( e => e.isDirectory() ? EntryToHTML(e.name, '#22a0f4', '<br>') : e.name);
-
-                  return ReportData (req, res, false, {
-                    content: [`Directory already exists. ${entries.length ? 'Items within:' : 'Empty.'}`],
-                    type: 'warning',
-                    items: entries || '',
-                  });
-                });
-              } else return next();
-            });
-
-          } //End of: Else if no error
-        });//End of: Attempt to access folder
+            if (!op) { // If no operation, user was just creating a folder, and nothing else
+              return ReportData(req, res, false, {
+                content: [`Directory`, `created`],
+                type: 'success',
+                items: [`<span style="color: ${process.env.folder_color};">${directory}</span>`],
+                newfolders: relativeFolder,
+              });
+            } else if (op === 'Transfer')
+              return module.exports.SetupTransfer(req, res, partition);
+            else return true;
+          });
+        }
         // ------------------------------------------------------------------------------
-      } catch (e) {
-        return next(e);
-      }
+        else if (op && op === 'Transfer') {
+          return module.exports.SetupTransfer(req, res, partition);
+        }
+        // ------------------------------------------------------------------------------
+        else { //If no error, then user is trying to create new directory, check permission
+
+          if (op) {
+            return true;
+          } else fs.stat(`${partition}/${directory}`, (err, stats) => {
+
+            if (err)
+              return ReportData (req, res, false, {
+                content: ["Could not find directory data. May have been deleted since query.", "Operation aborted"],
+                type: 'error'});
+
+            else if (!op) {
+              fs.readdir(`${partition}/${directory}`, {withFileTypes: true}, (err, entries) => {
+                if (err) return ReportData(req, res, err);
+                entries = entries.map( e => e.isDirectory() ? EntryToHTML(e.name, '#22a0f4', '<br>') : e.name);
+
+                return ReportData (req, res, false, {
+                  content: [`Directory already exists. ${entries.length ? 'Items within:' : 'Empty.'}`],
+                  type: 'warning',
+                  items: entries || '',
+                });
+              });
+            } else return next();
+          });
+
+        } //End of: Else if no error
+      });//End of: Attempt to access folder
+      // ------------------------------------------------------------------------------
+    } catch (e) {
+      console.log ("Error next?");
+      return next(e);
+    }
   }, //-------End of: Make Directory
 /*===============================================================*/
 
@@ -255,6 +255,7 @@ ZipAndDownload: async function (req, res, files, userDir) {
 
     }); //Promise for: After all files have been copied to staging
   }).catch( (err) => next(err)); //If there was an error thrown by file copying, crash server
+  Sessions.user(req, ses).operation = false;
  } catch (err) {WriteLogFilter(ses.user.name, err.message)};
 },
 /*===============================================================*/
@@ -285,8 +286,6 @@ ZipAndDownload: async function (req, res, files, userDir) {
       else if (item.failed) failed.push(HTML_Text);
       else if (item.already) already.push(HTML_Text);
     };
-    console.log('Transfers: ', transfers);
-    console.log('Req.body.transfers: ', req.body.transfers);
 // ------------------------------------------------------------------------------
 //Don't bother trying to decipher all the terinary string operators. They were necessary to account for all variations of transfer conflicts and provide appropriate presentation/styling so user can adjust operations
         if (transfers.length && failed.length)
