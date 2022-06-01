@@ -83,25 +83,42 @@ td {
   text-align: center;
   color: #29a0f8;
   font-size: 1.3rem;
-} .directory-stats span.dir-stat-file {	
-  color: darkcyan !important; 
+} .directory-stats span.dir-stat-file {
+  color: darkcyan !important;
   border: 2px solid black !important;
+}
+#convertShow {
+  cursor: help;
+  text-align: center;
+  margin: 0px;
+}
+#convertShow:hover + #convertForm, #convertForm:hover{
+  /* display: flex; */
+  transform: scaleY(1);
 }
 #convertForm {
   background: rgba(0,0,0,0.3);
   box-shadow: inset 2px 22px 33px 14px black;
+  transition: transform 0.5s ease-in-out;
+  transform: scaleY(1);
   display: flex;
   flex-direction: row;
   justify-content: center;
   flex-wrap: wrap;
 }
+#convertMetadata {
+  display: none;
+} #convertMetadata * {
+  font-size: 1rem;
+  align-items: normal;
+}
 .oversize-message {
   background: rgba(0,0,0,0.8);
   border: 1px double orange;
-    
+
   align-self: baseline;
   padding: 4px;
-  font-size: 1.2rem;	
+  font-size: 1.2rem;
 }
 #fileFolderInput {
   font-family: 'Alegreya Sans SC';
@@ -189,7 +206,7 @@ progress::-webkit-progress-value {
   content: attr(data-before);
   color: lightgrey;
   font-family: 'Allerta Stencil';
-    
+
   position: absolute;
   left: 30%;
   top: -3px;
