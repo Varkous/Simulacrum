@@ -53,7 +53,7 @@ class SessionStore {
       throw new Error('Argument for database must be a callback function');
 
     try {
-      const users_file = JSON.parse(fs.readFileSync(`${this.store}/${process.env.info_users}`, 'UTF8'));
+      const users_file = JSON.parse(fs.readFileSync(`${this.store + process.env.info_users}`, 'UTF8'));
       // The "database" of users is just a JSON-themed text file with each user's profile information. We locate it, read it, parse it into an object, and ship it to the callback (if provided one), or just return it
       return fn ? fn(null, users_file) : users_file;
     } catch (err) {
@@ -206,10 +206,10 @@ module.exports.VerifyUser = wrapAsync(async function (req, res, next) {
 	  await ProbeSessionDetails(req, res, next);
       let authorized = false; // Default response, this changes to "next()" if user is verified
       let folder = req.params.folder;
+      let user = req.session.user;
 
       for (let i in users) { // ----------------------------------- Begins loop and first checks if any other users are performing operation, reject request if so
-        let user = req.session.user;
-        if (Sessions.users[i].operation && req.method !== 'GET') {
+        if (Sessions.users[i].loggedIn && Sessions.users[i].operation && req.method !== 'GET') {
           req.clash = { //If another user is performing an operation
             user: Sessions.users[i].name,
             operation: Sessions.users[i].operation
@@ -219,7 +219,7 @@ module.exports.VerifyUser = wrapAsync(async function (req, res, next) {
           if (user.residing && user.residing === req.clash.operation.location
           && folder && folder.includes(req.clash.operation.location) && req.clash.user !== user.name) {
             return await ReportData(req, res, false, {
-              content: [`${req.clash.user === user.name ? 'You are' : req.clash.user + ' is'} currently performing an ${req.clash.operation.type} operation under the`, 'directory'],
+              content: [`${req.clash.user === user.name ? 'You are' : req.clash.user + ' is'} currently performing a ${req.clash.operation.type} operation under the`, 'directory'],
               type: 'error',
               items: [`<span class="dimblue">"${Sessions.users[i].residing || req.clash.operation.location}"</span>`]
             });
@@ -235,14 +235,14 @@ module.exports.VerifyUser = wrapAsync(async function (req, res, next) {
         }
       //--------------------- Refresh session and proceed to next route
       };
-      
+
       await Sessions.refresh(req).catch( err => res.redirect('/login'));
       res.locals.Log = Sessions.user(req, req.backup).log;
       req.backup = req.session; //In case the session reaches expiration during a 60 minute+ operation
       return await CheckForUserFolder(req, res, next);
-      
+
     } else if (!req.body.name || !req.body.password) { //If client is not logged in, and/or one of the fields is missing
-       
+
       if (!req.session || !req.session.user) return next(new Error("User information must be provided."));
       else return ReportData (req, res, false, {
         content: ['User information must be provided'],
