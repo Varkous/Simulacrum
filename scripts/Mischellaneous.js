@@ -241,7 +241,7 @@ function viewImage (img) {
 ===============================================================*/
   $('#convertForm').submit( async function (evt) {
    try {
-	evt.preventDefault();
+		evt.preventDefault();
     let operation = 'Convert';
     let folderChoice = $(FolderInput).val() || CurrentFolder;
 
@@ -249,13 +249,19 @@ function viewImage (img) {
       return Flash('No folder targeted for upload destination, check input', 'error');
 // ------------------------------------------------------
     else if (await showOperation(operation)) {
+			let fileToConvert = {metadata: {}}
 
-      let newfile = { // Form Data was not sufficient, difficulties sending to back-end
-	    url: $(this).find('.input')[0].value,
-	    name: $(this).find('.input')[1].value,
-      }
+			// Form Data was not sufficient, difficulties sending to back-end. Manufacture one using input values.
+			$("#audioOnly")[0].value = $("#audioOnly").is(':checked') ? true : '';
+			for (let input of $('#convertForm')[0].elements) {
+				if (input.value) {
+					$(input).hasClass("metadata") ? fileToConvert.metadata[input.name] = input.value : fileToConvert[input.name] = input.value;
+				}
+		  }
+
+			$('#convert').attr('disabled','disabled');
 // ------------------------------------------------------
-      axios.post(`/convert/${folderChoice}`, newfile, {
+      axios.post(`/convert/${folderChoice}`, fileToConvert, {
         headers: {
           'Content-Type': 'application/json', // Else back-end does not recognize it
           operation,
@@ -264,12 +270,14 @@ function viewImage (img) {
         accept: 'application/json', // In case of report message
         cancelToken: new CancelToken( (c) => Requests.Convert = c),
         onDownloadProgress: progress => {
-          let total = progress.srcElement.getResponseHeader('content-length') || progress.srcElement.getResponseHeader('approx-length'); // Sometimes back-end content length will be off, need approximation for backup
-	      let percentCompleted = (progress.loaded / total) * 100;
-	      percentCompleted !== Infinity ? $(`.progress.${operation}`).val(`${percentCompleted}`) : $(`.progress.${operation}`).val(0);
-	    }
+	        let total = progress.srcElement.getResponseHeader('content-length') || progress.srcElement.getResponseHeader('approx-length'); // Sometimes back-end content length will be off, need approximation for backup
+		      let percentCompleted = (progress.loaded / total) * 100;
+		      percentCompleted !== Infinity ? $(`.progress.${operation}`).val(`${percentCompleted}`) : $(`.progress.${operation}`).val(0);
+	    	}
+// ------------------------------------------------------
       }).then( async (res) => {
-      	console.log(res);
+				$('#convert').removeAttr('disabled');
+
         if (await checkForServerError(res, operation))
           return false;
 
@@ -282,12 +290,12 @@ function viewImage (img) {
           const downloadUrl = URL.createObjectURL(res.data); //Blob href
           triggerLink(downloadUrl, filename);
       	}
-      })
-      .catch( (error) => {
+      }).catch( (error) => {
+				$('#convert').removeAttr('disabled');
         Requests.cancel('Convert');
         if (axios.isCancel(error))
           Flash(operation + ' aborted', 'warning');
-	    else Flash([error.message], 'error');
+	    	else Flash([error.message], 'error');
           return false;
       });
 // ------------------------------------------------------
@@ -295,4 +303,11 @@ function viewImage (img) {
    } catch (err) {console.log(err)}
   });
 //===============================================================
-$('.convert-name input').on('input', () => $('#convert').show());
+$('.convert-name input').on('input', function () {
+	$('#convert').show();
+	$('#convertMetadata').show();
+	if (!this.value.length) {
+		$('#convert').hide();
+		$('#convertMetadata').hide();
+	}
+});
