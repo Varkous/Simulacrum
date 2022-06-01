@@ -13,6 +13,7 @@ class NEW {
 		this.bodyParser = require('body-parser'); //Well. So we can see data/information from our server on the pages?
 		this.https = require('https');
 		this.fs = require('fs-extra');
+		// this.fs = require('fs');
 
 		const browserTools = [
 			this.urlencoded({extended: true}),
@@ -68,7 +69,7 @@ class NEW {
 			//=================================
 			server: https.createServer({cert, ca, key}, app).listen(PORT, () => {
 			    console.log("Listening on Port:", PORT);
-			})			
+			})
 		};
 	}; //-------------End of makeBaseRoutes
 } //----------End of Class
