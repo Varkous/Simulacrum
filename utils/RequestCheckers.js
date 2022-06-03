@@ -2,7 +2,7 @@
 
 const {getFileSize, parseHTML} = require('../scripts/Helpers.js');
 const {Sessions} = require('../controllers/UserHandling.js');
-const {GetFolderSize} = require('../controllers/FolderProviders.js');
+const {GetFolderSize} = require('../controllers/DirectoryOperations.js');
 const {wrapAsync, sessionDuration, fs} = require('../index.js');
 
 let partition = process.env.partition;
@@ -72,7 +72,7 @@ module.exports = {
     if (ses.home === UsersDirectory) { // More than 5 gigabytes
   
       let totalsize = await GetFolderSize(req, `${ses.home}/${ses.user.name}`, 0);
-      if ((payloadSize + totalsize) >= ses.maxsize && op && op.matchesAny('Upload', 'Transfer')) {
+      if ((payloadSize + totalsize) >= ses.maxsize && op && op.matchesAny('Upload', 'Transfer', 'Convert')) {
         req.reject = true;
         const report = {
            content: [`<span style="color: green">${op}</span> aborted`, `Maximum upload capacity (${getFileSize(ses.maxsize)}) reached`],
