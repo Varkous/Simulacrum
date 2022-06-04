@@ -3,7 +3,7 @@ const {app, path, wrapAsync, fs} = require('../index.js');
 const {ReportData} = require('../utils/RequestCheckers.js');
 const {VerifyUser, Sessions} = require('../controllers/UserHandling.js');
 const {AccessDirectory, Upload, ZipAndDownload, Rename, IterateDelete} = require('../controllers/FileControllers.js');
-const {GetCreator} = require('../controllers/FolderProviders.js');
+const {GetCreator} = require('../controllers/DirectoryOperations.js');
 const {CapArraySize, EntryToHTML} = require('../utils/Utilities.js');
 const {checkModeType} = require('../scripts/Helpers.js');
 
@@ -72,19 +72,6 @@ module.exports = {
     else return await Rename(req, res, oldpath, newpath);
   })),
 
-  setMetadata: async function (req, res, metadata, filePath) {
-    let metaOptions = [];
-    for (let entry in metadata) {
-      metaOptions.push(`--${entry}`);
-      metaOptions.push(metadata[entry]);
-    }
-    metaOptions.push(filePath);
-    Sessions.user(req, req.session).operation = false;
-    fs.chownSync(filePath, req.session.user.uid, 100);
-
-    console.log(`${metaOptions.join(' ')} ${filePath}`);
-    return child_process.spawn('id3v2', metaOptions, {detached: true});
-  },
   /* ====================================
   If user authentication was granted, and directory access was granted from posting to "/upload", this is the NEXT request, which uploads the files to the folder information stored in req.params.
   ======================================= */
@@ -92,7 +79,7 @@ module.exports = {
 
    await AccessDirectory(req, req, next);
    let newfolders = req.body.newfolders ? Array.from(req.body.newfolders) : '';
-   let {name, url, audioOnly, metadata} = req.body;
+   let {name, url} = req.body;
    let file = {name: name, path: req.params.folder + req.params[0]};
    // If user selected Audio Only, parse only audio data
    let dirpath = path.resolve(req.session.home, file.path);
@@ -111,27 +98,23 @@ module.exports = {
       if (!ytdl.validateURL(url)) return reject(new Error(`Failed to acquire video ID from URL`));
 
       let info = await ytdl.getInfo(url); // Lots of info indeed
-      let filePath = `${dirpath}/${file.name}${audioOnly ? '.mp3' : '.mp4'}`;
-      let audioFormat = audioOnly ? info.formats[info.formats.length - 4] : false;
+      let filePath = `${dirpath}/${file.name}.mp4`;
 
       if (url.includesAny('youtube', 'youtu.be')) { //A vast majority of any conversion uploads will likely be from the site YouTube, which throttles data stream requests. Special module and conditions are setup to allow proper
-  	    let contentLength = await parseInt(audioOnly ? audioFormat.contentLength : info.formats[0].contentLength);
+  	    let contentLength = await parseInt(info.formats[0].contentLength);
         // For browser progress bar. If audio only, the fourth-to-last element of formats is the mp4 audio content length we want (mp3). If video AND audio (mp4), the first element in formats is default.
 // ---------------------------------------------------------------------------------
   	    if (!contentLength) return reject(new Error(`File info could not be parsed, conversion rejected. Try using file address source, or a different URL`));
+  	    res.setHeader('content-type', 'application/octet-stream');
+        res.setHeader('content-length', contentLength);
+        res.setHeader('filename', file.name); 
 
-        ytdl(url, {quality: audioOnly ? 'highestaudio' : 'highest' })
-        .pipe(fs.createWriteStream(filePath)).on("finish", () => {
-          // module.exports.setMetadata(req, res, metadata, filePath).on('exit', function() {
-          res.setHeader('content-type', 'application/octet-stream');
-          res.setHeader('content-length', contentLength);
-          res.setHeader('filename', file.name);
-            fs.createReadStream(filePath).pipe(res).on("error", () => reject(new Error(`Data stream interrupted. File could not be sent for download, refresh directory and locate file to download.`))); // Error catch for file stream to response for download
-            return resolve(true);
-          // }).on("error", () => console.log ("The fuck?")); // Error catch for child process
-        }).on("error", (err) => { // Error catch for youtube downloader/file creating write stream
+        ytdl(url).pipe(fs.createWriteStream(filePath)).on("finish", async () => resolve(true)).on("error", (err) => { // Error catch for youtube downloader/file creating write stream
           Sessions.user(req, req.session).operation = false;
           reject(new Error(`Conversion failed. ${file.name} was not created/uploaded`));
+        }).pipe(res).on("finish", async () => resolve(true)).on("error", (err) => { // Error catch for youtube downloader/file creating write stream
+          Sessions.user(req, req.session).operation = false;
+          reject(new Error(`Download stream failed, reload directory and locate file for download`));
         }); // Create file at desginated location
 
 // ---------------------------------------------------------------------------------
@@ -146,16 +129,12 @@ module.exports = {
   	      if (!ext || ext.includes('html')) return reject(new Error(`Source URL could not find a valid file. Try linking file address`));
 
   	      file.name = `${name}.${ext}`;
+  	      res.setHeader('content-type', 'application/octet-stream');
+          res.setHeader('filename', file.name);
+          res.setHeader('approx-length', parseInt(approxLength));
 
-  	      stream.pipe(fs.createWriteStream(filePath)).on("exit", () => {
-              module.exports.setMetadata(req, res, metadata, filePath).on('exit', function() {
-              res.setHeader('content-type', 'application/octet-stream');
-              res.setHeader('filename', file.name);
-              res.setHeader('approx-length', parseInt(approxLength));
-              fs.createReadStream(filePath).pipe(res).on("error", () => reject(new Error(`Data stream interrupted. File could not be sent for download, refresh directory and locate file to download.`))); // Error catch for file stream to response for download
-              return resolve(true);
-            }).on("error", () => console.log ("The fuck?")); // Error catch for child process
-          }).on("error", (err) => reject(new Error(`Conversion failed. ${file.name} was not created/uploaded`)));
+  	      stream.pipe(fs.createWriteStream(filePath)).pipe(res)
+  	      .on("exit", async () => resolve(true)).on("error", (err) => reject(new Error(`Conversion failed. ${file.name} was not created/uploaded`)));
 // ---------------------------------------------------------------------------------
   	    }).catch( err => {
   	    	Sessions.user(req, req.session).operation = false;

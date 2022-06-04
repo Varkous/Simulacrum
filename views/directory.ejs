@@ -213,41 +213,7 @@
     	        <input id="newName" type="text" name="name" class="input darkcyan" value="" placeholder="File" maxlength="50" required pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used within the file' autocomplete="off">
     		  </div>
 
-          <div class="input-container" style="flex: 20%">
-            <label for="audioOnly" style="font-size: 0.8rem;">Audio Only</label>
-            <input id="audioOnly" type="checkbox" name="audioOnly" class="input" style="width: 85%;">
-          </div>
-
-    	    <button id="convert" type="submit" class="my-button" style="border-width: medium; background: rgb(30,30,40); font-family: 'Allerta Stencil'; color: darkcyan;" hidden>Convert URL</button>
-          <hr>
-          <h3 title="Metadata for converted file (artist name, album, title, etc.), useful for media player organization. Converted files may already hold metadata.">Metadata</h3>
-
-          <div id="convertMetadata" class="input-container form">
-            <p style="color: gray;">Metadata for converted file (artist name, album, title, etc.), useful for media player organization. Converted files may already hold metadata.</p>
-
-            <div class="input-container">
-              <label for="song">Name/Title</label>
-    	        <input id="song" type="text" name="song" class="input darkcyan metadata" value="" maxlength="80" pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used for title name' autocomplete="off">
-            </div>
-            <div class="input-container">
-              <label for="artist">Artist/Creator</label>
-              <input id="artist" type="text" name="artist" class="input darkcyan metadata" value="" maxlength="80" pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used for artist name' autocomplete="off">
-            </div>
-            <div class="input-container">
-              <label for="album">Album/Collection</label>
-              <input id="album" type="text" name="album" class="input darkcyan metadata" value="" maxlength="80" pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used for album name' autocomplete="off">
-            </div>
-            <div class="input-container">
-              <label for="year">Release Year</label>
-              <input id="year" type="text" name="year" class="input darkcyan metadata" value="" maxlength="4" pattern="[0-9]+"  title='Only numbers can be used for album year' autocomplete="off">
-            </div>
-            <div class="input-container">
-              <label for="genre">Genre/Style</label>
-              <input id="genre" type="text" name="genre" class="input darkcyan metadata" value="" maxlength="80" pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used for genre name' autocomplete="off">
-            </div>
-
-          </div>
-
+    	  <button id="convert" type="submit" class="my-button" style="border-width: medium; background: rgb(30,30,40); font-family: 'Allerta Stencil'; color: silver;" hidden>Convert URL</button>
         </form>
 
      </div>

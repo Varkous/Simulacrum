@@ -3,7 +3,7 @@ const {app, path, wrapAsync, fs} = require('../index.js');
 const {VerifyUser, Sessions} = require('../controllers/UserHandling.js');
 const {ReportData, CheckSessionAndURL} = require('../utils/RequestCheckers.js');
 const {EntryToHTML} = require('../utils/Utilities.js');
-const {GetDirectory, GetAllItems, CreateItem} = require('../controllers/FolderProviders.js');
+const {GetDirectory, GetAllItems, CreateItem} = require('../controllers/DirectoryOperations.js');
 
 let partition = process.env.partition || 'public';
 const UsersDirectory = process.env.UsersDirectory || 'users';

@@ -106,12 +106,6 @@ td {
   justify-content: center;
   flex-wrap: wrap;
 }
-#convertMetadata {
-  display: none;
-} #convertMetadata * {
-  font-size: 1rem;
-  align-items: normal;
-}
 .oversize-message {
   background: rgba(0,0,0,0.8);
   border: 1px double orange;

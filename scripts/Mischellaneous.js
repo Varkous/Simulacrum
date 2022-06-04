@@ -241,7 +241,7 @@ function viewImage (img) {
 ===============================================================*/
   $('#convertForm').submit( async function (evt) {
    try {
-		evt.preventDefault();
+	evt.preventDefault();
     let operation = 'Convert';
     let folderChoice = $(FolderInput).val() || CurrentFolder;
 
@@ -254,9 +254,9 @@ function viewImage (img) {
 			// Form Data was not sufficient, difficulties sending to back-end. Manufacture one using input values.
 			$("#audioOnly")[0].value = $("#audioOnly").is(':checked') ? true : '';
 			for (let input of $('#convertForm')[0].elements) {
-				if (input.value) {
-					$(input).hasClass("metadata") ? fileToConvert.metadata[input.name] = input.value : fileToConvert[input.name] = input.value;
-				}
+				if (input.value) 
+				  fileToConvert[input.name] = input.value;
+				
 		  }
 
 			$('#convert').attr('disabled','disabled');
