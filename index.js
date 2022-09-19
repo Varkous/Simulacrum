@@ -1,11 +1,10 @@
 if (process.env.NODE_ENV !== "production") {
   require('dotenv').config();
 }
-const NEW = require('./@NodeExpressAppFrame/N.E.W.js');
-const Website = new NEW();
-//NEW stands for "Node Express Website". Contains all the fundamental libraries that express generally uses
+const Simulacrum = require('./@NodeExpressAppFrame/N.E.W.js');
+//NEW stands for "Node Express Website". Contains all the fundamental libraries that generally come with an exppress application
 
-module.exports = {app, express, path, wrapAsync, fs} = Website;
+module.exports = {app, express, path, wrapAsync, fs} = Simulacrum;
 
 const session = require('cookie-session');
 const child_process = require('child_process');
@@ -95,7 +94,6 @@ process.on('SIGINT', ExitHandler);
 process.on('beforeExit', ExitHandler);
 // ----------------------------------------
 
-
 // CloseServer('Routine server refresh');
 ClearTemp (path.resolve('temp'));
 
@@ -167,12 +165,12 @@ app.get('*', wrapAsync(async (req, res, next) => {
 }));
 // ============================================================
 
-Website.routes.Authentication = require('./routes/auth.js');
-Website.routes.FileViewing = require('./routes/file-viewing.js');
-Website.routes.FileOperations = require('./routes/file-ops.js');
+Simulacrum.routes.Authentication = require('./routes/auth.js');
+Simulacrum.routes.FileViewing = require('./routes/file-viewing.js');
+Simulacrum.routes.FileOperations = require('./routes/file-ops.js');
 
 /*======================================================*/
-Website.routes.BaseHandlers = Website.makeBaseRoutes(process.env.PORT || 3001, 'directory',
+Simulacrum.routes.BaseHandlers = Simulacrum.makeBaseRoutes(process.env.PORT || 3001, 'directory',
 //Normally just put "errorpage" as parameter to create error page, but instead had to pass in function to replace it with alternate functionality'
  app.use(async (err, req, res, next) => {
 

@@ -1,19 +1,17 @@
 /*N.E.W stands for: Node Express Website. It contains the fundamental libraries/frameworks used for making any website with NodeJS and Express.
 Simply import this file, and create a "new" of its class to utilize all these properties, as they will be stored on your new class. Destructure "app" from it for easier use*/
 
-class NEW {
+class ExpressApp {
 
-	constructor(){
-
+	constructor() {
 		this.express = require('express'); //Our framework for handling web responses/requests, designed for NodeJS (a runtime environment/framework)
 		this.app = this.express(); /*Never fully understood why, but we simply create "app" out of the "express" function, using the functionality of the express framework*/
 		this.path = require('path'); //For acknowledging directory/file paths relative to the server file (app.js)
-		let {urlencoded} = require('express'); this.urlencoded = urlencoded; //To identify arrays/strings within request bodies
+		this.urlencoded = this.express.urlencoded; //To identify arrays/strings within request bodies
 		this.ejs = require('ejs'); //Well. So we can see data/information from our server on the pages?
 		this.bodyParser = require('body-parser'); //Well. So we can see data/information from our server on the pages?
 		this.https = require('https');
-		this.fs = require('fs-extra');
-		// this.fs = require('fs');
+		this.fs = require('fs-extra'); // Very essential file systems module for interacting with files/folders in server. Most used module in this app by far.
 
 		const browserTools = [
 			this.urlencoded({extended: true}),
@@ -73,4 +71,4 @@ class NEW {
 		};
 	}; //-------------End of makeBaseRoutes
 } //----------End of Class
-module.exports = NEW;
+module.exports = new ExpressApp();
