@@ -8,7 +8,7 @@
     /* ----------------------------------------- */
       if (performance.navigation.type === performance.navigation.TYPE_RELOAD) { //If page was reloaded
         if (UserSession && UserSession.user.residing && UserSession.user.residing !== '/') {
-          Directory.layers = UserSession.user.residing.split('/') || ['/'];
+          Directory.layers = UserSession.user.residing.split('/') || ['/']; //Find the depth of user within current directory
           CurrentFolder = UserSession.user.residing;
           let dirPath = '/' + Partition + CurrentFolder;
           dismissElement('main', 'Y', 'down', '50%', 600, true);
@@ -21,9 +21,11 @@
 
 
 /*===============================================================
-  This affects the element that is passed in with a transform relocation. Moving it up, down, left or right in the given direction specified by 'axis' and 'direction'. If 'hide' is true, don't rewind its position.
+  Meant to smoothly displace an element off the screen. This affects the element that is passed in with a transform relocation. Moving it up, down, left or right in the given direction specified by 'axis' and 'direction'.  If 'hide' is true, don't rewind its position.
 ===============================================================*/
 function dismissElement (element, axis, direction, duration = '60%', wait = 600, hide) {
+ if (mobile) duration = '0.01';
+
  try {
   return new Promise ( (resolve, reject) => {
   duration = Math.abs(parseInt(duration) / 100);

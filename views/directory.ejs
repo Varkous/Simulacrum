@@ -47,13 +47,11 @@
 <link rel="stylesheet" type="text/css" href="/main.css">
 <link rel="stylesheet" type="text/css" href="/file-list.css">
 <link rel="stylesheet" type="text/css" href="/footer.css">
-<link rel="stylesheet" type="text/css" href="/animations.css">
 <link rel="stylesheet" type="text/css" href="/media-queries.css">
 <link rel="stylesheet" href="/body-logo.css">
 <link rel="stylesheet" href="/error-block.css">
-<% if (UserSession && UserSession.mobile) {%>
-  <link rel="stylesheet" href="/mobile.css">
-<% } %>
+<link rel="stylesheet" type="text/css" href="/animations.css">
+
 <!-- ======================================================================= -->
 
 <title>Simulacrum</title>
@@ -220,9 +218,10 @@
 
     	    <button id="convert" type="submit" class="my-button" style="border-width: medium; background: rgb(30,30,40); font-family: 'Allerta Stencil'; color: darkcyan;" hidden>Convert URL</button>
           <hr>
-          <h3 title="Metadata for converted file (artist name, album, title, etc.), useful for media player organization. Converted files may already hold metadata.">Metadata</h3>
 
           <div id="convertMetadata" class="input-container form">
+            <h1 title="Metadata for converted file (artist name, album, title, etc.), useful for media player organization. Converted files may already hold metadata." class="d-flex" style="justify-content: center">Metadata</h1>
+
             <p style="color: gray;">Metadata for converted file (artist name, album, title, etc.), useful for media player organization. Converted files may already hold metadata.</p>
 
             <div class="input-container">
@@ -493,6 +492,7 @@
 <script type="text/javascript" src="/DirectoryControl.js"></script>
 <!-- ================ -->
 <script text="text/javascript">
+if (mobile) document.write('<link rel="stylesheet" type="text/css" href="/mobile.css">');
 let PrimaryDirectories = <%-JSON.stringify(PrimaryDirectories)%>; //Used only by 'displayDirectoryStats', contains info of all the PRIMARY directories listed at top of page.
 let Directory = <%-JSON.stringify(directory)%> || {};
 let CurrentFolder = ''; //Same as Directory.name

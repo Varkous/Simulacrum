@@ -1,6 +1,7 @@
 'use strict';
 
 const {pathfinder, namefinder, getFileSize, checkModeType, parseHTML, accumulateSize} = helpers;
+// General "helpers" utilized by both back-end and front-end. Including calculating file sizes, querying names, and translating HTML strings into DOM.
 const allExtensions =  [
   '.bat','.apk','.com','.jpg','.jpeg','.exe','.doc','.docx','.docm','.rpp','.html','.z','.pkg','.jar','.py','.aif','.cda','.iff','.mid','.mp3','.flac','.wav','.wpl','.avi','.flv','.h264','.m4v','.mkv','.mov','.mp4','.mpg','.rm','.swf','.vob','.wmv','.3g2','.3gp','.doc','.odt','.msg','.pdf','.tex','.txt','.wpd','.ods','.xlr','.xls','.xls','.key','.odp','.pps','.ppt','.pptx','.accdb','.csv','.dat','.db','.log','.mdbdatabase','.pdb','.sql','.tar','.bak','.cabile','.cfg','.cpl','.cur','.dll','.dmp','.drve','.icns','.ico','.inile','.ini','.info','.lnk','.msi','.sys','.tmp','.cer','.ogg','.cfm','.cgi','.css','.htm','.js','.jsp','.part','.odb','.php','.rss','.xhtml','.ai','.bmp','.gif','.jpeg','.max','.obj','.png','.ps','.psd','.svg','.tif','.3ds','.3dm','.cpp','.h','.c','.C','.cs','.zip','.rar','.7z'
 ];
@@ -42,6 +43,7 @@ if (oversize) {
 //Very crucial component. This is what updates file table and panel listing real-time to mimic the back-end file storage of the given directory. This adjusts list elements, file card elements, Directory.files object, and the count numbers within the button actions on basically every single user operation (selecting, renaming, transferring, deleting, and uploading)
 /*========================================================*/
 class File_Status_Adjuster {
+  //-----------------------------------------
   constructor(status, listings, count = []) {
     this.status = status;
     this.listings = listings;
@@ -297,7 +299,7 @@ function showNavbar (evt) { //Displays Navbar and adds nice lighting effect
 
 
 /*===============================================================
-  Triggered when the user clicks either Download or Download All. It sends a post request to /zip/<folder name> which creates a zip, finds every file within the given folder name requested, packages them INTO the zip, before returning it as a download response back to the user.
+  Triggered when the user clicks either Download or Download All. It sends a post request to /zip/<folder name> on the server which creates a zip, finds every file within the given folder name requested, packages them INTO the zip, before returning it as a download response back to the user.
 ===============================================================*/
 async function downloadFiles (fileCard) {
 
@@ -344,8 +346,7 @@ if (mobile) {
 
 
 /*===============================================================
-  Called upon when download request is returned. Takes the response and creates object URLs out of the blob data received (if successful), if desktop: It will be a zip. If on mobile, don't even do a request, and instead use 'data'
-  which references file names and download them individually from server. If response is an error, redirect from page.
+  Called upon when download request is returned. Takes the response and creates object URLs out of the blob data received (if successful), if desktop: It will be a zip. If on mobile, don't even do a request, and instead use 'data' which references file names and download them individually from server. If response is an error, redirect from page.
 ===============================================================*/
 async function activateDownloads (res, op, data) {
  try {
