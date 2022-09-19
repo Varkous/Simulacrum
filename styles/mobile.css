@@ -1,9 +1,12 @@
+:root {
+  --animSpeed: 0s; /*General animation speed*/
+}
 .fadeout {
-  transition: all 1s ease;
+  transition: all 0s ease;
   opacity: 0;
 }
 .fadein {
-  transition: all 1s ease;
+  transition: all 0s ease;
   opacity: 1.0;
 }
 .column.selected {

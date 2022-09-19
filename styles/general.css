@@ -17,6 +17,7 @@
   --cardPosition: 0; /* Used when files are deleted, to move them from and back to correct position */
   --dragtop: 0; /*Tracks Y spawn of drag-select-box*/
   --dragleft: 0; /*Tracks X spawn of drag-select-box*/
+  --animSpeed: 1s; /*General animation speed*/
 }
 ::-webkit-scrollbar {
   width: 16px;
@@ -270,7 +271,7 @@ button {
   content: attr(data-after);
   border: 1px double gray;
   background: rgba(0,0,0,0.9);
-  color: #A9A9A9;
+  color: deepskyblue;
   font-family: monospace;
   cursor: help;
   z-index: 11 !important;
@@ -278,7 +279,7 @@ button {
 
   position: absolute;
   padding: 6px;
-  min-width: 280px;
+  min-width: 120px;
   font-size: 1.1rem;
 } .info.info-up:hover::after {
   content: attr(data-after);

@@ -1,28 +1,26 @@
 /* ----------------------------- */
 /* Static classes */
+
 .offscreen { transform: translateX(150%); }
 .hide { display: none; }
 .d-flex { display: flex; }
-
-
-
 
 /* -------------------- */
 /* Class animation-triggers */
 .steady-glow { animation: steady-glow 2.5s forwards infinite; }
 .fadeout {
-  transition: all 1s ease;
+  transition: all var(--animSpeed) ease;
   opacity: 0;
   transform: scale(0) !important;
 }
 .fadein {
-  transition: all 1s ease;
+  transition: all var(--animSpeed) ease;
   opacity: 1.0;
   transform: scale(1.0);
 }
 .shift-over {
   font-size: 1.6rem !important;
-  transition: all 1s ease;
+  transition: all var(--animSpeed) ease;
   padding: 15px;
   max-width: 400px;
   width: 400px;
@@ -30,10 +28,10 @@
 .absolute {
   position: absolute;
 }
-.move { animation: moveAside 1s forwards; }
-.moveUp { animation: moveUpOrDown 1s normal; }
-.moveDown { animation: moveUpOrDown 1s reverse; }
-.start-download { animation: startDownload 1s normal; }
+.move { animation: moveAside var(--animSpeed) forwards; }
+.moveUp { animation: moveUpOrDown var(--animSpeed) normal; }
+.moveDown { animation: moveUpOrDown var(--animSpeed) reverse; }
+.start-download { animation: startDownload var(--animSpeed) normal; }
 /* -------------------- */
 @keyframes steady-glow {
   0% {
@@ -66,7 +64,7 @@
   10% {box-shadow: 1px 2px 5px 4px darkcyan;}
   20% {box-shadow: 1px 2px 10px 4px darkcyan;}
   30% {box-shadow: 1px 2px 15px 4px darkcyan;}
-  40% {box-shadow: 1px 2px 20px 4px darkcyan;} 
+  40% {box-shadow: 1px 2px 20px 4px darkcyan;}
   50% {box-shadow: 1px 2px 25px 4px darkcyan;}
   60% {box-shadow: 1px 2px 30px 4px darkcyan;}
   70% {box-shadow: 1px 2px 35px 4px darkcyan;}

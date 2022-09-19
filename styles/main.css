@@ -109,7 +109,7 @@ td {
 #convertMetadata {
   display: none;
 } #convertMetadata * {
-  font-size: 1rem;
+  /* font-size: 1rem; */
   align-items: normal;
 }
 .oversize-message {

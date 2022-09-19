@@ -1,10 +1,11 @@
+
 .logo {
   background: rgb(20, 20, 100);
   border-radius: 50%;
-  box-shadow: 1px 2.8px 12.2px 3px #22a0f9, 
-  1px 6.7px 25.3px #22a0f9, 
-  inset 1px 12.5px 10px #22a0f9, 
-  inset 1px 51.8px 33.4px rgb(0 0 0 / 70%), 
+  box-shadow: 1px 2.8px 12.2px 3px #22a0f9,
+  1px 6.7px 25.3px #22a0f9,
+  inset 1px 12.5px 10px #22a0f9,
+  inset 1px 51.8px 33.4px rgb(0 0 0 / 70%),
   inset 1px -21.8px 33.4px #22a0f9;
 
   position: fixed;
@@ -15,10 +16,10 @@
   z-index: 8;
 } .logo:hover {
   background: rgb(220, 240, 255);
-  box-shadow: 1px 2.8px 32.2px 3px #22a0f9, 
-  1px 6.7px 25.3px #22a0f9, 
-  inset 1px 12.5px 10px #22a0f9, 
-  inset 1px 51.8px 33.4px rgb(0 0 0 / 70%), 
+  box-shadow: 1px 2.8px 32.2px 3px #22a0f9,
+  1px 6.7px 25.3px #22a0f9,
+  inset 1px 12.5px 10px #22a0f9,
+  inset 1px 51.8px 33.4px rgb(0 0 0 / 70%),
   inset 1px -21.8px 33.4px #22a0f9;
   /*box-shadow: 1px 12.8px 12.2px #22a0f9,*/
   /*1px 6.7px 5.3px #22a0f9,*/
@@ -28,7 +29,7 @@
   /*inset 1px 5px 7px 9px #22a0f9,*/
   /*1px 10px 80px rgb(240, 240, 255);*/
 
-  transition: transform 1s ease;
+  transition: transform var(--animSpeed) ease;
 }
 nav::-webkit-scrollbar { display: none; }
 nav {
@@ -36,9 +37,9 @@ nav {
   border-radius: 50px;
   border: 1px double gray;
 
-  transition: all 1s ease-in-out;
+  transition: all var(--animSpeed) ease-in-out;
   overflow: scroll;
-    display: flex;
+  display: flex;
   font-size: 0rem;
   flex-direction: column;
   top: 110px;
@@ -50,7 +51,7 @@ nav {
   max-width: 400px;
   width: 0px;
 } nav:hover {
-  transition: all 1s ease;
+  transition: all var(--animSpeed) ease;
   font-size: 1.2rem;
   padding: 15px;
   max-width: 400px;
@@ -59,7 +60,7 @@ nav {
 .navlink {
   background-color: rgba(60,60,60,0.5);
   font-family: 'Courier New';
-  transition: transform 1s ease;
+  transition: transform var(--animSpeed) ease;
 
   font-size: 1.3rem;
   width: 90%;
@@ -124,10 +125,10 @@ nav {
   overflow-y: scroll;
   border: 2px double gray;
   transition: all 1s ease-in-out;
-    
+
   position: fixed;
   z-index: 7;
-  
+
   padding: 8px;
   display: flex;
   max-height: 100%;
@@ -139,7 +140,7 @@ nav {
 
 } #MessageLog h1 {
   font-size: 1.2rem;
-  font-family: emoji;	
+  font-family: emoji;
   word-break: break-word;
   width: 80vw;
 } #MessageLog span {
