@@ -2,7 +2,7 @@
 const {Sessions} = require('./UserHandling.js');
 const {ReportData} = require('../utils/RequestCheckers.js');
 const {CapArraySize, CheckIfTransfer, EntryToHTML, WriteLogFilter} = require('../utils/Utilities.js');
-const {GetFolderSize} = require('./FolderProviders');
+const {GetFolderSize} = require('./DirectoryOperations');
 const {checkModeType, getFileSize} = require('../scripts/Helpers.js');
 const {fs, path} = require('../index.js')
 const child_process = require("child_process");
@@ -24,7 +24,7 @@ module.exports = {
   /*===============================================================*/
   AccessDirectory: async function (req, res, next) {
 
-	  if (req.reject) return false;
+	if (req.reject) return false;
     let directory = req.params.folder + req.params[0];
     let partition = req.session.home || process.env.partition;
     let user = req.session.user;
@@ -234,7 +234,7 @@ ZipAndDownload: async function (req, res, files, userDir) {
           items: files.map( file => file.missing)
         });
       // ---------------------------------------------------------
-    } else return new Promise( function (resolve, reject) {
+    } else return new Promise( async function (resolve, reject) {
           const zipOptions = fs.existsSync(`${userDir}/Files.tar`) //If the zip file already exists
           ? `u -sdel -uz0 -so -r -mx1 ${userDir}/Files.tar * -x!*.tar` //Update archive
           // Update > Delete after > Ignore if file already archive > Stream Output > Recursive > Compression LVl 1 > Zip Name > All Files > That are not a .tar file
@@ -242,7 +242,8 @@ ZipAndDownload: async function (req, res, files, userDir) {
           // Add > (Rest of switches are same as above update command)
 
         const stream = child_process.spawn('7z', zipOptions.split(' '), {cwd: userDir, detached: true, encoding: 'buffer'});
-        res.setHeader('Bullshit', GetFolderSize(req, userDir, 0) * 75 / 100); // This is basically bullshit, an approximation of the time it will take to complete download. Compression time could not be reliably streamed
+        let approxSize = await GetFolderSize(req, userDir, 0);
+        res.setHeader('Bullshit', approxSize * 75 / 100); // This is basically bullshit, an approximation of the time it will take to complete download. Compression time could not be reliably streamed
 
         stream.stdout.pipe(res).on("finish", () => { // We never really create the zip back-end, we actually pipe the entire output/download it simultaneously
           let downloaded = CapArraySize(files.filter( file => file.copied).map( file => file.name))

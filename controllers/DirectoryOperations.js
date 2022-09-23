@@ -32,11 +32,11 @@ module.exports = {
 	        if (checkModeType(filestats.mode) === 'folder') {
 	 		      subfolders.push(items[i]);
 	 		      items.splice(i, 1);
-	        } /*Then it can't BE a file, so --*/
+	        } // Then it can't BE a file, so
 
 	      }; //End of second For Loop
 	    // ------------------------------------------------ //
-	      dirstats.size = module.exports.GetFolderSize(req, `${home}/${directory}`, 0) || 1;
+	      dirstats.size = await module.exports.GetFolderSize(req, `${home}/${directory}`, 0) || 1;
 	      return resolve({
 	        name: directory,
 	        stats: dirstats,
@@ -174,20 +174,32 @@ module.exports = {
 
   /*===============================================================*/
   GetFolderSize: function (req, directory, size) { //This function can call ITSELF and create a cascading call-return of whatever is passed in. It's used solely to get the size of all files in every directory and SUBDIRECTORY passed in, which can lead to calls upon calls upon calls.
-    try {
-      let directorySize = size || 0;
-      let dirFiles = fs.readdirSync(directory);
+   
+   return new Promise( (resolve, reject) => { 
+   	    child_process.spawn("du", ['-s', '-b', directory]).stdout.on('data', function(data) {
+	      console.log(parseInt(data.toString()));
+	      resolve(parseInt(data.toString()));
+	    }).on('error', (error) => {console.log(error); reject(error)});
+	    // resolve(1);
+   });
 
-      dirFiles.forEach( function (dirfile) {
-        if (fs.statSync(`${directory}/${dirfile}`).isDirectory()) {
-          //If one of the "files" of the directory is actually another directory, we just restart the process
-          directorySize = module.exports.GetFolderSize(req, `${directory}/${dirfile}`, directorySize);
-        } else {
-          directorySize += fs.statSync(`${directory}/${dirfile}`).size;
-        }
-      });
-      return directorySize;
-    } catch (error) { console.log(error);}
+	// ------------------------------ IMPORTANT! Above codeblock only works on Linux. If on Windows or a non-Linux OS, uncomment the below codeblock, and remove all "await" that proceed any calls to GetFolderSize (one above in GetPrimaryDirectories, and one in FileControllers.js)
+    // try {
+    //   let directorySize = size || 0;
+    //   let dirFiles = fs.readdirSync(directory);
+
+    //   dirFiles.forEach( function (dirfile) {
+    //     if (fs.statSync(`${directory}/${dirfile}`).isDirectory()) {
+    //       //If one of the "files" of the directory is actually another directory, we just restart the process
+    //       directorySize = module.exports.GetFolderSize(req, `${directory}/${dirfile}`, directorySize);
+    //     } else {
+    //       directorySize += fs.statSync(`${directory}/${dirfile}`).size;
+    //     }
+    //   });
+    //   return directorySize;
+    // } catch (error) { console.log(error);}
+    // ------------------------------
+    
   }, //-------End of: Get folder size
   /*===============================================================*/
 

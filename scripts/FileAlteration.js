@@ -154,7 +154,7 @@ initiateTransfer = async function (items, destination, copy) {
       return false;
   });
 };
-}
+} // End of If oversize
 
 
 /*===============================================================
