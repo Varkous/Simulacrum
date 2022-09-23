@@ -9,6 +9,7 @@ const {checkModeType} = require('../scripts/Helpers.js');
 
 const axios = require('axios');
 const ytdl = require('ytdl-core');
+console.log(ytdl);
 const mime = require('mime-types');
 const child_process = require("child_process");
 
@@ -107,15 +108,21 @@ module.exports = {
   	    if (!contentLength) return reject(new Error(`File info could not be parsed, conversion rejected. Try using file address source, or a different URL`));
   	    res.setHeader('content-type', 'application/octet-stream');
         res.setHeader('content-length', contentLength);
-        res.setHeader('filename', file.name); 
+        res.setHeader('filename', file.name + ".mp4"); 
 
-        ytdl(url).pipe(fs.createWriteStream(filePath)).on("finish", async () => resolve(true)).on("error", (err) => { // Error catch for youtube downloader/file creating write stream
+        ytdl(url).pipe(fs.createWriteStream(filePath)).on("finish", async (data) => { // Create file at desginated location
+        	fs.chownSync(filePath, req.session.user.uid, 100);
+        	console.log("Done?", data);
+        	resolve(true);
+        }).on("error", (err) => { // Error catch for youtube downloader/file creating write stream
           Sessions.user(req, req.session).operation = false;
+          console.log("No?");
           reject(new Error(`Conversion failed. ${file.name} was not created/uploaded`));
-        }).pipe(res).on("finish", async () => resolve(true)).on("error", (err) => { // Error catch for youtube downloader/file creating write stream
+        });
+        ytdl(url).pipe(res).on("finish", async () => resolve(true)).on("error", (err) => { // Error catch for youtube streaming file to download
           Sessions.user(req, req.session).operation = false;
           reject(new Error(`Download stream failed, reload directory and locate file for download`));
-        }); // Create file at desginated location
+        }); 
 
 // ---------------------------------------------------------------------------------
   	  } else { // This could be an image, some audio file, or video from various other sites.
@@ -186,7 +193,7 @@ module.exports = {
 	    if (failed.length || denied.length) result = uploaded.length ? 'warning' : 'error'
 
 	    let conditionalMessage = `${uploadedNames.length ? 'Uploaded: ' + uploadedNames.join('') + '</span>' : ''} ${newfolders.length ? `along with ${newfolders.length} folders` : ''}<hr> ${denied.length ? denied.join('') + '<br>Was cancelled. Already exist under another user<hr>' : ''} ${failed.length ? failed.join('') + '</span> Failed to upload, may have been altered or do not exist<hr>' : ''}`
-      // Behold. The power of string template literals and the terenary operator.
+      // Behold. The unhinged power of string template literals and the terenary operator.
 	// --------------------------------------------------------------------------
 	    return ReportData (req, res, false, {
 	      content: [conditionalMessage], //This giant mess of a content message is simply for aesthetic purposes and clarity on the client side. Depending on differing results between all file uploads, each outcome displays different message
