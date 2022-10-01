@@ -65,7 +65,7 @@ module.exports = {
   	let LoginAttempts;
 
   	if (req.session) {
-  	  if (req.session.loginAttempts && req.session.loginAttempts >= 2) {
+  	  if (req.session.loginAttempts && req.session.loginAttempts >= 4) {
   	  //Technically it's 3, the first login attempt sets it to null (0) rather than 1 for some reason
   	    req.session.loginAttempts ++;
 
@@ -78,8 +78,11 @@ module.exports = {
   	  else LoginAttempts = {count: 0, message: ''};
 
   	  if (req.session.user) {
-  	  	req.session = null;
-  	  	await Sessions.terminate(req);
+  	  	console.log("First", Sessions.user(req));
+        await Sessions.terminate(req);
+        console.log("Second", Sessions.user(req));
+  	    // req.session = null;
+  	    // Sessions.user(req).loggedIn = false;  	  	
   	  }
 
   	  return res.render('login', {LoginAttempts, Server});
@@ -107,8 +110,10 @@ module.exports = {
   signout: app.get('/signout', wrapAsync( async (req, res, next) => {
 
     if (req.session.user) {
-
-      await Sessions.terminate(req);;
+      await Sessions.terminate(req, Sessions.user(req));
+      console.log("terminated fucker");
+  	  //req.session = null;
+  	  //Sessions.user(req).loggedIn = false;
       return res.redirect('/login');
     }
 

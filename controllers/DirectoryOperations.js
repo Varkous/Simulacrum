@@ -19,7 +19,7 @@ module.exports = {
 	    //Then it's a hidden/reserved/special folder
 
 		  const dirstats = fs.statSync(`${home}/${directory}`);
-	    let subfolders = [];
+	      let subfolders = [];
 	    //Grabbing sub-directories along with the stats and items within the given directory
 
 	    fs.readdir(`${home}/${directory}`, async (err, items) => {
@@ -118,6 +118,7 @@ module.exports = {
   /*===============================================================*/
   GetAllItems: function (directory, collected, searchfolder, req, all) { //Very similar to GetFolderSize, except it stores all the stats rather than just "size", and disregards any folder/file that does have the given UID.
   //Also like the pre-mentioned function, it builds on itself, doing internal calls until all files/folders are filtered out and stored properly.
+  
     let partition = req ? req.session.home : process.env.partition;
     let moreItems = collected || []; //This builds with each call to this function ('GetAllItems')
 
@@ -133,7 +134,7 @@ module.exports = {
             //If it's a directory, we will build on the previous directory and call this function again. All the way until (depending on parameters), we find a folder (searchfolder param), or we get an actual file (file search)
 
             if (dirPath.includesAny('#', '$', '@') || directory.includesAny('#', '$', '@'))
-              return resolve(false); //Then it's a hidden/reserved/special folder
+              return resolve(''); //Then it's a hidden/reserved/special folder
 
             if (searchfolder) { //If searchfolder is true, we're querying for folders, and don't want files
               if (dirPath.toLowerCase().includes(searchfolder.toLowerCase()))//Lower case it, no need to be uptight here
@@ -146,10 +147,10 @@ module.exports = {
           else { //If not a directory and we're not searching/querying folders, we're looking for files
             let maxfiles = req.mobile ? 100 : 500;
             req.session.index += 1; //Every file iterated increments this
-            // if (req.body.index && req.session.index < (req.body.index * maxfiles) || moreItems.length === maxfiles) {
-            if (req.body.index && req.session.index < (req.body.index * maxfiles) || moreItems.length >= maxfiles) {
+    
+            if (req.body.index && req.session.index < (req.body.index * maxfiles) || moreItems.length >= maxfiles) 
               return resolve(moreItems);
-            } //The indexing is to locate which "bunch/set" of files to query. Each body index represents a new set of 500 files. 0 = the first 500, 1 = ignores first 500 uses next 500, 2 = ignores first 1000, etc.
+            //The indexing is to locate which "bunch/set" of files to query. Each body index represents a new set of 500 files. 0 = the first 500, 1 = ignores first 500 and pulls next 500, 2 = ignores first 1000, etc.
             let file = {
               name: item,
               path: directory.replace(partition + '/', ''), //When its stored, partition path no longer needed
@@ -166,8 +167,8 @@ module.exports = {
 
     return Promise.all(foundItems).then( () => {
       resolve(moreItems);
-    });
-  });
+    }).catch(err => console.log(err, "Get all items failed"));
+  })
 
   }, //-------End of: Get stats of User with given ID
   /*===============================================================*/
@@ -177,7 +178,7 @@ module.exports = {
    
    return new Promise( (resolve, reject) => { 
    	    child_process.spawn("du", ['-s', '-b', directory]).stdout.on('data', function(data) {
-	      console.log(parseInt(data.toString()));
+
 	      resolve(parseInt(data.toString()));
 	    }).on('error', (error) => {console.log(error); reject(error)});
 	    // resolve(1);
@@ -205,20 +206,28 @@ module.exports = {
 
   /*===============================================================*/
   GetChildren: function (dirPath) {
-    if (fs.statSync(dirPath).isDirectory()) {
+  		
+	  if (fs.statSync(dirPath).isDirectory()) {
+
       const items = {files: [], folders: []};
+      
       return new Promise( (resolve, reject) => {
         fs.readdir(dirPath, (error, children) => {
-          for (let child of children) {
-            fs.statSync(`${dirPath}/${child}`).isDirectory()
-            ? items.folders.push(child)
-            : items.files.push(child);
-          }
-          return resolve(items);
+        	
+          
+          
+            for (let child of children) {
+            	if (fs.statSync(`${dirPath}/${child}`).isDirectory()) {
+            	  if (`${dirPath}/${child}`.includesAny('#', '$', '@')) items.folders.push(child); //Then it's a hidden/reserved/special folder
+            	} else items.files.push(child);
+              
+            }
+            
+            return resolve(items);
+          });
         });
-      });
-    } else return null;
-
+      } else return null;
+ 
   },
   /*===============================================================*/
 
