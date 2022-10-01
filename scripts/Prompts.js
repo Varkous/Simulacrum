@@ -178,7 +178,7 @@ function showOperation (op, operands = []) {
   $('.operation-status').prepend(newProgress);
     if (op === 'Delete') gerund = 'Delet'
     if (op === 'Transfer') gerund = op + 'r'
-    //Good grammar is some priority right?
+    // Proper grammar is some priority right?
    $('.fs-modal-message').append(newProgress + `<div class="${op}"><br>${gerund}ing files...<hr></div>`);
    $(`.progress.${op}`).attr('data-before', op);
    return true;

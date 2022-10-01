@@ -288,7 +288,8 @@ async function findAllFiles (evt, index) {
     if (!Directory.files || index !== undefined) { //Then we are not in a directory
     	
       Directory.index = Math.min(Math.max(index !== undefined ? index : Directory.index, 0), Directory.maxindex || 1); //Directory index cannot go below 0, or surpass the maxindex
-	  $('#fetchFiles').hide();
+	  $('.fetch-files').hide();
+	  
 	  
 	  // --------------------------------------------------------------------
       axios({
@@ -298,7 +299,7 @@ async function findAllFiles (evt, index) {
       	cancelToken: new CancelToken( (c) => Requests.General = c),
       }).then( async (res) => {
 
-		$('#fetchFiles').show();
+		$('.fetch-files').show();
         if (await checkForServerError(res) || Directory.creator) //If server error, or if user switched to a directory when response arrives
           return false;
 
@@ -306,13 +307,13 @@ async function findAllFiles (evt, index) {
 
         if (Directory.files.length >= maxfiles) {
           Flash([`Will not display more than`, `files at a time. Request next file set in navbar to retrieve more. This will replace the current file set`], 'warning', [maxfiles]);
-          $('#fetchFiles').show();
+          $('.fetch-files').show();
         } else if (!Directory.maxindex) {
-          $('#fetchFiles').hide();
+          $('.fetch-files').hide();
         }
  
-        Directory.index === Directory.maxindex && Directory.index > 0 ? $('#nextAll').hide() : $('#nextAll').show(); //If current index (last file pack) matches last index
-        Directory.index === 0 ? $('#prevAll').hide() : $('#prevAll').show(); // If it's 0, there's no "previous" to go back to
+        Directory.index === Directory.maxindex && Directory.index > 0 ? $('.next-all').hide() : $('.next-all').show(); //If current index (last file pack) matches last index
+        Directory.index === 0 ? $('.prev-all').hide() : $('.prev-all').show(); // If it's 0, there's no "previous" to go back to
 
         listDirectoryContents(event);
 // --------------------------------------------------------------------

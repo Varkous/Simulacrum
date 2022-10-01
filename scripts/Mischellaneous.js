@@ -249,15 +249,14 @@ function viewImage (img) {
       return Flash('No folder targeted for upload destination, check input', 'error');
 // ------------------------------------------------------
     else if (await showOperation(operation)) {
-			let fileToConvert = {metadata: {}}
+			let fileToConvert = {}
 
 			// Form Data was not sufficient, difficulties sending to back-end. Manufacture one using input values.
-			$("#audioOnly")[0].value = $("#audioOnly").is(':checked') ? true : '';
 			for (let input of $('#convertForm')[0].elements) {
 				if (input.value) 
 				  fileToConvert[input.name] = input.value;
 				
-		  }
+		    }
 
 			$('#convert').attr('disabled','disabled');
 // ------------------------------------------------------
@@ -276,7 +275,7 @@ function viewImage (img) {
 	    	}
 // ------------------------------------------------------
       }).then( async (res) => {
-				$('#convert').removeAttr('disabled');
+		$('#convert').removeAttr('disabled');
 
         if (await checkForServerError(res, operation))
           return false;
@@ -291,11 +290,10 @@ function viewImage (img) {
           triggerLink(downloadUrl, filename);
       	}
       }).catch( (error) => {
-				$('#convert').removeAttr('disabled');
-        Requests.cancel('Convert');
-        if (axios.isCancel(error))
-          Flash(operation + ' aborted', 'warning');
-	    	else Flash([error.message], 'error');
+		$('#convert').removeAttr('disabled');
+          Requests.cancel('Convert');
+          if (axios.isCancel(error)) Flash(operation + ' aborted', 'warning');
+	      else Flash([error.message], 'error');
           return false;
       });
 // ------------------------------------------------------
@@ -305,9 +303,9 @@ function viewImage (img) {
 //===============================================================
 $('.convert-name input').on('input', function () {
 	$('#convert').show();
-	$('#convertMetadata').show();
-	if (!this.value.length) {
-		$('#convert').hide();
-		$('#convertMetadata').hide();
-	}
+	if (!this.value.length) $('#convert').hide();
 });
+$('#convertShow').click( () => hideOrShow("#convertForm"));
+
+
+
