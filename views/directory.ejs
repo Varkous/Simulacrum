@@ -106,10 +106,32 @@
         <a class="view-dir"href="/">View Target Folder</a>
       </button>
 
-      <button id="fetchFiles" class="navlink d-flex" hidden>
-        <a href="#" id="prevAll" onclick="findAllFiles(event, Directory.index - 1)"><i class="fa fa-arrow-left"></i> Prev File Set</a>
-        <a href="#" id="nextAll" onclick="findAllFiles(event, Directory.index + 1)">Next File Set<i class="fa fa-arrow-right"></i></a>
+      <button class="fetch-files navlink d-flex hide" hidden>
+        <a href="#" class="prev-all" onclick="findAllFiles(event, Directory.index - 1)"><i class="fa fa-arrow-left"></i> Prev File Set</a>
+        <a href="#" class="next-all" onclick="findAllFiles(event, Directory.index + 1)">Next File Set<i class="fa fa-arrow-right"></i></a>
       </button>
+
+     <div style="margin-left: 8px;">
+	  <button id="convertShow" title="Paste a URL from an image/audio/video source, then click Convert to upload/create it within target folder" class="navlink">
+	    <i class="fa fa-external-link-alt" style="font-size: 0.8rem;"></i>
+  	    <a href="#">URL Converter</a>
+  	  </button>
+	 
+        <form id="convertForm" action="/convert/<%=directory.name%>" method="post" enctype="multipart/form-data" class="modal" title="Paste a URL or source address from an image, audio or video to replicate it into this folder">
+            <div class="input-container" style="flex: 40%">
+              <label for="url">Source URL</label>
+              <input id="url" type="text" name="url" class="input" style="width: 85%;" value="" placeholder="https://example.com/source">
+            </div>
+
+  		    <br>
+    		<div class="input-container convert-name" style="flex: 40%">
+    	      <label for="name">File Name</label>
+    	      <input id="newName" type="text" name="name" class="input darkcyan" value="" placeholder="File" maxlength="50" required pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used within the file' autocomplete="off">
+    		</div>
+    		<hr>
+      	  <button id="convert" type="submit" hidden>Convert</button>
+        </form>
+      </div>    
 
       <button id="openLog" class="navlink show-modal">
         <i class="fa fa-clipboard" style="font-size: 0.8rem;"></i>
@@ -197,57 +219,6 @@
       </table>
 <!--------------------------------------------------------------------------------------------------------->
   	 <hr>
-	      <h1 id="convertShow" title="Paste a URL from an image/audio/video source, then click Convert to upload/create it within target folder">URL Converter</h1>
-        <form id="convertForm" class="input-container form" action="/convert/<%=directory.name%>" method="post" enctype="multipart/form-data" title="Paste a URL or source address from an image, audio or video to replicate it into this folder">
-
-          <div class="input-container" style="flex: 40%">
-            <label for="url">Source URL</label>
-            <input id="url" type="text" name="url" class="input" style="width: 85%;" value="" placeholder="https://example.com/source">
-          </div>
-
-  		  <br>
-    		  <div class="input-container convert-name" style="flex: 40%">
-    	        <label for="name">Custom Name</label>
-    	        <input id="newName" type="text" name="name" class="input darkcyan" value="" placeholder="File" maxlength="50" required pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used within the file' autocomplete="off">
-    		  </div>
-
-          <!--<div class="input-container" style="flex: 20%">-->
-          <!--  <label for="audioOnly" style="font-size: 0.8rem;">Audio Only</label>-->
-          <!--  <input id="audioOnly" type="checkbox" name="audioOnly" class="input" style="width: 85%;">-->
-          <!--</div>-->
-
-    	    <button id="convert" type="submit" style="padding: 8px; min-width: 120px; font-family: 'Allerta Stencil'; font-weight: 700;" hidden>Convert</button>
-          <hr>
-
-          <div id="convertMetadata" class="input-container form">
-            <h1 title="Metadata for converted file (artist name, album, title, etc.), useful for media player organization. Converted files may already hold metadata." class="d-flex" style="justify-content: center">Metadata</h1>
-
-            <p style="color: gray;">Metadata for converted file (artist name, album, title, etc.), useful for media player organization. Converted files may already hold metadata.</p>
-
-            <div class="input-container">
-              <label for="song">Name/Title</label>
-    	        <input id="song" type="text" name="song" class="input darkcyan metadata" value="" maxlength="80" pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used for title name' autocomplete="off">
-            </div>
-            <div class="input-container">
-              <label for="artist">Artist/Creator</label>
-              <input id="artist" type="text" name="artist" class="input darkcyan metadata" value="" maxlength="80" pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used for artist name' autocomplete="off">
-            </div>
-            <div class="input-container">
-              <label for="album">Album/Collection</label>
-              <input id="album" type="text" name="album" class="input darkcyan metadata" value="" maxlength="80" pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used for album name' autocomplete="off">
-            </div>
-            <div class="input-container">
-              <label for="year">Release Year</label>
-              <input id="year" type="text" name="year" class="input darkcyan metadata" value="" maxlength="4" pattern="[0-9]+"  title='Only numbers can be used for album year' autocomplete="off">
-            </div>
-            <div class="input-container">
-              <label for="genre">Genre/Style</label>
-              <input id="genre" type="text" name="genre" class="input darkcyan metadata" value="" maxlength="80" pattern="[A-Za-z0-9 )_(-]+"  title='Only numbers, letters, and the symbols: "-_ " can be used for genre name' autocomplete="off">
-            </div>
-
-          </div>
-
-        </form>
 
      </div>
     	<% if (totalsize > UserSession.maxsize) {%>
@@ -287,7 +258,7 @@
           </div>
 
           <span id="inputQuestion" title="Information on folder submission" type="button">
-          <i class="fa fa-info-circle"></i>
+            <i class="fa fa-info-circle"></i>
           </span>
 
           <div id="folderInfo">
@@ -340,6 +311,11 @@
           </div>
 
            <button id="submit" class="my-button blue">SUBMIT <span class="staged-count"></span></button>
+           
+           <button class="fetch-files navlink d-flex" hidden>
+              <a href="#" class="prev-all" onclick="findAllFiles(event, Directory.index - 1)"><i class="fa fa-arrow-left"></i> Prev File Set</a>
+              <a href="#" class="next-all" onclick="findAllFiles(event, Directory.index + 1)">Next File Set<i class="fa fa-arrow-right"></i></a>
+           </button>
 
           <div id="folderSuggestions">
           </div>

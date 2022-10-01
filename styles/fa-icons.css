@@ -33,6 +33,10 @@
 .fa-edit:before {content: "\f044"; }
 .fa-eye:before {content: "\f06e"; }
 .fa-eye-slash:before {content: "\f070"; }
+.fa-external-link-alt:before {
+  content: "\f35d"; }
+.fa-external-link-square-alt:before {
+  content: "\f360"; }
 
 .fa-folder:before{content:"\f07b"}
 .fa-folder-open:before{content:"\f07c"}

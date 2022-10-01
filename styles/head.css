@@ -1,4 +1,3 @@
-
 .logo {
   background: rgb(20, 20, 100);
   border-radius: 50%;
@@ -92,7 +91,33 @@ nav {
   background: rgba(0,0,0,0.5);
   background-image: linear-gradient(to bottom right, rgba(100,160,240,0.3), rgba(40,70,120,0.3)), url('/Gray-Smooth Surface.png');
 }
-
+#convertShow {
+  cursor: help;
+  text-align: center;
+  margin: 0px;
+} #convertShow i {
+    box-shadow: 1px 2px 2px purple 
+} #convertShow:hover + #convertForm, #convertForm:hover{
+  transform: scaleY(1);
+}
+#convertForm {
+    background: rgba(0,0,0,0.9);
+    border-radius: inherit;
+    border: 1px double gray;
+    box-shadow: 1px 2px 2px black;
+    
+    position: relative;
+    display: block;
+    flex-direction: row;
+} #convert {
+	
+	min-width: 120px; 
+	font-weight: 700; 
+	margin-left: 35%; 	
+}
+.fetch-files {
+	display: none;	
+}
 /* --------------------- */
 .header {
   color: darkgray;

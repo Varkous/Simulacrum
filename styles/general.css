@@ -279,7 +279,7 @@ button {
 
   position: absolute;
   padding: 6px;
-  min-width: 120px;
+  min-width: 150px;
   font-size: 1.1rem;
 } .info.info-up:hover::after {
   content: attr(data-after);
