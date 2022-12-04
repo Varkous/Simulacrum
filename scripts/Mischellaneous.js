@@ -24,6 +24,7 @@ const Requests = {
 	General: false
 };
 
+
 /*===============================================================
   Called on page load and every time a file is submitted or deleted, to see if there are any files listed. If not, hide the panel header and buttons since they serve no purpose in an empty directory. If a directory becomes empty, we automatically delete and re-direct out.
 ===============================================================*/

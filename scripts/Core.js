@@ -285,20 +285,6 @@ async function Flash(content, type = 'warning', items, excess) {
 
 
 /*===============================================================
-  Slides navbar over or away upon hovering/touching logo.
-===============================================================*/
-function showNavbar (evt) { //Displays Navbar and adds nice lighting effect
-
-  if (evt.type === 'mouseleave')
-    return $('main, nav, #FileTable').removeClass('glow-right shift-over');
-
-  $('main').addClass('glow-right');
-  $(FileTable).addClass('glow-right');
-  $('nav').addClass('shift-over');
-};
-
-
-/*===============================================================
   Triggered when the user clicks either Download or Download All. It sends a post request to /zip/<folder name> on the server which creates a zip, finds every file within the given folder name requested, packages them INTO the zip, before returning it as a download response back to the user.
 ===============================================================*/
 async function downloadFiles (fileCard) {
@@ -391,6 +377,21 @@ async function activateDownloads (res, op, data) {
   SelectedFiles.unlist(data.files);
 // ---------------------------------------------------------------------------------
  } catch (err) {console.log(err)};
+};
+
+
+
+/*===============================================================
+  Slides navbar over or away upon hovering/touching logo.
+===============================================================*/
+function showNavbar (evt) { //Displays Navbar and adds nice lighting effect
+
+  if (evt.type === 'mouseleave')
+    return $('main, nav, #FileTable').removeClass('glow-right shift-over');
+
+  $('main').addClass('glow-right');
+  $(FileTable).addClass('glow-right');
+  $('nav').addClass('shift-over');
 };
 
 /* ----------------------------------------- */
